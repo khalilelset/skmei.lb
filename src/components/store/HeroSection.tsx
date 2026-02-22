@@ -36,14 +36,9 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const fadeUp: any = {
-  hidden: { opacity: 0, y: 32 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: "easeOut", delay },
-  }),
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
 };
 
 export default function HeroSection() {
@@ -66,8 +61,8 @@ export default function HeroSection() {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-16 lg:py-24">
+        <div className="grid lg:grid-cols-2 gap-4 lg:gap-12 items-center">
 
           {/* Content */}
           <div className="text-center lg:text-left order-2 lg:order-1">
@@ -76,9 +71,10 @@ export default function HeroSection() {
             <motion.div
               variants={fadeUp}
               initial="hidden"
-              animate="visible"
-              custom={0}
-              className="inline-flex items-center gap-2 bg-brand-red/20 text-brand-red px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6 border border-brand-red/30"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0 }}
+              className="inline-flex items-center gap-2 bg-brand-red/20 text-brand-red px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-6 border border-brand-red/30"
             >
               <span className="w-2 h-2 bg-brand-red rounded-full animate-pulse"></span>
               Official Authorized Dealer in Lebanon
@@ -88,29 +84,25 @@ export default function HeroSection() {
             <motion.h1
               variants={fadeUp}
               initial="hidden"
-              animate="visible"
-              custom={0.15}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 leading-tight"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 sm:mb-6 leading-tight"
             >
               Discover Your
-              <motion.span
-                variants={fadeUp}
-                initial="hidden"
-                animate="visible"
-                custom={0.3}
-                className="text-brand-red block mt-2"
-              >
+              <span className="text-brand-red block mt-1 sm:mt-2">
                 Perfect Timepiece
-              </motion.span>
+              </span>
             </motion.h1>
 
             {/* Description */}
             <motion.p
               variants={fadeUp}
               initial="hidden"
-              animate="visible"
-              custom={0.45}
-              className="text-base sm:text-lg text-brand-silver mb-6 sm:mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+              className="text-sm sm:text-lg text-brand-silver mb-4 sm:mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed"
             >
               Explore our exclusive collection of SKMEI watches. From sporty
               digital to elegant analog, find the watch that matches your style
@@ -121,9 +113,10 @@ export default function HeroSection() {
             <motion.div
               variants={fadeUp}
               initial="hidden"
-              animate="visible"
-              custom={0.6}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-8 sm:mb-0"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start"
             >
               <Link
                 href="/store/products"
@@ -138,9 +131,10 @@ export default function HeroSection() {
             <motion.div
               variants={fadeUp}
               initial="hidden"
-              animate="visible"
-              custom={0.75}
-              className="mt-8 sm:mt-12 grid grid-cols-3 gap-3 sm:gap-6 max-w-md mx-auto lg:mx-0"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.4 }}
+              className="mt-5 sm:mt-12 grid grid-cols-3 gap-3 sm:gap-6 max-w-md mx-auto lg:mx-0"
             >
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-white/15 transition-all">
                 <div className="flex flex-col items-center justify-center h-full">
@@ -172,12 +166,13 @@ export default function HeroSection() {
           {/* Hero Image */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
             className="relative order-1 lg:order-2"
           >
             <div className="relative z-10">
-              <div className="relative w-full aspect-square max-w-sm sm:max-w-md lg:max-w-lg mx-auto">
+              <div className="relative w-full aspect-square max-w-[180px] sm:max-w-md lg:max-w-lg mx-auto">
                 <div className="absolute inset-0 bg-brand-red/30 rounded-full blur-3xl"></div>
                 <div className="relative z-10">
                   <Image
