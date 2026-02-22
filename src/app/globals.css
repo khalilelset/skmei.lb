@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+
+  /* SKMEI Brand Colors - Based on Logo */
+  --brand-red: #dc2626;
+  --brand-red-dark: #b91c1c;
+  --brand-red-light: #ef4444;
+  --brand-black: #000000;
+  --brand-white: #ffffff;
+  --brand-gray: #6b7280;
+  --brand-gray-light: #9ca3af;
+  --brand-gray-dark: #374151;
+  --brand-silver: #e5e7eb;
+  --brand-silver-light: #f3f4f6;
+
+  /* Semantic Colors */
+  --color-primary: var(--brand-red);
+  --color-primary-hover: var(--brand-red-dark);
+  --color-secondary: var(--brand-black);
+  --color-accent: var(--brand-silver);
+  --color-text: var(--brand-black);
+  --color-text-light: var(--brand-gray);
+  --color-border: var(--brand-silver);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Brand Color System */
+  --color-brand-red: var(--brand-red);
+  --color-brand-red-dark: var(--brand-red-dark);
+  --color-brand-red-light: var(--brand-red-light);
+  --color-brand-black: var(--brand-black);
+  --color-brand-white: var(--brand-white);
+  --color-brand-gray: var(--brand-gray);
+  --color-brand-gray-light: var(--brand-gray-light);
+  --color-brand-gray-dark: var(--brand-gray-dark);
+  --color-brand-silver: var(--brand-silver);
+  --color-brand-silver-light: var(--brand-silver-light);
+
+  --color-primary: var(--brand-red);
+  --color-secondary: var(--brand-black);
+
+  /* Font System */
+  --font-montserrat:
+    var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-noto-sans:
+    var(--font-noto-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    var(--font-montserrat), ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-noto-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Custom scrollbar - Brand Colors */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--brand-silver-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-red);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+}
+
+body {
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+  /* Mobile-optimized minimum font size */
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Selection color - Brand Red */
+::selection {
+  background-color: var(--brand-red);
+  color: var(--brand-white);
+}
+
+/* Image optimization */
+img {
+  max-width: 100%;
+  height: auto;
+  /* Prevent layout shift */
+  display: block;
+}
+
+/* Focus styles - Brand Red */
+:focus-visible {
+  outline: 2px solid var(--brand-red);
+  outline-offset: 2px;
+}
+
+/* Remove tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile-first touch improvements */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent text size adjustment on mobile */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Mobile-optimized inputs */
+input,
+textarea,
+select {
+  font-size: 16px; /* Prevent zoom on iOS */
+  max-width: 100%;
+}
+
+/* Safe area for mobile notches */
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Custom ping animation */
+@keyframes ping-custom {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0.25;
+  }
+}
+
+.animate-ping-custom {
+  animation: ping-custom 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Animation for mobile performance */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

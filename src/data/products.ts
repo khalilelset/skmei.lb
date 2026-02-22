@@ -1,0 +1,561 @@
+import { Product, Category } from "@/types";
+
+export const categories: Category[] = [
+  {
+    id: "1",
+    name: "Digital Watches",
+    slug: "digital",
+    description: "Modern digital watches with advanced features",
+    image: "/images/categories/digital.jpg",
+    productCount: 24,
+  },
+  {
+    id: "2",
+    name: "Analog Watches",
+    slug: "analog",
+    description: "Classic analog timepieces for elegant style",
+    image: "/images/categories/analog.jpg",
+    productCount: 18,
+  },
+  {
+    id: "3",
+    name: "Sports Watches",
+    slug: "sports",
+    description: "Durable watches for active lifestyles",
+    image: "/images/categories/sports.jpg",
+    productCount: 32,
+  },
+  {
+    id: "4",
+    name: "Smart Watches",
+    slug: "smart",
+    description: "Connected watches with smart features",
+    image: "/images/categories/smart.jpg",
+    productCount: 15,
+  },
+  {
+    id: "5",
+    name: "Luxury Collection",
+    slug: "luxury",
+    description: "Premium watches for distinguished taste",
+    image: "/images/categories/luxury.jpg",
+    productCount: 12,
+  },
+];
+
+export const products: Product[] = [
+  {
+    id: "1",
+    name: "SKMEI 1251 Digital Sports Watch",
+    slug: "skmei-1251-digital-sports",
+    description:
+      "The SKMEI 1251 is a rugged digital sports watch featuring a large LCD display, 50M water resistance, and multiple functions including stopwatch, alarm, and LED backlight. Perfect for outdoor activities and everyday wear.",
+    price: 25.99,
+    originalPrice: 35.99,
+    images: [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600",
+      "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600",
+    ],
+    category: "digital",
+    brand: "SKMEI",
+    sku: "SKM-1251-BLK",
+    stock: 150,
+    features: [
+      "50M Water Resistant",
+      "LED Backlight",
+      "Stopwatch Function",
+      "Dual Time Display",
+      "Alarm Function",
+      "Auto Calendar",
+    ],
+    specifications: {
+      movement: "Digital Quartz",
+      caseMaterial: "Resin",
+      bandMaterial: "PU Rubber",
+      dialColor: "Black",
+      caseSize: "50mm",
+      waterResistance: "50M / 5ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: true,
+    rating: 4.5,
+    reviewCount: 128,
+    createdAt: "2024-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    id: "2",
+    name: "SKMEI 9198 Business Quartz Watch",
+    slug: "skmei-9198-business-quartz",
+    description:
+      "Elegant business watch with stainless steel construction, date display, and luminous hands. The SKMEI 9198 combines sophistication with reliability for the modern professional.",
+    price: 45.99,
+    originalPrice: 59.99,
+    images: [
+      "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=600",
+      "https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=600",
+    ],
+    category: "analog",
+    brand: "SKMEI",
+    sku: "SKM-9198-SLV",
+    stock: 85,
+    features: [
+      "Stainless Steel Case",
+      "Date Display",
+      "Luminous Hands",
+      "30M Water Resistant",
+      "Sapphire Crystal Glass",
+      "Japanese Movement",
+    ],
+    specifications: {
+      movement: "Japanese Quartz",
+      caseMaterial: "Stainless Steel",
+      bandMaterial: "Genuine Leather",
+      dialColor: "Silver",
+      caseSize: "42mm",
+      waterResistance: "30M / 3ATM",
+      warranty: "1 Year",
+    },
+    isNew: true,
+    isFeatured: true,
+    rating: 4.8,
+    reviewCount: 64,
+    createdAt: "2024-02-01T00:00:00Z",
+    updatedAt: "2024-02-01T00:00:00Z",
+  },
+  {
+    id: "3",
+    name: "SKMEI 1358 Compass Sports Watch",
+    slug: "skmei-1358-compass-sports",
+    description:
+      "Adventure-ready sports watch with built-in compass, altimeter, barometer, and thermometer. The SKMEI 1358 is your ultimate outdoor companion with 50M water resistance.",
+    price: 39.99,
+    images: [
+      "https://images.unsplash.com/photo-1533139502658-0198f920d8e8?w=600",
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600",
+    ],
+    category: "sports",
+    brand: "SKMEI",
+    sku: "SKM-1358-GRN",
+    stock: 120,
+    features: [
+      "Digital Compass",
+      "Altimeter",
+      "Barometer",
+      "Thermometer",
+      "50M Water Resistant",
+      "World Time",
+    ],
+    specifications: {
+      movement: "Digital Quartz",
+      caseMaterial: "ABS Resin",
+      bandMaterial: "PU Rubber",
+      dialColor: "Green/Black",
+      caseSize: "52mm",
+      waterResistance: "50M / 5ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: true,
+    rating: 4.6,
+    reviewCount: 92,
+    createdAt: "2024-01-20T00:00:00Z",
+    updatedAt: "2024-01-20T00:00:00Z",
+  },
+  {
+    id: "4",
+    name: "SKMEI W30 Smart Watch",
+    slug: "skmei-w30-smart-watch",
+    description:
+      "Full-featured smartwatch with heart rate monitoring, blood pressure tracking, sleep analysis, and smartphone notifications. Stay connected and healthy with the SKMEI W30.",
+    price: 65.99,
+    originalPrice: 89.99,
+    images: [
+      "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=600",
+      "https://images.unsplash.com/photo-1617043786394-f977fa12eddf?w=600",
+    ],
+    category: "smart",
+    brand: "SKMEI",
+    sku: "SKM-W30-BLK",
+    stock: 75,
+    features: [
+      "Heart Rate Monitor",
+      "Blood Pressure Tracking",
+      "Sleep Analysis",
+      "Step Counter",
+      "Smartphone Notifications",
+      "IP68 Waterproof",
+    ],
+    specifications: {
+      movement: "Smart Digital",
+      caseMaterial: "Aluminum Alloy",
+      bandMaterial: "Silicone",
+      dialColor: "Black",
+      caseSize: "44mm",
+      waterResistance: "IP68",
+      warranty: "1 Year",
+    },
+    isNew: true,
+    isFeatured: true,
+    rating: 4.4,
+    reviewCount: 156,
+    createdAt: "2024-02-10T00:00:00Z",
+    updatedAt: "2024-02-10T00:00:00Z",
+  },
+  {
+    id: "5",
+    name: "SKMEI 9305 Luxury Chronograph",
+    slug: "skmei-9305-luxury-chronograph",
+    description:
+      "Premium chronograph watch featuring a stunning rose gold finish, genuine leather strap, and precise Japanese movement. The SKMEI 9305 is perfect for those who appreciate luxury.",
+    price: 89.99,
+    originalPrice: 129.99,
+    images: [
+      "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=600",
+      "https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600",
+    ],
+    category: "luxury",
+    brand: "SKMEI",
+    sku: "SKM-9305-RSG",
+    stock: 40,
+    features: [
+      "Chronograph Function",
+      "Rose Gold Finish",
+      "Genuine Leather Strap",
+      "Sapphire Crystal",
+      "30M Water Resistant",
+      "Date Display",
+    ],
+    specifications: {
+      movement: "Japanese Quartz Chronograph",
+      caseMaterial: "Stainless Steel (Rose Gold PVD)",
+      bandMaterial: "Genuine Leather",
+      dialColor: "Rose Gold/White",
+      caseSize: "45mm",
+      waterResistance: "30M / 3ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: true,
+    rating: 4.9,
+    reviewCount: 38,
+    createdAt: "2024-01-05T00:00:00Z",
+    updatedAt: "2024-01-05T00:00:00Z",
+  },
+  {
+    id: "6",
+    name: "SKMEI 1335 Military Watch",
+    slug: "skmei-1335-military",
+    description:
+      "Tough military-style watch with dual time zones, EL backlight, and rugged construction. Built to withstand extreme conditions while maintaining precise timekeeping.",
+    price: 32.99,
+    images: [
+      "https://images.unsplash.com/photo-1548171915-e79a380a2a4b?w=600",
+      "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=600",
+    ],
+    category: "sports",
+    brand: "SKMEI",
+    sku: "SKM-1335-CAM",
+    stock: 200,
+    features: [
+      "Dual Time Zones",
+      "EL Backlight",
+      "Shock Resistant",
+      "50M Water Resistant",
+      "Military Design",
+      "Countdown Timer",
+    ],
+    specifications: {
+      movement: "Digital + Analog Quartz",
+      caseMaterial: "ABS Resin",
+      bandMaterial: "Nylon Canvas",
+      dialColor: "Camouflage",
+      caseSize: "48mm",
+      waterResistance: "50M / 5ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: false,
+    rating: 4.3,
+    reviewCount: 211,
+    createdAt: "2023-12-15T00:00:00Z",
+    updatedAt: "2023-12-15T00:00:00Z",
+  },
+  {
+    id: "7",
+    name: "SKMEI 1464 Minimalist Watch",
+    slug: "skmei-1464-minimalist",
+    description:
+      "Ultra-thin minimalist design with clean aesthetics and reliable timekeeping. The SKMEI 1464 is perfect for those who appreciate understated elegance.",
+    price: 29.99,
+    images: [
+      "https://images.unsplash.com/photo-1434056886845-dbbe837fd1d5?w=600",
+      "https://images.unsplash.com/photo-1495857000853-fe46c8aefc30?w=600",
+    ],
+    category: "analog",
+    brand: "SKMEI",
+    sku: "SKM-1464-WHT",
+    stock: 95,
+    features: [
+      "Ultra-Thin Design (7mm)",
+      "Minimalist Dial",
+      "Mesh Steel Band",
+      "30M Water Resistant",
+      "Japanese Movement",
+      "Scratch-Resistant Glass",
+    ],
+    specifications: {
+      movement: "Japanese Quartz",
+      caseMaterial: "Stainless Steel",
+      bandMaterial: "Stainless Steel Mesh",
+      dialColor: "White",
+      caseSize: "40mm",
+      waterResistance: "30M / 3ATM",
+      warranty: "1 Year",
+    },
+    isNew: true,
+    isFeatured: false,
+    rating: 4.7,
+    reviewCount: 78,
+    createdAt: "2024-02-05T00:00:00Z",
+    updatedAt: "2024-02-05T00:00:00Z",
+  },
+  {
+    id: "8",
+    name: "SKMEI 1155B G-Style Sport",
+    slug: "skmei-1155b-g-style",
+    description:
+      "Bold G-style sports watch with dual display, multiple time zones, and exceptional durability. A statement piece for active individuals.",
+    price: 28.99,
+    originalPrice: 39.99,
+    images: [
+      "https://images.unsplash.com/photo-1585123334904-845d60e97b29?w=600",
+      "https://images.unsplash.com/photo-1509048191080-d2984bad6ae5?w=600",
+    ],
+    category: "sports",
+    brand: "SKMEI",
+    sku: "SKM-1155B-RED",
+    stock: 180,
+    features: [
+      "Dual Display (Analog + Digital)",
+      "Shock Resistant",
+      "50M Water Resistant",
+      "LED Backlight",
+      "Multiple Alarms",
+      "Hourly Chime",
+    ],
+    specifications: {
+      movement: "Digital + Analog Quartz",
+      caseMaterial: "ABS Resin",
+      bandMaterial: "PU Rubber",
+      dialColor: "Black/Red",
+      caseSize: "55mm",
+      waterResistance: "50M / 5ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: true,
+    rating: 4.5,
+    reviewCount: 342,
+    createdAt: "2023-11-20T00:00:00Z",
+    updatedAt: "2023-11-20T00:00:00Z",
+  },
+  {
+    id: "9",
+    name: "SKMEI W37 Pro Smartwatch",
+    slug: "skmei-w37-pro-smartwatch",
+    description:
+      "Advanced smartwatch with AMOLED display, GPS tracking, and comprehensive health monitoring. The W37 Pro is your complete fitness and lifestyle companion.",
+    price: 99.99,
+    originalPrice: 149.99,
+    images: [
+      "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=600",
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600",
+    ],
+    category: "smart",
+    brand: "SKMEI",
+    sku: "SKM-W37P-BLK",
+    stock: 50,
+    features: [
+      "AMOLED Display",
+      "Built-in GPS",
+      "Heart Rate + SpO2",
+      "100+ Sport Modes",
+      "7-Day Battery Life",
+      "Always-On Display",
+    ],
+    specifications: {
+      movement: "Smart Digital",
+      caseMaterial: "Titanium Alloy",
+      bandMaterial: "Fluoroelastomer",
+      dialColor: "Black",
+      caseSize: "46mm",
+      waterResistance: "5ATM + IP68",
+      warranty: "1 Year",
+    },
+    isNew: true,
+    isFeatured: true,
+    rating: 4.7,
+    reviewCount: 89,
+    createdAt: "2024-02-15T00:00:00Z",
+    updatedAt: "2024-02-15T00:00:00Z",
+  },
+  {
+    id: "10",
+    name: "SKMEI 9266 Classic Dress Watch",
+    slug: "skmei-9266-classic-dress",
+    description:
+      "Timeless dress watch with Roman numerals, moonphase display, and premium craftsmanship. Perfect for formal occasions and everyday elegance.",
+    price: 55.99,
+    images: [
+      "https://images.unsplash.com/photo-1526045431048-f857369baa09?w=600",
+      "https://images.unsplash.com/photo-1539874754764-5a96559165b0?w=600",
+    ],
+    category: "luxury",
+    brand: "SKMEI",
+    sku: "SKM-9266-BLU",
+    stock: 65,
+    features: [
+      "Roman Numeral Dial",
+      "Moonphase Display",
+      "Date Function",
+      "Genuine Leather",
+      "Sapphire Crystal",
+      "30M Water Resistant",
+    ],
+    specifications: {
+      movement: "Japanese Quartz",
+      caseMaterial: "Stainless Steel",
+      bandMaterial: "Genuine Leather",
+      dialColor: "Blue",
+      caseSize: "43mm",
+      waterResistance: "30M / 3ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: false,
+    rating: 4.8,
+    reviewCount: 52,
+    createdAt: "2024-01-10T00:00:00Z",
+    updatedAt: "2024-01-10T00:00:00Z",
+  },
+  {
+    id: "11",
+    name: "SKMEI 1712 LED Matrix Watch",
+    slug: "skmei-1712-led-matrix",
+    description:
+      "Futuristic LED matrix display watch with unique time reading format. A conversation starter that combines technology with bold design.",
+    price: 22.99,
+    images: [
+      "https://images.unsplash.com/photo-1557438159-51eec7a6c9e8?w=600",
+      "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=600",
+    ],
+    category: "digital",
+    brand: "SKMEI",
+    sku: "SKM-1712-BLK",
+    stock: 140,
+    features: [
+      "LED Matrix Display",
+      "Binary Time Option",
+      "Date Display",
+      "30M Water Resistant",
+      "Stainless Steel",
+      "Unique Design",
+    ],
+    specifications: {
+      movement: "LED Digital",
+      caseMaterial: "Stainless Steel",
+      bandMaterial: "Stainless Steel",
+      dialColor: "Black LED",
+      caseSize: "44mm",
+      waterResistance: "30M / 3ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: false,
+    rating: 4.2,
+    reviewCount: 167,
+    createdAt: "2023-10-15T00:00:00Z",
+    updatedAt: "2023-10-15T00:00:00Z",
+  },
+  {
+    id: "12",
+    name: "SKMEI Kids Sports Watch",
+    slug: "skmei-kids-sports",
+    description:
+      "Colorful and durable kids watch with educational time display, alarm function, and fun design. Perfect for young adventurers learning to tell time.",
+    price: 15.99,
+    images: [
+      "https://images.unsplash.com/photo-1533139502658-0198f920d8e8?w=600",
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600",
+    ],
+    category: "digital",
+    brand: "SKMEI",
+    sku: "SKM-KIDS-BLU",
+    stock: 250,
+    features: [
+      "Kid-Friendly Design",
+      "Colorful Display",
+      "50M Water Resistant",
+      "Alarm Function",
+      "LED Backlight",
+      "Shock Resistant",
+    ],
+    specifications: {
+      movement: "Digital Quartz",
+      caseMaterial: "ABS Plastic",
+      bandMaterial: "Soft Silicone",
+      dialColor: "Blue/Multi",
+      caseSize: "38mm",
+      waterResistance: "50M / 5ATM",
+      warranty: "1 Year",
+    },
+    isNew: false,
+    isFeatured: false,
+    rating: 4.6,
+    reviewCount: 298,
+    createdAt: "2023-09-01T00:00:00Z",
+    updatedAt: "2023-09-01T00:00:00Z",
+  },
+];
+
+// Helper functions
+export const getFeaturedProducts = (): Product[] => {
+  return products.filter((p) => p.isFeatured);
+};
+
+export const getNewArrivals = (): Product[] => {
+  return products.filter((p) => p.isNew);
+};
+
+export const getSaleProducts = (): Product[] => {
+  return products.filter((p) => p.originalPrice && p.originalPrice > p.price);
+};
+
+export const getProductsByCategory = (categorySlug: string): Product[] => {
+  return products.filter((p) => p.category === categorySlug);
+};
+
+export const getProductBySlug = (slug: string): Product | undefined => {
+  return products.find((p) => p.slug === slug);
+};
+
+export const getRelatedProducts = (
+  product: Product,
+  limit: number = 4
+): Product[] => {
+  return products
+    .filter((p) => p.category === product.category && p.id !== product.id)
+    .slice(0, limit);
+};
+
+export const searchProducts = (query: string): Product[] => {
+  const lowerQuery = query.toLowerCase();
+  return products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(lowerQuery) ||
+      p.description.toLowerCase().includes(lowerQuery) ||
+      p.category.toLowerCase().includes(lowerQuery)
+  );
+};
