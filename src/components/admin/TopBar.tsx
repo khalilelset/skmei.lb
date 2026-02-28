@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   AppBar,
@@ -7,14 +8,9 @@ import {
   IconButton,
   Typography,
   Box,
-  Avatar,
   Tooltip,
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Notifications as NotificationsIcon,
-  AccountCircle as AccountIcon,
-} from '@mui/icons-material';
+import { Menu as MenuIcon, Logout as LogoutIcon } from '@mui/icons-material';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -22,6 +18,14 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onMenuClick, showMenuButton = true }: TopBarProps) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch('/api/admin/auth/logout', { method: 'POST' });
+    router.push('/admin/login');
+    router.refresh();
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -32,68 +36,66 @@ export default function TopBar({ onMenuClick, showMenuButton = true }: TopBarPro
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
       }}
     >
-      <Toolbar>
-        {/* Mobile Menu Button */}
-        {showMenuButton && (
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={onMenuClick}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-        )}
+      <Toolbar sx={{ position: 'relative' }}>
 
-        {/* Logo on mobile / Title on desktop */}
-        <Box sx={{ flexGrow: 1 }}>
-          {/* Mobile: show logo */}
-          <Box sx={{ display: { xs: 'block', md: 'none' }, position: 'relative', width: 120, height: 32 }}>
-            <Image
-              src="/images/logo/black.png"
-              alt="SKMEI.LB"
-              fill
-              style={{ objectFit: 'contain', objectPosition: 'left' }}
-              priority
-            />
-          </Box>
-          {/* Desktop: show text title */}
+        {/* Left — mobile menu button */}
+        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          {showMenuButton && (
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={onMenuClick}
+              sx={{ display: { md: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+          {/* Desktop: subtitle text */}
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#000000' }}>
-              Admin Dashboard
-            </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Manage your SKMEI watch store
             </Typography>
           </Box>
         </Box>
 
-        {/* Right Side Actions */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Notifications */}
-          <Tooltip title="Notifications">
-            <IconButton sx={{ color: 'text.secondary' }}>
-              <NotificationsIcon />
-            </IconButton>
-          </Tooltip>
+        {/* Center — logo (absolute so it's truly centered) */}
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <Box sx={{ position: 'relative', width: 130, height: 34 }}>
+            <Image
+              src="/images/logo/white.png"
+              alt="SKMEI.LB"
+              fill
+              style={{ objectFit: 'contain' }}
+              priority
+            />
+          </Box>
+        </Box>
 
-          {/* User Profile */}
-          <Tooltip title="Admin Profile">
-            <IconButton sx={{ ml: 1 }}>
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: '#DC2626',
-                  fontSize: 16,
-                  fontWeight: 600,
-                }}
-              >
-                A
-              </Avatar>
+        {/* Right — logout */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flex: 1 }}>
+          <Tooltip title="Logout">
+            <IconButton
+              onClick={handleLogout}
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: '#DC2626', bgcolor: 'rgba(220,38,38,0.06)' },
+                transition: 'all 0.2s',
+              }}
+            >
+              <LogoutIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
+
       </Toolbar>
     </AppBar>
   );

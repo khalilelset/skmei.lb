@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Noto_Sans } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/store/Header";
-import Footer from "@/components/store/Footer";
-import CartDrawer from "@/components/store/CartDrawer";
-import FloatingWhatsApp from "@/components/store/FloatingWhatsApp";
-import BottomNav from "@/components/store/BottomNav";
+import StoreLayout from "@/components/StoreLayout";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -45,14 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${montserrat.variable} ${notoSans.variable}`}>
       <body className="antialiased bg-white text-brand-black font-montserrat">
-        <Header />
-        <main className="min-h-screen pt-28 pb-16 lg:pb-0">
-          {children}
-        </main>
-        <Footer />
-        <CartDrawer />
-        <FloatingWhatsApp />
-        <BottomNav />
+        <StoreLayout>{children}</StoreLayout>
       </body>
     </html>
   );

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useProfileStore } from '@/store/profileStore';
 import { formatPrice } from '@/lib/utils';
-import { X, User, MapPin, Phone } from 'lucide-react';
+import { X, User, MapPin, Phone, Tag } from 'lucide-react';
 import Link from 'next/link';
 
 interface WhatsAppCheckoutModalProps {
@@ -32,10 +32,42 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
 
   const subtotal = getTotalPrice();
-  const shipping = subtotal >= 50 ? 0 : 5;
-  const total = subtotal + shipping;
+  const shipping = subtotal >= 50 ? 0 : 4;
+  const discountAmount = appliedCoupon ? Math.round(subtotal * appliedCoupon.discount) / 100 : 0;
+  const total = subtotal + shipping - discountAmount;
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) { setCouponError('Please enter a coupon code'); return; }
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedCoupon({ code: data.code, discount: data.discount });
+        setCouponError('');
+      } else {
+        setCouponError(data.error || 'Invalid coupon code.');
+        setAppliedCoupon(null);
+      }
+    } catch {
+      setCouponError('Failed to validate coupon. Please try again.');
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -87,12 +119,40 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
     message += `\n*Order Summary:*\n`;
     message += `Subtotal: ${formatPrice(subtotal)}\n`;
     message += `Shipping: ${shipping === 0 ? 'FREE ✅' : formatPrice(shipping)}\n`;
+    if (appliedCoupon) {
+      message += `🏷️ Coupon (${appliedCoupon.code} - ${appliedCoupon.discount}% off): -${formatPrice(discountAmount)}\n`;
+    }
     message += `*Total: ${formatPrice(total)}*\n\n`;
     message += `💰 Payment Method: Cash on Delivery\n`;
     message += `\n_Order placed via skmei.lb website_`;
 
     const encodedMessage = encodeURIComponent(message);
     const whatsappURL = `https://wa.me/96179170387?text=${encodedMessage}`;
+
+    // Save order via API route
+    await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_name: formData.name,
+        customer_phone: formData.phone,
+        customer_email: profile.email || null,
+        items: items.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          image: item.product.images[0] ?? null,
+        })),
+        subtotal,
+        shipping,
+        discount: discountAmount,
+        coupon_code: appliedCoupon?.code ?? null,
+        total,
+        address: { full: formData.address },
+        status: 'pending',
+      }),
+    });
 
     window.open(whatsappURL, '_blank');
     setIsSubmitting(false);
@@ -118,9 +178,9 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 md:p-8">
+      {/* Scrollable area — single scroll, centered on desktop */}
+      <div className="flex min-h-full items-start justify-center p-4 sm:items-center sm:py-8">
+      <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 md:p-8 my-4">
           {/* Close Button */}
           <button
             onClick={onClose}
@@ -223,13 +283,62 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
               {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
             </div>
 
+            {/* Coupon Code */}
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-semibold text-brand-black mb-2">
+                <Tag className="w-4 h-4 text-green-600" />
+                Coupon Code
+              </label>
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">
+                  <div>
+                    <p className="text-sm font-bold text-green-700">{appliedCoupon.code}</p>
+                    <p className="text-xs text-green-600">{appliedCoupon.discount}% discount applied — saving {formatPrice(discountAmount)}</p>
+                  </div>
+                  <button type="button" onClick={() => { setAppliedCoupon(null); setCouponInput(''); }} className="text-green-600 hover:text-red-500 transition-colors p-1">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
+                      placeholder="Enter code"
+                      className={`flex-1 px-3 py-2.5 border-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 uppercase tracking-wide ${couponError ? 'border-red-400' : 'border-gray-300'}`}
+                    />
+                    <button type="button" onClick={handleApplyCoupon} className="px-4 py-2 bg-brand-black text-white rounded-lg text-sm font-semibold hover:bg-brand-gray-dark transition-colors">
+                      Apply
+                    </button>
+                  </div>
+                  {couponError && <p className="text-red-500 text-xs mt-1.5">{couponError}</p>}
+                </div>
+              )}
+            </div>
+
             {/* Order Total */}
-            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-              <div className="flex justify-between items-center">
+            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 space-y-1.5">
+              <div className="flex justify-between text-sm text-brand-gray">
+                <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-brand-gray">
+                <span>Shipping</span>
+                <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
+              </div>
+              {appliedCoupon && (
+                <div className="flex justify-between text-sm text-green-600 font-medium">
+                  <span>Discount ({appliedCoupon.discount}%)</span>
+                  <span>-{formatPrice(discountAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-1.5 border-t border-green-200">
                 <span className="font-semibold text-brand-black">Order Total:</span>
                 <span className="text-xl font-bold text-green-600">{formatPrice(total)}</span>
               </div>
-              <p className="text-xs text-brand-gray mt-1">Payment: Cash on Delivery</p>
+              <p className="text-xs text-brand-gray">Payment: Cash on Delivery</p>
             </div>
 
             {/* Submit Button */}

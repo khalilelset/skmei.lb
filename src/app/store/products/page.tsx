@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/store/ProductCard";
-import { products, categories } from "@/data/products";
-import { ProductFilters } from "@/types";
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { categories } from "@/data/products";
+import { Product, ProductFilters } from "@/types";
+import { SlidersHorizontal, X, ChevronDown, ChevronRight, Home } from "lucide-react";
+import Link from "next/link";
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -14,6 +15,8 @@ function ProductsContent() {
   const filterParam = searchParams.get("filter");
   const searchParam = searchParams.get("search");
 
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<ProductFilters>({
     category: categoryParam || undefined,
     sortBy: "newest",
@@ -21,8 +24,15 @@ function ProductsContent() {
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((data) => { setAllProducts(data); setIsLoading(false); })
+      .catch(() => setIsLoading(false));
+  }, []);
+
   const filteredProducts = useMemo(() => {
-    let result = [...products];
+    let result = [...allProducts];
 
     if (filters.search) {
       const query = filters.search.toLowerCase();
@@ -47,6 +57,13 @@ function ProductsContent() {
     }
     if (filterParam === "sale") {
       result = result.filter((p) => p.originalPrice && p.originalPrice > p.price);
+    }
+    if (filterParam === "bestselling") {
+      result.sort((a, b) => b.reviewCount - a.reviewCount || b.rating - a.rating);
+    }
+
+    if (filters.gender) {
+      result = result.filter((p) => p.gender === filters.gender);
     }
 
     if (filters.minPrice !== undefined) {
@@ -80,6 +97,7 @@ function ProductsContent() {
   const getPageTitle = () => {
     if (filters.search) return `Search: "${filters.search}"`;
     if (featuredParam === "true" || filterParam === "featured") return "Featured Watches";
+    if (filterParam === "bestselling") return "Bestselling Watches";
     if (filterParam === "new") return "New Arrivals";
     if (filterParam === "sale") return "On Sale";
     if (filters.category) {
@@ -91,6 +109,7 @@ function ProductsContent() {
 
   const activeFilterCount = [
     filters.category,
+    filters.gender,
     filters.minPrice,
     filters.maxPrice,
   ].filter(Boolean).length;
@@ -105,12 +124,45 @@ function ProductsContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Header */}
-      <div className="bg-brand-black text-white py-10">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-1">{getPageTitle()}</h1>
-          <p className="text-brand-gray-light text-sm sm:text-base">
-            {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} found
-          </p>
+      <div className="relative bg-brand-black text-white py-12 sm:py-16 overflow-hidden">
+        {/* Glowing orbs */}
+        <div className="absolute -top-12 right-1/4 w-72 h-72 bg-brand-red/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 left-1/3 w-52 h-52 bg-brand-red/10 rounded-full blur-2xl pointer-events-none" />
+        {/* Diagonal stripe texture */}
+        <div className="absolute inset-0 opacity-[0.035] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '18px 18px' }} />
+
+        <div className="relative z-10 container mx-auto px-4">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-xs text-white/40 mb-5">
+            <Link href="/" className="flex items-center gap-1 hover:text-white/70 transition-colors">
+              <Home className="w-3 h-3" />
+              Home
+            </Link>
+            <ChevronRight className="w-3 h-3" />
+            <span className="text-white/65">Products</span>
+            {filters.category && (
+              <>
+                <ChevronRight className="w-3 h-3" />
+                <span className="text-white/65 capitalize">{filters.category}</span>
+              </>
+            )}
+          </nav>
+
+          {/* Title row */}
+          <div className="flex flex-wrap items-end gap-3 sm:gap-5">
+            <div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">
+                {getPageTitle()}
+              </h1>
+              <div className="mt-3 h-1 w-14 bg-brand-red rounded-full" />
+            </div>
+
+            {/* Count badge */}
+            <div className="mb-1 inline-flex items-center gap-2 bg-white/10 border border-white/15 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-white/70">
+              <span className="w-1.5 h-1.5 bg-brand-red rounded-full animate-pulse" />
+              {isLoading ? "Loading..." : `${filteredProducts.length} ${filteredProducts.length === 1 ? "product" : "products"} found`}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -161,7 +213,7 @@ function ProductsContent() {
                   Filters & Sort
                 </h3>
                 <button
-                  onClick={() => setFilters({ category: undefined, sortBy: "newest" })}
+                  onClick={() => setFilters({ category: undefined, gender: undefined, sortBy: "newest" })}
                   className="text-xs text-brand-red hover:text-brand-red font-semibold transition-colors hover:underline"
                 >
                   Clear all
@@ -238,6 +290,34 @@ function ProductsContent() {
 
                 <div className="border-t border-gray-100" />
 
+                {/* Gender */}
+                <div>
+                  <p className="text-[10px] font-bold text-brand-gray uppercase tracking-widest mb-2">Gender</p>
+                  <div className="space-y-0.5">
+                    {([
+                      { value: undefined, label: 'All' },
+                      { value: 'men',    label: 'Men' },
+                      { value: 'women',  label: 'Women' },
+                      { value: 'unisex', label: 'Unisex' },
+                    ] as { value: 'men' | 'women' | 'unisex' | undefined; label: string }[]).map((g) => (
+                      <button
+                        key={g.label}
+                        onClick={() => setFilters((f) => ({ ...f, gender: g.value }))}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
+                          filters.gender === g.value
+                            ? 'bg-brand-red/10 text-brand-red font-semibold'
+                            : 'text-brand-gray hover:bg-gray-50 hover:text-brand-black'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${filters.gender === g.value ? 'bg-brand-red' : 'bg-transparent'}`} />
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100" />
+
                 {/* Price Range */}
                 <div>
                   <p className="text-[10px] font-bold text-brand-gray uppercase tracking-widest mb-2">Price Range</p>
@@ -303,7 +383,18 @@ function ProductsContent() {
             </div>
 
             {/* Products Grid */}
-            {filteredProducts.length > 0 ? (
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
+                    <div className="aspect-square bg-gray-200 rounded-xl mb-4" />
+                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-2" />
+                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
@@ -317,7 +408,7 @@ function ProductsContent() {
                 <h3 className="text-xl font-bold text-brand-black mb-2">No products found</h3>
                 <p className="text-brand-gray mb-6">Try adjusting your filters or search terms</p>
                 <button
-                  onClick={() => setFilters({ category: undefined, sortBy: "newest" })}
+                  onClick={() => setFilters({ category: undefined, gender: undefined, sortBy: "newest" })}
                   className="px-6 py-2.5 bg-brand-red text-white rounded-xl font-semibold hover:bg-brand-red/90 transition-colors"
                 >
                   Clear Filters
@@ -411,6 +502,31 @@ function ProductsContent() {
                 </div>
               </div>
 
+              {/* Gender */}
+              <div>
+                <p className="text-[10px] font-bold text-brand-gray uppercase tracking-widest mb-3">Gender</p>
+                <div className="flex gap-2">
+                  {([
+                    { value: undefined, label: 'All' },
+                    { value: 'men',    label: 'Men' },
+                    { value: 'women',  label: 'Women' },
+                    { value: 'unisex', label: 'Unisex' },
+                  ] as { value: 'men' | 'women' | 'unisex' | undefined; label: string }[]).map((g) => (
+                    <button
+                      key={g.label}
+                      onClick={() => setFilters((f) => ({ ...f, gender: g.value }))}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        filters.gender === g.value
+                          ? 'bg-brand-red text-white shadow-md shadow-brand-red/25'
+                          : 'bg-gray-100 text-brand-gray hover:bg-gray-200'
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Price Range */}
               <div>
                 <p className="text-[10px] font-bold text-brand-gray uppercase tracking-widest mb-3">Price Range</p>
@@ -456,7 +572,7 @@ function ProductsContent() {
             {/* Action buttons — pinned above bottom nav */}
             <div className="shrink-0 border-t border-gray-100 p-4 pb-safe flex gap-3 bg-white">
               <button
-                onClick={() => setFilters({ category: undefined, sortBy: "newest" })}
+                onClick={() => setFilters({ category: undefined, gender: undefined, sortBy: "newest" })}
                 className="flex-1 py-3 border-2 border-gray-200 rounded-xl text-sm font-semibold text-brand-gray hover:border-brand-red hover:text-brand-red transition-colors"
               >
                 Clear All
@@ -465,7 +581,7 @@ function ProductsContent() {
                 onClick={() => setIsMobileFilterOpen(false)}
                 className="flex-1 py-3 bg-brand-red text-white rounded-xl text-sm font-semibold hover:bg-brand-red/90 transition-colors shadow-lg shadow-brand-red/20"
               >
-                Show {filteredProducts.length} Results
+                Show {isLoading ? "..." : filteredProducts.length} Results
               </button>
             </div>
           </div>
@@ -478,10 +594,12 @@ function ProductsContent() {
 function ProductsLoading() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-brand-black py-10">
-        <div className="container mx-auto px-4">
-          <div className="h-9 w-48 bg-white/20 rounded-lg animate-pulse mb-2" />
-          <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
+      <div className="relative bg-brand-black py-12 sm:py-16 overflow-hidden">
+        <div className="absolute -top-12 right-1/4 w-72 h-72 bg-brand-red/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 container mx-auto px-4">
+          <div className="h-3 w-32 bg-white/10 rounded-full animate-pulse mb-5" />
+          <div className="h-12 w-56 bg-white/20 rounded-lg animate-pulse mb-3" />
+          <div className="h-1 w-14 bg-brand-red/50 rounded-full" />
         </div>
       </div>
       <div className="container mx-auto px-4 py-8">

@@ -102,6 +102,7 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "skmei-cart",
+      skipHydration: true,
     }
   )
 );

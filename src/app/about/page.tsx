@@ -95,10 +95,22 @@ export default function AboutPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          {/* Red accent line above badge */}
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ duration: 0.5 }}
+            className="flex items-center justify-center gap-2 mb-4"
+          >
+            <span className="w-8 h-px bg-brand-red/40" />
+            <span className="w-16 h-0.5 bg-brand-red rounded-full" />
+            <span className="w-8 h-px bg-brand-red/40" />
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
             className="inline-flex items-center gap-2 bg-brand-red/20 border border-brand-red/30 text-brand-red px-4 py-2 rounded-full text-sm font-medium mb-6"
           >
             <span className="w-2 h-2 bg-brand-red rounded-full animate-pulse" />

@@ -1,22 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
-import { getProductBySlug, getRelatedProducts } from "@/data/products";
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice, calculateDiscount, getStockStatus } from "@/lib/utils";
 import ProductCard from "@/components/store/ProductCard";
+import ReviewSection from "@/components/store/ReviewSection";
+import type { Product } from "@/types";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const product = getProductBySlug(slug);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const { addItem, openCart } = useCartStore();
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollToImage = useCallback((index: number) => {
+    setSelectedImage(index);
+    carouselRef.current?.scrollTo({ left: index * carouselRef.current.clientWidth, behavior: "smooth" });
+  }, []);
+
+  const handleCarouselScroll = useCallback(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.clientWidth);
+    setSelectedImage(index);
+  }, []);
+
+  useEffect(() => {
+    fetch(`/api/products/${slug}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.product) {
+          setProduct(data.product);
+          setRelatedProducts(data.related ?? []);
+        }
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, [slug]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid lg:grid-cols-2 gap-12 animate-pulse">
+            <div className="aspect-square bg-gray-200 rounded-2xl" />
+            <div className="space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="h-8 bg-gray-200 rounded w-3/4" />
+              <div className="h-10 bg-gray-200 rounded w-1/3" />
+              <div className="h-20 bg-gray-200 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -36,7 +83,6 @@ export default function ProductDetailPage() {
     );
   }
 
-  const relatedProducts = getRelatedProducts(product);
   const discount = product.originalPrice
     ? calculateDiscount(product.originalPrice, product.price)
     : 0;
@@ -84,19 +130,31 @@ export default function ProductDetailPage() {
       <section className="py-8 lg:py-12">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* Images */}
+            {/* Images Carousel */}
             <div className="flex flex-col gap-3">
-              {/* Main Image */}
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-brand-silver-light border border-brand-silver shadow-lg">
-                <Image
-                  src={product.images[selectedImage]}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  priority
-                />
+              {/* Swipeable Carousel */}
+              <div className="relative rounded-2xl overflow-hidden bg-brand-silver-light border border-brand-silver shadow-lg">
+                <div
+                  ref={carouselRef}
+                  onScroll={handleCarouselScroll}
+                  className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth aspect-square"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {product.images.map((image, index) => (
+                    <div key={index} className="relative shrink-0 w-full aspect-square">
+                      <Image
+                        src={image}
+                        alt={`${product.name} ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        priority={index === 0}
+                      />
+                    </div>
+                  ))}
+                </div>
+
                 {/* Badges */}
-                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                   {product.isNew && (
                     <span className="bg-emerald-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
                       NEW
@@ -108,15 +166,32 @@ export default function ProductDetailPage() {
                     </span>
                   )}
                 </div>
+
+                {/* Dot Indicators */}
+                {product.images.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    {product.images.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => scrollToImage(index)}
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          selectedImage === index
+                            ? "bg-white w-5"
+                            : "bg-white/50 w-2 hover:bg-white/80"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Thumbnails — horizontal row below */}
+              {/* Thumbnails */}
               {product.images.length > 1 && (
                 <div className="flex gap-2.5 overflow-x-auto py-1">
                   {product.images.map((image, index) => (
                     <button
                       key={index}
-                      onClick={() => setSelectedImage(index)}
+                      onClick={() => scrollToImage(index)}
                       className={`relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                         selectedImage === index
                           ? "border-brand-red shadow-md shadow-brand-red/30 scale-105"
@@ -168,6 +243,27 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
+              {/* Add to Cart — mobile only, right under price */}
+              <div className="flex lg:hidden items-center gap-3 mb-6">
+                <div className="flex items-center border border-brand-silver rounded-lg shrink-0">
+                  <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="px-3 py-2.5 hover:bg-slate-100 transition">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                  </button>
+                  <span className="px-3 py-2.5 font-semibold min-w-8 text-center">{quantity}</span>
+                  <button onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} className="px-3 py-2.5 hover:bg-slate-100 transition">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  </button>
+                </div>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 0}
+                  className="flex-1 bg-brand-red text-white py-2.5 rounded-lg font-semibold hover:bg-brand-red-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-brand-red/30"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                </button>
+              </div>
+
               {/* Stock Status */}
               <div className="flex items-center gap-2 mb-6">
                 <span className={`${stockStatus.color} font-medium`}>
@@ -210,8 +306,8 @@ export default function ProductDetailPage() {
                 </ul>
               </div>
 
-              {/* Add to Cart */}
-              <div className="flex items-center gap-4 mb-6">
+              {/* Add to Cart — desktop only (mobile uses sticky bottom bar) */}
+              <div className="hidden lg:flex items-center gap-4 mb-6">
                 {/* Quantity */}
                 <div className="flex items-center border rounded-lg">
                   <button
@@ -346,6 +442,13 @@ export default function ProductDetailPage() {
         </div>
       </section>
 
+      {/* Reviews */}
+      <ReviewSection
+        slug={slug}
+        initialRating={product.rating}
+        initialCount={product.reviewCount}
+      />
+
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section className="py-12">
@@ -353,14 +456,17 @@ export default function ProductDetailPage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-6">
               Related Products
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory">
               {relatedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <div key={product.id} className="shrink-0 w-64 snap-start">
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           </div>
         </section>
       )}
+
     </div>
   );
 }

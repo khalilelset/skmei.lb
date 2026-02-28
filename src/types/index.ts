@@ -15,6 +15,7 @@ export interface Product {
   specifications: ProductSpecifications;
   isNew?: boolean;
   isFeatured?: boolean;
+  gender?: 'men' | 'women' | 'unisex';
   rating: number;
   reviewCount: number;
   createdAt: string;
@@ -138,6 +139,7 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   brand?: string;
+  gender?: 'men' | 'women' | 'unisex';
   sortBy?: "price-asc" | "price-desc" | "newest" | "popular";
   search?: string;
 }

@@ -14,6 +14,8 @@ import {
   Banknote,
   CheckCircle2,
   User,
+  Tag,
+  X,
 } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -24,6 +26,9 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
 
   // Pre-fill from saved profile
   const nameParts = profile.name.trim().split(' ');
@@ -42,9 +47,38 @@ export default function CheckoutPage() {
   });
 
   const subtotal = getTotalPrice();
-  const shipping = subtotal >= 50 ? 0 : 5;
-  const total = subtotal + shipping;
+  const shipping = subtotal >= 50 ? 0 : 4;
+  const discountAmount = appliedCoupon ? Math.round(subtotal * appliedCoupon.discount) / 100 : 0;
+  const total = subtotal + shipping - discountAmount;
   const totalItems = getTotalItems();
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) { setCouponError('Please enter a coupon code'); return; }
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedCoupon({ code: data.code, discount: data.discount });
+        setCouponError('');
+      } else {
+        setCouponError(data.error || 'Invalid coupon code. Please try again.');
+        setAppliedCoupon(null);
+      }
+    } catch {
+      setCouponError('Failed to validate coupon. Please try again.');
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError('');
+  };
 
   const lebanonCities = [
     'Tripoli',
@@ -109,6 +143,36 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: `${formData.firstName} ${formData.lastName}`.trim(),
+          customer_phone: formData.phone,
+          customer_email: formData.email || null,
+          items: items.map((item) => ({
+            id: item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+            image: item.product.images[0] ?? null,
+          })),
+          subtotal,
+          shipping,
+          discount: discountAmount,
+          coupon_code: appliedCoupon?.code ?? null,
+          total,
+          address: { street: formData.street, city: formData.city },
+          notes: formData.notes || null,
+          status: 'pending',
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to save order:', err);
+    }
+
     setTimeout(() => {
       setIsSubmitting(false);
       setOrderPlaced(true);
@@ -210,11 +274,11 @@ export default function CheckoutPage() {
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <Link
-            href="/store/cart"
+            href="/store/products"
             className="inline-flex items-center text-brand-gray hover:text-brand-red transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Cart
+            Continue Shopping
           </Link>
           <h1 className="text-2xl md:text-3xl font-bold text-brand-black mb-2">Checkout</h1>
           <p className="text-brand-gray">Complete your order</p>
@@ -497,6 +561,53 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
+                {/* Coupon Code */}
+                <div className="border-t pt-4 mb-4">
+                  <p className="text-sm font-semibold text-brand-black mb-2 flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-brand-red" />
+                    Coupon Code
+                  </p>
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">
+                      <div>
+                        <p className="text-sm font-bold text-green-700">{appliedCoupon.code}</p>
+                        <p className="text-xs text-green-600">{appliedCoupon.discount}% discount applied</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-green-600 hover:text-red-500 transition-colors p-1"
+                        aria-label="Remove coupon"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponInput}
+                          onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
+                          placeholder="Enter code"
+                          className={`flex-1 px-3 py-2 border-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red uppercase tracking-wide ${couponError ? 'border-red-400' : 'border-gray-200'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          className="px-4 py-2 bg-brand-black text-white rounded-lg text-sm font-semibold hover:bg-brand-gray-dark transition-colors"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="text-red-500 text-xs mt-1.5">{couponError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-3 border-t pt-4">
                   <div className="flex justify-between text-brand-gray">
                     <span>Subtotal ({totalItems} items)</span>
@@ -508,6 +619,12 @@ export default function CheckoutPage() {
                       {shipping === 0 ? 'FREE' : formatPrice(shipping)}
                     </span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-green-600 font-medium">
+                      <span>Discount ({appliedCoupon.discount}%)</span>
+                      <span>-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
                   {subtotal < 50 && (
                     <div className="text-xs text-brand-gray bg-gray-50 p-3 rounded">
                       Add {formatPrice(50 - subtotal)} more for free shipping

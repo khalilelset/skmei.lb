@@ -20,6 +20,10 @@ import {
   ShoppingCart as OrdersIcon,
   Inventory as ProductsIcon,
   People as CustomersIcon,
+  LocalOffer as CouponsIcon,
+  Instagram as InstagramIcon,
+  StarRate as FeedbackIcon,
+  Category as CategoryIcon,
 } from '@mui/icons-material';
 
 interface SidebarProps {
@@ -33,6 +37,10 @@ const menuItems = [
   { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders' },
   { text: 'Products', icon: <ProductsIcon />, href: '/admin/products' },
   { text: 'Customers', icon: <CustomersIcon />, href: '/admin/customers' },
+  { text: 'Coupons', icon: <CouponsIcon />, href: '/admin/coupons' },
+  { text: 'Categories', icon: <CategoryIcon />, href: '/admin/categories' },
+  { text: 'Instagram', icon: <InstagramIcon />, href: '/admin/instagram' },
+  { text: 'Feedback', icon: <FeedbackIcon />, href: '/admin/feedback' },
 ];
 
 const DRAWER_WIDTH = 240;
@@ -66,36 +74,35 @@ export default function Sidebar({ open, onClose, variant = 'permanent' }: Sideba
           const isActive = pathname === item.href;
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-              <Link href={item.href} passHref legacyBehavior>
-                <ListItemButton
-                  component="a"
-                  onClick={variant === 'temporary' ? onClose : undefined}
+              <ListItemButton
+                component={Link}
+                href={item.href}
+                onClick={variant === 'temporary' ? onClose : undefined}
+                sx={{
+                  mx: 1,
+                  borderRadius: 2,
+                  bgcolor: isActive ? 'rgba(220, 38, 38, 0.08)' : 'transparent',
+                  '&:hover': {
+                    bgcolor: isActive ? 'rgba(220, 38, 38, 0.12)' : 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+                <ListItemIcon
                   sx={{
-                    mx: 1,
-                    borderRadius: 2,
-                    bgcolor: isActive ? 'rgba(220, 38, 38, 0.08)' : 'transparent',
-                    '&:hover': {
-                      bgcolor: isActive ? 'rgba(220, 38, 38, 0.12)' : 'rgba(0, 0, 0, 0.04)',
-                    },
+                    minWidth: 40,
+                    color: isActive ? '#DC2626' : 'text.secondary',
                   }}
                 >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 40,
-                      color: isActive ? '#DC2626' : 'text.secondary',
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.text}
-                    primaryTypographyProps={{
-                      fontWeight: isActive ? 600 : 400,
-                      color: isActive ? '#DC2626' : 'text.primary',
-                    }}
-                  />
-                </ListItemButton>
-              </Link>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? '#DC2626' : 'text.primary',
+                  }}
+                />
+              </ListItemButton>
             </ListItem>
           );
         })}
@@ -103,9 +110,9 @@ export default function Sidebar({ open, onClose, variant = 'permanent' }: Sideba
 
       {/* Footer */}
       <Box sx={{ p: 2, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
-        <Link href="/" passHref legacyBehavior>
-          <ListItemButton
-            component="a"
+        <ListItemButton
+            component={Link}
+            href="/"
             sx={{
               borderRadius: 2,
               mb: 1,
@@ -123,7 +130,6 @@ export default function Sidebar({ open, onClose, variant = 'permanent' }: Sideba
               primaryTypographyProps={{ fontSize: 13, fontWeight: 500, color: '#DC2626' }}
             />
           </ListItemButton>
-        </Link>
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
           © 2025 SKMEI.LB · Authorized Dealer
         </Typography>

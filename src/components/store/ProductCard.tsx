@@ -51,16 +51,15 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Quick Add Button - Show on hover (desktop) or always visible on mobile */}
-          <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
+          {/* Quick Add — desktop hover overlay only */}
+          <div className="hidden lg:block absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <button
               onClick={handleAddToCart}
-              className="w-full bg-brand-red text-white py-2 sm:py-2.5 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
+              className="w-full bg-brand-red text-white py-2.5 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
               aria-label={`Add ${product.name} to cart`}
             >
-              <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden xs:inline">Add to Cart</span>
-              <span className="xs:hidden">Add</span>
+              <ShoppingCart className="w-4 h-4" />
+              Add to Cart
             </button>
           </div>
         </div>
@@ -79,6 +78,25 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
 
 
+          {/* Star Rating */}
+          {product.rating > 0 && (
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className="w-3 h-3 sm:w-3.5 sm:h-3.5"
+                    fill={s <= Math.round(product.rating) ? '#DC2626' : 'transparent'}
+                    stroke={s <= Math.round(product.rating) ? '#DC2626' : '#d1d5db'}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] sm:text-xs text-brand-gray">
+                ({product.reviewCount})
+              </span>
+            </div>
+          )}
+
           {/* Price - Mobile Friendly Size */}
           <div className="flex items-baseline gap-2">
             <span className="text-base sm:text-lg font-bold text-brand-black">
@@ -90,6 +108,17 @@ export default function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
           </div>
+
+          {/* Add to Cart Button — mobile only */}
+          <button
+            onClick={handleAddToCart}
+            disabled={product.stock === 0}
+            className="lg:hidden w-full mt-3 bg-brand-red text-white py-2 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={`Add ${product.name} to cart`}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Add to Cart
+          </button>
 
           {/* Stock Indicator - Mobile */}
           {product.stock < 10 && product.stock > 0 && (
