@@ -9,6 +9,7 @@ import {
   Timer, Clock, Activity, Watch, Gem, Truck, Shield,
   Tag, Info, Phone,
 } from "lucide-react";
+import Marquee from "react-fast-marquee";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   digital: <Timer className="w-4 h-4" />,
@@ -81,23 +82,44 @@ export default function Header() {
       }`}
     >
       {/* Top Bar */}
-      <div className="bg-brand-black border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center gap-0 py-2">
-            <div className="flex items-center gap-1.5 px-3 sm:px-5">
-              <Truck className="w-3.5 h-3.5 text-brand-red shrink-0" />
-              <span className="text-white/80 text-[11px] sm:text-xs font-medium whitespace-nowrap">
-                Free Shipping on Orders Over $50
-              </span>
-            </div>
-            <span className="w-px h-3.5 bg-white/20 shrink-0" />
-            <div className="flex items-center gap-1.5 px-3 sm:px-5">
-              <Shield className="w-3.5 h-3.5 text-brand-red shrink-0" />
-              <span className="text-white/80 text-[11px] sm:text-xs font-medium whitespace-nowrap">
-                1-Year Warranty on All Watches
-              </span>
-            </div>
+      <div className="bg-brand-black border-b border-white/5 py-1 overflow-hidden">
+        {/* Desktop: static centered */}
+        <div className="hidden md:flex items-center justify-center gap-0">
+          <div className="flex items-center gap-1 px-6">
+            <Truck className="w-3 h-3 text-brand-red shrink-0" />
+            <span className="text-white/70 text-[10px] font-medium whitespace-nowrap">
+              Free Shipping on Orders Over $50
+            </span>
           </div>
+          <span className="w-px h-3 bg-white/20 shrink-0" />
+          <div className="flex items-center gap-1 px-6">
+            <Shield className="w-3 h-3 text-brand-red shrink-0" />
+            <span className="text-white/70 text-[10px] font-medium whitespace-nowrap">
+              1-Year Warranty on All Watches
+            </span>
+          </div>
+        </div>
+
+        {/* Mobile: scrolling marquee */}
+        <div className="md:hidden">
+          <Marquee speed={40} gradient={false} pauseOnHover>
+            <div className="flex items-center">
+              <div className="flex items-center gap-1 px-6">
+                <Truck className="w-3 h-3 text-brand-red shrink-0" />
+                <span className="text-white/70 text-[10px] font-medium whitespace-nowrap">
+                  Free Shipping on Orders Over $50
+                </span>
+              </div>
+              <span className="w-px h-3 bg-white/20 shrink-0" />
+              <div className="flex items-center gap-1 px-6">
+                <Shield className="w-3 h-3 text-brand-red shrink-0" />
+                <span className="text-white/70 text-[10px] font-medium whitespace-nowrap">
+                  1-Year Warranty on All Watches
+                </span>
+              </div>
+              <span className="w-px h-3 bg-white/20 shrink-0" />
+            </div>
+          </Marquee>
         </div>
       </div>
 

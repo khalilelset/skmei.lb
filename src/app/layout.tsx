@@ -40,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${montserrat.variable} ${notoSans.variable}`}>
-      <body className="antialiased bg-white text-brand-black font-montserrat">
+      <body className="antialiased bg-white text-brand-black font-montserrat" suppressHydrationWarning>
         <StoreLayout>{children}</StoreLayout>
       </body>
     </html>

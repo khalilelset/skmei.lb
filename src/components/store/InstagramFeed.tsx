@@ -22,6 +22,71 @@ type Post = {
 
 const DESKTOP_LIMIT = 8;
 
+const FALLBACK_POSTS: Post[] = [
+  {
+    id: 'f1', type: 'image',
+    images: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop'],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 312, comments: 18,
+    caption: 'Precision meets style. The SKMEI 1068 — built for those who move fast. ⌚🔥 #SKMEI #WatchOfTheDay',
+  },
+  {
+    id: 'f2', type: 'image',
+    images: ['https://images.unsplash.com/photo-1524592094714-0f0654e59cf?w=600&q=80&fit=crop'],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 489, comments: 34,
+    caption: 'Classic analog elegance that never goes out of style. 🕰️ Available now at SKMEI.LB #WatchLovers',
+  },
+  {
+    id: 'f3', type: 'carousel',
+    images: [
+      'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80&fit=crop',
+      'https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600&q=80&fit=crop',
+    ],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 627, comments: 41,
+    caption: 'Sports collection drop 🏃‍♂️ Waterproof, shock-resistant, and always on time. Swipe to see all colors! #SportWatch',
+  },
+  {
+    id: 'f4', type: 'image',
+    images: ['https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600&q=80&fit=crop'],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 214, comments: 12,
+    caption: 'Your wrist deserves the best. Luxury look, unbeatable price. 💎 #SKMEI #Lebanon',
+  },
+  {
+    id: 'f5', type: 'image',
+    images: ['https://images.unsplash.com/photo-1508057198894-247b23fe5ade?w=600&q=80&fit=crop'],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 398, comments: 27,
+    caption: 'New arrivals just landed! 🚀 Shop the latest SKMEI collection before it sells out. Link in bio. #NewArrivals',
+  },
+  {
+    id: 'f6', type: 'image',
+    images: ['https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=600&q=80&fit=crop'],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 551, comments: 45,
+    caption: 'Every second counts. Make it stylish. ⏱️ SKMEI digital sport series. #DigitalWatch #SKMEILB',
+  },
+  {
+    id: 'f7', type: 'image',
+    images: ['https://images.unsplash.com/photo-1612817288484-6f916006741a?w=600&q=80&fit=crop'],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 183, comments: 9,
+    caption: 'Minimalist design. Maximum impact. 🖤 #WatchStyle #SKMEI',
+  },
+  {
+    id: 'f8', type: 'carousel',
+    images: [
+      'https://images.unsplash.com/photo-1539874754764-5a96559165b0?w=600&q=80&fit=crop',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop',
+    ],
+    postUrl: 'https://www.instagram.com/skmei.lb/',
+    likes: 742, comments: 63,
+    caption: 'His & Hers collection 💑 The perfect gift for every occasion. Free shipping across Lebanon! #GiftIdeas',
+  },
+];
+
 export default function InstagramFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -32,8 +97,8 @@ export default function InstagramFeed() {
   useEffect(() => {
     fetch('/api/instagram')
       .then((r) => r.json())
-      .then((data) => setPosts(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .then((data) => setPosts(Array.isArray(data) && data.length > 0 ? data : FALLBACK_POSTS))
+      .catch(() => setPosts(FALLBACK_POSTS));
   }, []);
 
   const openPost = (index: number) => {

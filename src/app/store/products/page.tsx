@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/store/ProductCard";
-import { categories } from "@/data/products";
+import { categories, products as staticProducts } from "@/data/products";
 import { Product, ProductFilters } from "@/types";
 import { SlidersHorizontal, X, ChevronDown, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
@@ -27,8 +27,12 @@ function ProductsContent() {
   useEffect(() => {
     fetch('/api/products')
       .then((r) => r.json())
-      .then((data) => { setAllProducts(data); setIsLoading(false); })
-      .catch(() => setIsLoading(false));
+      .then((data) => {
+        const list = Array.isArray(data) && data.length > 0 ? data : staticProducts;
+        setAllProducts(list);
+        setIsLoading(false);
+      })
+      .catch(() => { setAllProducts(staticProducts); setIsLoading(false); });
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -92,7 +96,7 @@ function ProductsContent() {
     }
 
     return result;
-  }, [filters, featuredParam, filterParam]);
+  }, [allProducts, filters, featuredParam, filterParam]);
 
   const getPageTitle = () => {
     if (filters.search) return `Search: "${filters.search}"`;

@@ -45,14 +45,14 @@ export default function HeroSection() {
   return (
     <section className="relative bg-gradient-to-br from-brand-black via-brand-gray-dark to-brand-black overflow-hidden">
       {/* Red Swoosh Background Accent */}
-      <div className="absolute top-0 right-0 w-full h-full opacity-10">
+      <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
         <div className="absolute top-1/4 right-0 w-3/4 h-1 bg-gradient-to-r from-transparent via-brand-red to-transparent transform rotate-12" />
         <div className="absolute top-1/2 right-0 w-2/3 h-1 bg-gradient-to-r from-transparent via-brand-red to-transparent transform -rotate-6" />
         <div className="absolute bottom-1/4 right-0 w-3/4 h-1 bg-gradient-to-r from-transparent via-brand-red to-transparent transform rotate-3" />
       </div>
 
       {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
+      <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div
           className="absolute inset-0"
           style={{
@@ -191,7 +191,7 @@ export default function HeroSection() {
       </div>
 
       {/* Bottom Wave */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
         <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
           <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" />
         </svg>
