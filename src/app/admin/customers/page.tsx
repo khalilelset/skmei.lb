@@ -144,10 +144,10 @@ export default function CustomersPage() {
     <Box>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Customers Management
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary">
           View and manage your customer base
         </Typography>
       </Box>
@@ -173,7 +173,7 @@ export default function CustomersPage() {
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#DC2626' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#DC2626', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               {customers.length}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -183,7 +183,7 @@ export default function CustomersPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#22C55E' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#22C55E', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               {customers.length}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -193,7 +193,7 @@ export default function CustomersPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#3B82F6' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#3B82F6', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               0
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -361,6 +361,10 @@ export default function CustomersPage() {
               <Button onClick={handleCloseDialog}>Close</Button>
               <Button
                 variant="contained"
+                component="a"
+                href={`https://wa.me/${selectedCustomer.phone.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
                   bgcolor: '#DC2626',
                   '&:hover': { bgcolor: '#B91C1C' },

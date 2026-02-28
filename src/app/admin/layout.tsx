@@ -86,6 +86,7 @@ export default function AdminLayout({
           sx={{
             flexGrow: 1,
             width: { md: 'calc(100% - 240px)' },
+            minWidth: 0,
             minHeight: '100vh',
           }}
         >

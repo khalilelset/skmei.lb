@@ -239,13 +239,13 @@ export default function ProductsPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Box sx={{ mb: 4, display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Products Management</Typography>
-          <Typography variant="body1" color="text.secondary">Manage your watch inventory and catalog</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>Products Management</Typography>
+          <Typography variant="body2" color="text.secondary">Manage your watch inventory and catalog</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
-          sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+          sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, flexShrink: 0 }}>
           Add Product
         </Button>
       </Box>
@@ -278,11 +278,11 @@ export default function ProductsPage() {
       </Paper>
 
       <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
           <Typography variant="body2" color="text.secondary">
             {isLoading ? 'Loading...' : `Showing ${filteredProducts.length} of ${products.length} products`}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {(['in-stock', 'low-stock', 'out-of-stock'] as const).map((s) => (
               <Chip key={s} size="small"
                 label={`${products.filter(p => getStockLabel(p.stock) === s).length} ${s.replace('-', ' ')}`}

@@ -103,10 +103,10 @@ export default function AdminDashboard() {
     <Box>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Dashboard Overview
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary">
           Welcome to your admin dashboard. Here&apos;s what&apos;s happening with your store.
         </Typography>
       </Box>
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
 
       {/* Recent Orders */}
       <Paper sx={{ p: 3, mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 3 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
               Recent Orders
@@ -174,6 +174,7 @@ export default function AdminDashboard() {
             sx={{
               borderColor: '#DC2626',
               color: '#DC2626',
+              alignSelf: { xs: 'flex-start', sm: 'auto' },
               '&:hover': { borderColor: '#B91C1C', bgcolor: 'rgba(220, 38, 38, 0.04)' },
             }}
           >

@@ -29,7 +29,7 @@ export default function StatsCard({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {title}
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               {value}
             </Typography>
           </Box>

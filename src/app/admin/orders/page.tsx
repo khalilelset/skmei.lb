@@ -161,8 +161,8 @@ export default function OrdersPage() {
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Orders Management</Typography>
-        <Typography variant="body1" color="text.secondary">View and manage all customer orders</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>Orders Management</Typography>
+        <Typography variant="body2" color="text.secondary">View and manage all customer orders</Typography>
       </Box>
 
       <Paper sx={{ p: 3, mb: 3 }}>

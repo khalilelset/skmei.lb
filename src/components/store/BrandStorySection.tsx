@@ -9,7 +9,7 @@ import { motion, useInView } from 'framer-motion';
 const items = [
   {
     title: 'Official Authorized Dealer',
-    desc: 'Licensed by SKMEI International until November 2026',
+    desc: 'Licensed by SKMEI International',
   },
   {
     title: 'Wholesale & Retail',
