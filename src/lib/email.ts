@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL ?? "SKMEI.LB <onboarding@resend.dev>";
@@ -390,7 +394,7 @@ export async function sendStatusChangeEmail(
       break;
   }
 
-  const result = await resend.emails.send({
+  const result = await getResend().emails.send({
     from: FROM_EMAIL,
     to: d.customerEmail,
     subject: subject!,
@@ -407,7 +411,7 @@ export async function sendOrderEmails(data: OrderEmailData) {
   const label = orderLabel(data);
 
   // Send admin notification only — customer email is sent later when status changes
-  const result = await resend.emails.send({
+  const result = await getResend().emails.send({
     from: FROM_EMAIL,
     to: ADMIN_EMAIL,
     subject: `New Order ${label} — ${data.customerName} — ${formatPrice(data.total)}`,
