@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     // Upload to Cloudinary under products/{slug}/
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: `products/${slug}`,
-      resource_type: 'image',
+      resource_type: 'auto',
     });
 
     return NextResponse.json({ url: result.secure_url, public_id: result.public_id });

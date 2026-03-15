@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import StatsCard from '@/components/admin/StatsCard';
 import DataTable, { Column } from '@/components/admin/DataTable';
+import TableSkeleton, { StatsCardSkeleton } from '@/components/admin/TableSkeleton';
 import { formatPrice, formatDate } from '@/lib/utils';
 
 const statusColors: Record<string, { bg: string; text: string }> = {
@@ -102,62 +103,70 @@ export default function AdminDashboard() {
   return (
     <Box>
       {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+      <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, fontSize: { xs: '1.3rem', sm: '2.125rem' } }}>
           Dashboard Overview
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
           Welcome to your admin dashboard. Here&apos;s what&apos;s happening with your store.
         </Typography>
       </Box>
 
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Total Revenue"
-            value={stats ? formatPrice(stats.totalRevenue) : '—'}
-            change={0}
-            icon={<RevenueIcon sx={{ fontSize: 28 }} />}
-            iconBgColor="rgba(34, 197, 94, 0.1)"
-            iconColor="#22C55E"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Total Orders"
-            value={stats?.totalOrders ?? '—'}
-            change={0}
-            icon={<OrdersIcon sx={{ fontSize: 28 }} />}
-            iconBgColor="rgba(59, 130, 246, 0.1)"
-            iconColor="#3B82F6"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Total Customers"
-            value={stats?.totalCustomers ?? '—'}
-            change={0}
-            icon={<CustomersIcon sx={{ fontSize: 28 }} />}
-            iconBgColor="rgba(168, 85, 247, 0.1)"
-            iconColor="#A855F7"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Total Products"
-            value={stats?.totalProducts ?? '—'}
-            change={0}
-            icon={<ProductsIcon sx={{ fontSize: 28 }} />}
-            iconBgColor="rgba(220, 38, 38, 0.1)"
-            iconColor="#DC2626"
-          />
-        </Grid>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
+        {stats ? (
+          <>
+            <Grid size={{ xs: 6, lg: 3 }}>
+              <StatsCard
+                title="Total Revenue"
+                value={formatPrice(stats.totalRevenue)}
+                icon={<RevenueIcon sx={{ fontSize: 28 }} />}
+                iconBgColor="rgba(34, 197, 94, 0.1)"
+                iconColor="#22C55E"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, lg: 3 }}>
+              <StatsCard
+                title="Total Orders"
+                value={stats.totalOrders}
+                icon={<OrdersIcon sx={{ fontSize: 28 }} />}
+                iconBgColor="rgba(59, 130, 246, 0.1)"
+                iconColor="#3B82F6"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, lg: 3 }}>
+              <StatsCard
+                title="Total Customers"
+                value={stats.totalCustomers}
+                icon={<CustomersIcon sx={{ fontSize: 28 }} />}
+                iconBgColor="rgba(168, 85, 247, 0.1)"
+                iconColor="#A855F7"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, lg: 3 }}>
+              <StatsCard
+                title="Total Products"
+                value={stats.totalProducts}
+                icon={<ProductsIcon sx={{ fontSize: 28 }} />}
+                iconBgColor="rgba(220, 38, 38, 0.1)"
+                iconColor="#DC2626"
+              />
+            </Grid>
+          </>
+        ) : (
+          <>
+            {[0, 1, 2, 3].map((i) => (
+              <Grid key={i} size={{ xs: 6, lg: 3 }}>
+                <StatsCardSkeleton />
+              </Grid>
+            ))}
+          </>
+        )}
       </Grid>
 
       {/* Recent Orders */}
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 3 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 3, sm: 4 } }}>
+        <Box sx={{ display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: { xs: 2, sm: 3 } }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
               Recent Orders
@@ -181,32 +190,36 @@ export default function AdminDashboard() {
             View All Orders
           </Button>
         </Box>
-        <DataTable
-          columns={recentOrdersColumns}
-          data={stats?.recentOrders ?? []}
-          emptyMessage="No orders yet."
-        />
+        {stats ? (
+          <DataTable
+            columns={recentOrdersColumns}
+            data={stats.recentOrders}
+            emptyMessage="No orders yet."
+          />
+        ) : (
+          <TableSkeleton columns={5} rows={5} />
+        )}
       </Paper>
 
       {/* Quick Actions */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: { xs: 2, sm: 3 }, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
           Quick Actions
         </Typography>
         <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
             <Button
               component={Link}
               href="/admin/orders"
               variant="contained"
               fullWidth
               startIcon={<OrdersIcon />}
-              sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, py: 1.5 }}
+              sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
             >
-              Manage Orders
+              Orders
             </Button>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
             <Button
               component={Link}
               href="/admin/products"
@@ -214,16 +227,15 @@ export default function AdminDashboard() {
               fullWidth
               startIcon={<ProductsIcon />}
               sx={{
-                borderColor: '#DC2626',
-                color: '#DC2626',
+                borderColor: '#DC2626', color: '#DC2626',
                 '&:hover': { borderColor: '#B91C1C', bgcolor: 'rgba(220, 38, 38, 0.04)' },
-                py: 1.5,
+                py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' },
               }}
             >
-              Manage Products
+              Products
             </Button>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
             <Button
               component={Link}
               href="/admin/customers"
@@ -231,16 +243,15 @@ export default function AdminDashboard() {
               fullWidth
               startIcon={<CustomersIcon />}
               sx={{
-                borderColor: '#DC2626',
-                color: '#DC2626',
+                borderColor: '#DC2626', color: '#DC2626',
                 '&:hover': { borderColor: '#B91C1C', bgcolor: 'rgba(220, 38, 38, 0.04)' },
-                py: 1.5,
+                py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' },
               }}
             >
-              View Customers
+              Customers
             </Button>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
             <Button
               component={Link}
               href="/admin/coupons"
@@ -248,13 +259,12 @@ export default function AdminDashboard() {
               fullWidth
               startIcon={<TrendingUp />}
               sx={{
-                borderColor: 'rgba(0,0,0,0.23)',
-                color: 'text.primary',
+                borderColor: 'rgba(0,0,0,0.23)', color: 'text.primary',
                 '&:hover': { borderColor: 'rgba(0,0,0,0.4)', bgcolor: 'rgba(0,0,0,0.02)' },
-                py: 1.5,
+                py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' },
               }}
             >
-              Manage Coupons
+              Coupons
             </Button>
           </Grid>
         </Grid>

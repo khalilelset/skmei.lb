@@ -9,7 +9,7 @@ function mapOrder(row: Record<string, unknown>) {
 
   return {
     id: row.id,
-    orderNumber: `SK-${String(row.id).slice(0, 6).toUpperCase()}`,
+    orderNumber: row.order_number ? `SK-${row.order_number}` : `SK-${String(row.id).slice(0, 6).toUpperCase()}`,
     customer: {
       id: String(row.id),
       firstName,

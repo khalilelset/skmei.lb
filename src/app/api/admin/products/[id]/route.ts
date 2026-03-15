@@ -25,7 +25,8 @@ export async function PATCH(
     if (body.features !== undefined) update.features = body.features;
     if (body.specifications !== undefined) update.specifications = body.specifications;
     if (body.isNew !== undefined) update.is_new = body.isNew;
-    if (body.isFeatured !== undefined) update.is_featured = body.isFeatured;
+    if (body.onSale !== undefined) update.on_sale = body.onSale;
+    if (body.isBestseller !== undefined) update.is_bestseller = body.isBestseller;
     if (body.gender !== undefined) update.gender = body.gender ?? null;
     if (body.rating !== undefined) update.rating = Number(body.rating);
     if (body.reviewCount !== undefined) update.review_count = Number(body.reviewCount);

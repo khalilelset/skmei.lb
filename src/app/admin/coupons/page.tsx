@@ -24,6 +24,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
+import TableSkeleton from '@/components/admin/TableSkeleton';
 
 interface Coupon {
   id: string;
@@ -179,11 +180,11 @@ export default function CouponsPage() {
             sx={{ bgcolor: 'rgba(0,0,0,0.05)', color: 'text.secondary', fontWeight: 600 }}
           />
         </Box>
-        <DataTable
-          columns={columns}
-          data={coupons}
-          emptyMessage={isLoading ? 'Loading...' : 'No coupons found. Create one above.'}
-        />
+        {isLoading ? (
+          <TableSkeleton columns={5} rows={6} />
+        ) : (
+          <DataTable columns={columns} data={coupons} emptyMessage="No coupons found. Create one above." />
+        )}
       </Paper>
 
       {/* Create Coupon Dialog */}

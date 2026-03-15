@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Star, ChevronRight } from 'lucide-react';
@@ -27,7 +28,8 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 function ProductCard({ product }: { product: Product }) {
-  const { addItem, openCart } = useCartStore();
+  const { addItem } = useCartStore();
+  const [imgLoaded, setImgLoaded] = useState(false);
   const discount = product.originalPrice
     ? calculateDiscount(product.originalPrice, product.price)
     : 0;
@@ -35,11 +37,14 @@ function ProductCard({ product }: { product: Product }) {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     addItem(product, 1);
-    openCart();
   };
 
   const badge = product.isNew
     ? { label: 'New', className: 'bg-brand-red text-white' }
+    : product.isBestseller
+    ? { label: 'Bestseller', className: 'bg-blue-500 text-white' }
+    : product.onSale
+    ? { label: 'Sale', className: 'bg-orange-400 text-white' }
     : discount > 0
     ? { label: `−${discount}%`, className: 'bg-brand-black text-white' }
     : null;
@@ -58,12 +63,14 @@ function ProductCard({ product }: { product: Product }) {
 
       {/* Image */}
       <div className="relative aspect-square bg-brand-silver-light overflow-hidden shrink-0">
+        {!imgLoaded && <div className="skeleton-shimmer absolute inset-0 z-10" />}
         <Image
           src={product.images[0]}
           alt={product.name}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          className={`object-cover group-hover:scale-105 transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
           sizes="(max-width: 640px) 70vw, (max-width: 1024px) 33vw, 25vw"
+          onLoad={() => setImgLoaded(true)}
         />
       </div>
 

@@ -23,20 +23,21 @@ export default function StatsCard({
 
   return (
     <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-          <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: { xs: 1, sm: 2 } }}>
+          <Box sx={{ minWidth: 0, flex: 1, pr: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: { xs: '0.7rem', sm: '0.875rem' }, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {title}
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+            <Typography sx={{ fontWeight: 700, color: 'text.primary', fontSize: { xs: '1.25rem', sm: '1.75rem' }, lineHeight: 1.2 }}>
               {value}
             </Typography>
           </Box>
           <Box
             sx={{
-              width: 48,
-              height: 48,
+              width: { xs: 36, sm: 48 },
+              height: { xs: 36, sm: 48 },
+              flexShrink: 0,
               borderRadius: 2,
               bgcolor: iconBgColor,
               color: iconColor,
@@ -49,24 +50,14 @@ export default function StatsCard({
           </Box>
         </Box>
 
-        {change !== undefined && (
+        {change !== undefined && change !== 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            {isPositive && (
-              <TrendingUp sx={{ fontSize: 16, color: 'success.main' }} />
-            )}
-            {isNegative && (
-              <TrendingDown sx={{ fontSize: 16, color: 'error.main' }} />
-            )}
-            <Typography
-              variant="body2"
-              sx={{
-                color: isPositive ? 'success.main' : isNegative ? 'error.main' : 'text.secondary',
-                fontWeight: 500,
-              }}
-            >
+            {isPositive && <TrendingUp sx={{ fontSize: 16, color: 'success.main' }} />}
+            {isNegative && <TrendingDown sx={{ fontSize: 16, color: 'error.main' }} />}
+            <Typography variant="body2" sx={{ color: isPositive ? 'success.main' : 'error.main', fontWeight: 500 }}>
               {isPositive ? '+' : ''}{change}%
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5, fontSize: '0.75rem' }}>
               vs last month
             </Typography>
           </Box>

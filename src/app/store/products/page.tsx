@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/store/ProductCard";
+import { SkeletonGrid } from "@/components/store/SkeletonProductCard";
 import { categories, products as staticProducts } from "@/data/products";
 import { Product, ProductFilters } from "@/types";
 import { SlidersHorizontal, X, ChevronDown, ChevronRight, Home } from "lucide-react";
@@ -53,17 +54,14 @@ function ProductsContent() {
       result = result.filter((p) => p.category === filters.category);
     }
 
-    if (featuredParam === "true" || filterParam === "featured") {
-      result = result.filter((p) => p.isFeatured);
-    }
     if (filterParam === "new") {
       result = result.filter((p) => p.isNew);
     }
     if (filterParam === "sale") {
-      result = result.filter((p) => p.originalPrice && p.originalPrice > p.price);
+      result = result.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price));
     }
-    if (filterParam === "bestselling") {
-      result.sort((a, b) => b.reviewCount - a.reviewCount || b.rating - a.rating);
+    if (filterParam === "bestselling" || featuredParam === "true") {
+      result = result.filter((p) => p.isBestseller);
     }
 
     if (filters.gender) {
@@ -388,16 +386,7 @@ function ProductsContent() {
 
             {/* Products Grid */}
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
-                    <div className="aspect-square bg-gray-200 rounded-xl mb-4" />
-                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-2" />
-                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
+              <SkeletonGrid count={6} />
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
@@ -598,25 +587,18 @@ function ProductsContent() {
 function ProductsLoading() {
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Hero skeleton */}
       <div className="relative bg-brand-black py-12 sm:py-16 overflow-hidden">
         <div className="absolute -top-12 right-1/4 w-72 h-72 bg-brand-red/15 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 container mx-auto px-4">
           <div className="h-3 w-32 bg-white/10 rounded-full animate-pulse mb-5" />
-          <div className="h-12 w-56 bg-white/20 rounded-lg animate-pulse mb-3" />
-          <div className="h-1 w-14 bg-brand-red/50 rounded-full" />
+          <div className="h-12 w-56 bg-white/15 rounded-lg animate-pulse mb-3" />
+          <div className="h-1 w-14 bg-brand-red/40 rounded-full" />
         </div>
       </div>
+      {/* Cards skeleton */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
-              <div className="aspect-square bg-gray-200 rounded-xl mb-4" />
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2" />
-              <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-            </div>
-          ))}
-        </div>
+        <SkeletonGrid count={6} />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";
@@ -45,8 +45,19 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
 
-  const { getTotalItems, openCart } = useCartStore();
+  const { getTotalItems, openCart, bump } = useCartStore();
   const cartItemsCount = getTotalItems();
+  const badgeRef = useRef<HTMLSpanElement>(null);
+
+  // Animate the badge whenever a new item is added
+  useEffect(() => {
+    if (bump === 0) return;
+    const el = badgeRef.current;
+    if (!el) return;
+    el.classList.remove('cart-bump');
+    void el.offsetWidth; // force reflow to restart animation
+    el.classList.add('cart-bump');
+  }, [bump]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -238,6 +249,7 @@ export default function Header() {
             >
               <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" />
               <span
+                ref={badgeRef}
                 suppressHydrationWarning
                 className={`absolute -top-1 -right-1 bg-brand-red text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center transition-opacity ${cartItemsCount > 0 ? 'opacity-100' : 'opacity-0'}`}
               >
@@ -358,7 +370,7 @@ export default function Header() {
             {/* Feedback — bottom of mobile menu */}
             <div className="border-t border-brand-silver/50">
               <Link
-                href="/feedback"
+                href="/#feedback"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 py-4 text-base font-semibold text-brand-black hover:text-brand-red transition-colors"
               >

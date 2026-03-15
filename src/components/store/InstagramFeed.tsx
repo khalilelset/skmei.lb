@@ -6,7 +6,7 @@ import { X, ChevronLeft, ChevronRight, Heart, MessageCircle, Play } from 'lucide
 
 const PROFILE_URL = 'https://www.instagram.com/skmei.lb/';
 const INSTAGRAM_USERNAME = 'skmei.lb';
-const PROFILE_AVATAR = '/images/logo/black.png';
+const PROFILE_AVATAR = '/images/logo/white.png';
 
 type Post = {
   id: string;
@@ -48,8 +48,9 @@ const FALLBACK_POSTS: Post[] = [
     caption: 'Sports collection drop 🏃‍♂️ Waterproof, shock-resistant, and always on time. Swipe to see all colors! #SportWatch',
   },
   {
-    id: 'f4', type: 'image',
-    images: ['https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600&q=80&fit=crop'],
+    id: 'f4', type: 'video',
+    videoSrc: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+    poster: 'https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600&q=80&fit=crop',
     postUrl: 'https://www.instagram.com/skmei.lb/',
     likes: 214, comments: 12,
     caption: 'Your wrist deserves the best. Luxury look, unbeatable price. 💎 #SKMEI #Lebanon',
@@ -139,6 +140,13 @@ export default function InstagramFeed() {
   const active = activeIndex !== null ? posts[activeIndex] : null;
   const slides = active?.images ?? (active?.poster ? [active.poster] : []);
 
+  // Autoplay modal video when post opens
+  useEffect(() => {
+    if (active?.type === 'video' && active.videoSrc && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [activeIndex, active]);
+
   return (
     <section className="py-14 sm:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -166,13 +174,14 @@ export default function InstagramFeed() {
               >
                 {/* Thumbnail */}
                 {post.type === 'video' ? (
-                  <Image
-                    src={post.poster ?? ''}
-                    alt={`Post ${index + 1}`}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 640px) 33vw, 25vw"
-                    loading="lazy"
+                  <video
+                    src={post.videoSrc}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                 ) : (
                   <Image
@@ -278,8 +287,8 @@ export default function InstagramFeed() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2.5 hover:opacity-75 transition-opacity"
               >
-                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-brand-red shrink-0 bg-brand-silver-light">
-                  <Image src={PROFILE_AVATAR} alt={INSTAGRAM_USERNAME} width={36} height={36} className="object-contain p-1 w-full h-full" />
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-brand-red shrink-0 bg-white flex items-center justify-center">
+                  <Image src={PROFILE_AVATAR} alt={INSTAGRAM_USERNAME} width={28} height={28} className="object-contain" />
                 </div>
                 <span className="text-sm font-bold text-brand-black">{INSTAGRAM_USERNAME}</span>
               </a>
@@ -303,6 +312,8 @@ export default function InstagramFeed() {
                     src={active.videoSrc}
                     poster={active.poster}
                     controls
+                    autoPlay
+                    muted
                     preload="metadata"
                     playsInline
                     className="w-full h-full object-contain"

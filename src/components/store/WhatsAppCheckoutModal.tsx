@@ -266,18 +266,18 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
               <label htmlFor="phone" className="block text-sm font-semibold text-brand-black mb-2">
                 Phone Number (WhatsApp) *
               </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-gray" />
+              <div className={`flex rounded-lg overflow-hidden border-2 transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-300 focus-within:border-green-500'}`}>
+                <span className="flex items-center px-3 bg-gray-100 border-r-2 border-gray-300 text-brand-black font-semibold text-sm shrink-0 select-none">
+                  +961
+                </span>
                 <input
                   type="tel"
                   id="phone"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="+961 XX XXX XXX"
+                  placeholder="XX XXX XXX"
+                  className="flex-1 px-3 py-3 bg-white focus:outline-none text-sm"
                 />
               </div>
               {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}

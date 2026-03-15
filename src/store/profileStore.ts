@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 export interface UserProfile {
   name: string;
@@ -25,22 +24,12 @@ const defaultProfile: UserProfile = {
   email: '',
   phone: '',
   saveAddress: false,
-  address: {
-    street: '',
-    building: '',
-    city: '',
-    region: '',
-  },
+  address: { street: '', building: '', city: '', region: '' },
 };
 
-export const useProfileStore = create<ProfileState>()(
-  persist(
-    (set) => ({
-      profile: defaultProfile,
-      setProfile: (profile) => set({ profile }),
-      updateField: (field, value) =>
-        set((state) => ({ profile: { ...state.profile, [field]: value } })),
-    }),
-    { name: 'skmei-profile' }
-  )
-);
+export const useProfileStore = create<ProfileState>()((set) => ({
+  profile: defaultProfile,
+  setProfile: (profile) => set({ profile }),
+  updateField: (field, value) =>
+    set((state) => ({ profile: { ...state.profile, [field]: value } })),
+}));

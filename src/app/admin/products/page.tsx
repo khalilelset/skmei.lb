@@ -1,5 +1,6 @@
 'use client';
 
+import 'react-easy-crop/react-easy-crop.css';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
@@ -17,9 +18,15 @@ import {
   Grid,
   CircularProgress,
   IconButton,
+  MenuItem,
+  Slider,
 } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon } from '@mui/icons-material';
+import Cropper from 'react-easy-crop';
+import type { Area } from 'react-easy-crop';
+import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
+import TableSkeleton from '@/components/admin/TableSkeleton';
 import { categories } from '@/data/products';
 import { formatPrice } from '@/lib/utils';
 import type { Product } from '@/types';
@@ -43,8 +50,9 @@ const categoryOptions = [
 
 const emptyForm = {
   name: '', slug: '', description: '', price: '', originalPrice: '',
-  category: 'digital', sku: '', stock: '', images: [] as string[],
-  isNew: false, isFeatured: false, gender: '' as '' | 'men' | 'women' | 'unisex',
+  category: 'digital', stock: '', images: [] as string[],
+  features: [] as string[],
+  isNew: false, onSale: false, isBestseller: false, gender: '' as '' | 'men' | 'women' | 'unisex',
 };
 
 export default function ProductsPage() {
@@ -57,7 +65,15 @@ export default function ProductsPage() {
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [featureInput, setFeatureInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Crop dialog state
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   const loadProducts = useCallback(() => {
     fetch('/api/admin/products')
@@ -93,34 +109,58 @@ export default function ProductsPage() {
       price: String(product.price),
       originalPrice: product.originalPrice ? String(product.originalPrice) : '',
       category: product.category,
-      sku: product.sku ?? '',
       stock: String(product.stock),
       images: product.images ?? [],
+      features: product.features ?? [],
       isNew: product.isNew ?? false,
-      isFeatured: product.isFeatured ?? false,
+      onSale: product.onSale ?? false,
+      isBestseller: product.isBestseller ?? false,
       gender: (product.gender ?? '') as '' | 'men' | 'women' | 'unisex',
     });
     setDialogOpen(true);
   };
 
-  const handleUploadImages = async (files: FileList) => {
-    setIsUploading(true);
-    const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, '-') || 'temp';
-    const newUrls: string[] = [];
+  // When files are selected, open crop dialog for the first file
+  const handleFilesSelected = (files: FileList) => {
+    const fileArr = Array.from(files);
+    if (fileArr.length === 0) return;
+    const [first, ...rest] = fileArr;
+    setCropQueue(rest);
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(first);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
-    for (const file of Array.from(files)) {
+  // After crop confirmed — upload and open next file if any
+  const handleCropConfirm = async () => {
+    if (!cropSrc || !croppedAreaPixels) return;
+    setIsUploading(true);
+    setCropSrc(null);
+    try {
+      const blob = await getCroppedImg(cropSrc, croppedAreaPixels);
+      const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, '-') || 'temp';
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', blob, 'image.jpg');
       fd.append('slug', slug);
       const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
       const data = await res.json();
-      if (data.url) newUrls.push(data.url);
+      if (data.url) setForm(f => ({ ...f, images: [...f.images, data.url] }));
+    } finally {
+      setIsUploading(false);
+      // Open next file in queue
+      if (cropQueue.length > 0) {
+        const [next, ...rest] = cropQueue;
+        setCropQueue(rest);
+        const reader = new FileReader();
+        reader.onload = () => setCropSrc(reader.result as string);
+        reader.readAsDataURL(next);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+      }
     }
-
-    setForm(f => ({ ...f, images: [...f.images, ...newUrls] }));
-    setIsUploading(false);
-    // Reset file input so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -136,11 +176,13 @@ export default function ProductsPage() {
       price: parseFloat(form.price) || 0,
       originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : undefined,
       category: form.category,
-      sku: form.sku || null,
+      sku: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'),
       stock: parseInt(form.stock) || 0,
       images: form.images,
+      features: form.features,
       isNew: form.isNew,
-      isFeatured: form.isFeatured,
+      onSale: form.onSale,
+      isBestseller: form.isBestseller,
       gender: form.gender || null,
     };
 
@@ -222,17 +264,18 @@ export default function ProductsPage() {
       },
     },
     {
-      id: 'isFeatured',
-      label: 'Featured',
-      minWidth: 100,
+      id: 'isNew',
+      label: 'Labels',
+      minWidth: 140,
       align: 'center',
       sortable: false,
-      format: (value) => (
-        <Chip
-          label={value ? 'Yes' : 'No'}
-          size="small"
-          sx={{ bgcolor: value ? 'rgba(220,38,38,0.1)' : 'rgba(0,0,0,0.05)', color: value ? '#DC2626' : 'text.secondary', fontWeight: 600 }}
-        />
+      format: (_, product: Product) => (
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {product.isNew && <Chip label="New" size="small" sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 600, fontSize: 10 }} />}
+          {product.onSale && <Chip label="Sale" size="small" sx={{ bgcolor: 'rgba(251,146,60,0.1)', color: '#FB923C', fontWeight: 600, fontSize: 10 }} />}
+          {product.isBestseller && <Chip label="Bestseller" size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontWeight: 600, fontSize: 10 }} />}
+          {!product.isNew && !product.onSale && !product.isBestseller && <span style={{ color: '#9CA3AF', fontSize: 12 }}>—</span>}
+        </Box>
       ),
     },
   ];
@@ -291,7 +334,11 @@ export default function ProductsPage() {
             ))}
           </Box>
         </Box>
-        <DataTable columns={columns} data={filteredProducts} onRowClick={openEdit} emptyMessage="No products found." />
+        {isLoading ? (
+          <TableSkeleton columns={6} rows={8} />
+        ) : (
+          <DataTable columns={columns} data={filteredProducts} onRowClick={openEdit} emptyMessage="No products found." />
+        )}
       </Box>
 
       {/* Add / Edit Dialog */}
@@ -305,7 +352,6 @@ export default function ProductsPage() {
             {[
               { label: 'Product Name *', key: 'name' },
               { label: 'Slug (auto-generated if empty)', key: 'slug' },
-              { label: 'SKU', key: 'sku' },
               { label: 'Price ($) *', key: 'price', type: 'number' },
               { label: 'Original Price ($)', key: 'originalPrice', type: 'number' },
               { label: 'Stock *', key: 'stock', type: 'number' },
@@ -322,33 +368,31 @@ export default function ProductsPage() {
               <TextField
                 fullWidth size="small" select label="Category" value={form.category}
                 onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
-                SelectProps={{ native: true }}
               >
-                {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                {categories.map(c => <MenuItem key={c.slug} value={c.slug}>{c.name}</MenuItem>)}
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth size="small" select label="Gender" value={form.gender}
                 onChange={(e) => setForm(f => ({ ...f, gender: e.target.value as typeof form.gender }))}
-                SelectProps={{ native: true }}
               >
-                <option value="">— Not specified —</option>
-                <option value="men">Men</option>
-                <option value="women">Women</option>
-                <option value="unisex">Unisex</option>
+                <MenuItem value="">— Not specified —</MenuItem>
+                <MenuItem value="men">Men</MenuItem>
+                <MenuItem value="women">Women</MenuItem>
+                <MenuItem value="unisex">Unisex</MenuItem>
               </TextField>
             </Grid>
 
             {/* Image Upload Section */}
             <Grid size={12}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Images</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 2, mt: 1 }}>Images</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
                 {/* Thumbnails */}
                 {form.images.map((url, index) => (
-                  <Box key={index} sx={{ position: 'relative', width: 70, height: 70, borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.12)', bgcolor: 'rgba(0,0,0,0.02)' }}>
+                  <Box key={index} sx={{ position: 'relative', width: 200, height: 200, borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.12)', bgcolor: 'rgba(0,0,0,0.02)' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`Image ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
+                    <img src={url} alt={`Image ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <IconButton
                       size="small"
                       onClick={() => removeImage(index)}
@@ -359,56 +403,141 @@ export default function ProductsPage() {
                   </Box>
                 ))}
 
-                {/* Upload Button */}
-                <Button
-                  variant="outlined"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  sx={{ width: 70, height: 70, minWidth: 70, flexDirection: 'column', gap: 0.5, borderStyle: 'dashed', fontSize: 10, color: 'text.secondary', borderColor: 'rgba(0,0,0,0.23)', '&:hover': { borderColor: '#DC2626', color: '#DC2626' } }}
-                >
-                  {isUploading ? (
-                    <CircularProgress size={20} sx={{ color: '#DC2626' }} />
-                  ) : (
-                    <>
-                      <UploadIcon sx={{ fontSize: 20 }} />
-                      Upload
-                    </>
-                  )}
-                </Button>
+                {/* Upload Button — uses label so the click is a real user gesture */}
+                <label style={{ cursor: isUploading ? 'default' : 'pointer' }}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    disabled={isUploading}
+                    style={{ display: 'none' }}
+                    onChange={(e) => { if (e.target.files?.length) handleFilesSelected(e.target.files); }}
+                  />
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      gap: 1, width: 200, height: 200,
+                      border: '2px dashed', borderColor: isUploading ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.23)',
+                      borderRadius: 2, fontSize: 12, color: isUploading ? 'rgba(0,0,0,0.26)' : 'text.secondary',
+                      transition: 'all 0.2s',
+                      '&:hover': isUploading ? {} : { borderColor: '#DC2626', color: '#DC2626', bgcolor: 'rgba(220,38,38,0.02)' },
+                    }}
+                  >
+                    {isUploading ? (
+                      <CircularProgress size={24} sx={{ color: '#DC2626' }} />
+                    ) : (
+                      <>
+                        <UploadIcon sx={{ fontSize: 28 }} />
+                        Upload Image
+                      </>
+                    )}
+                  </Box>
+                </label>
               </Box>
               {isUploading && (
                 <Typography variant="caption" color="text.secondary">Uploading to Cloudinary...</Typography>
               )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: 'none' }}
-                onChange={(e) => { if (e.target.files?.length) handleUploadImages(e.target.files); }}
-              />
             </Grid>
 
             <Grid size={12}>
               <TextField
-                fullWidth size="small" multiline rows={3}
+                fullWidth size="small" multiline rows={6}
                 label="Description"
                 value={form.description}
                 onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
               />
             </Grid>
-            <Grid size={{ xs: 6 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.isNew} onChange={e => setForm(f => ({ ...f, isNew: e.target.checked }))} />
-                <Typography variant="body2">New Arrival</Typography>
-              </label>
+
+            {/* Features Section */}
+            <Grid size={12}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                Product Features
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                These appear as bullet points on the product page (e.g. "Water resistant 50M", "LED backlight")
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                <TextField
+                  fullWidth size="small"
+                  placeholder="e.g. Water resistant 50M"
+                  value={featureInput}
+                  onChange={(e) => setFeatureInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && featureInput.trim()) {
+                      e.preventDefault();
+                      setForm(f => ({ ...f, features: [...f.features, featureInput.trim()] }));
+                      setFeatureInput('');
+                    }
+                  }}
+                />
+                <Button
+                  variant="outlined" size="small"
+                  disabled={!featureInput.trim()}
+                  onClick={() => {
+                    if (featureInput.trim()) {
+                      setForm(f => ({ ...f, features: [...f.features, featureInput.trim()] }));
+                      setFeatureInput('');
+                    }
+                  }}
+                  sx={{ flexShrink: 0, borderColor: '#DC2626', color: '#DC2626', '&:hover': { bgcolor: 'rgba(220,38,38,0.04)', borderColor: '#B91C1C' } }}
+                >
+                  Add
+                </Button>
+              </Box>
+              {form.features.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {form.features.map((feat, i) => (
+                    <Chip
+                      key={i}
+                      label={feat}
+                      size="small"
+                      onDelete={() => setForm(f => ({ ...f, features: f.features.filter((_, idx) => idx !== i) }))}
+                      sx={{ bgcolor: 'rgba(220,38,38,0.08)', color: '#DC2626', '& .MuiChip-deleteIcon': { color: '#DC2626' } }}
+                    />
+                  ))}
+                </Box>
+              )}
             </Grid>
-            <Grid size={{ xs: 6 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} />
-                <Typography variant="body2">Featured</Typography>
-              </label>
-            </Grid>
+
+            {/* Label Toggles */}
+            <Grid size={12}><Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5, mt: 1 }}>Product Labels</Typography></Grid>
+            {[
+              { key: 'isNew',       label: 'New',        icon: <NewIcon sx={{ fontSize: 22 }} />,        color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  activeBg: '#DC2626' },
+              { key: 'onSale',      label: 'Sale',       icon: <SaleIcon sx={{ fontSize: 22 }} />,       color: '#B91C1C', bg: 'rgba(185,28,28,0.08)',   activeBg: '#B91C1C' },
+              { key: 'isBestseller',label: 'Bestseller', icon: <BestsellerIcon sx={{ fontSize: 22 }} />, color: '#991B1B', bg: 'rgba(153,27,27,0.08)',   activeBg: '#991B1B' },
+            ].map(({ key, label, icon, color, bg, activeBg }) => {
+              const active = form[key as keyof typeof emptyForm] as boolean;
+              return (
+                <Grid key={key} size={{ xs: 4 }}>
+                  <Box
+                    onClick={() => setForm(f => ({ ...f, [key]: !f[key as keyof typeof emptyForm] }))}
+                    sx={{
+                      cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      gap: 0.75, py: 2, px: 1,
+                      borderRadius: 2,
+                      border: '2px solid',
+                      borderColor: active ? activeBg : 'rgba(0,0,0,0.1)',
+                      bgcolor: active ? bg : 'transparent',
+                      color: active ? color : 'text.secondary',
+                      transition: 'all 0.2s',
+                      userSelect: 'none',
+                      '&:hover': { borderColor: color, color, bgcolor: bg },
+                    }}
+                  >
+                    {icon}
+                    <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.3 }}>
+                      {label}
+                    </Typography>
+                    {active && (
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, mt: 0.25 }} />
+                    )}
+                  </Box>
+                </Grid>
+              );
+            })}
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -419,6 +548,138 @@ export default function ProductsPage() {
             {isSaving ? 'Saving...' : editProduct ? 'Save Changes' : 'Add Product'}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Crop Dialog */}
+      <Dialog
+        open={!!cropSrc}
+        maxWidth="sm"
+        fullWidth
+        onClose={() => { setCropSrc(null); setCropQueue([]); }}
+        PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+      >
+        {/* Header */}
+        <Box sx={{
+          px: 3, py: 2,
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: 'white', lineHeight: 1.2 }}>
+              Crop Image
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+              Drag to reposition · Scroll or slide to zoom
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => { setCropSrc(null); setCropQueue([]); }}
+            sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        {/* Crop canvas */}
+        <Box sx={{ position: 'relative', width: '100%', height: 400, bgcolor: '#0a0a0a' }}>
+          {cropSrc && (
+            <Cropper
+              image={cropSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+              style={{
+                cropAreaStyle: {
+                  border: '2px solid #DC2626',
+                  boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)',
+                },
+              }}
+            />
+          )}
+          {/* 1:1 badge */}
+          <Box sx={{
+            position: 'absolute', top: 12, left: 12,
+            bgcolor: 'rgba(220,38,38,0.85)', backdropFilter: 'blur(4px)',
+            color: 'white', px: 1.5, py: 0.5, borderRadius: 2,
+            fontSize: 11, fontWeight: 700, letterSpacing: 1,
+          }}>
+            1 : 1
+          </Box>
+        </Box>
+
+        {/* Zoom control */}
+        <Box sx={{
+          px: 3, py: 2.5,
+          bgcolor: '#f8f8f8',
+          borderTop: '1px solid rgba(0,0,0,0.06)',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, minWidth: 36 }}>
+              Zoom
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+              <IconButton
+                size="small"
+                onClick={() => setZoom(z => Math.max(1, z - 0.2))}
+                sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#DC2626', color: 'white', borderColor: '#DC2626' } }}
+              >
+                <ZoomOutIcon fontSize="small" />
+              </IconButton>
+              <Slider
+                value={zoom}
+                min={1}
+                max={3}
+                step={0.05}
+                onChange={(_, v) => setZoom(v as number)}
+                sx={{
+                  color: '#DC2626',
+                  '& .MuiSlider-thumb': { width: 16, height: 16, boxShadow: '0 2px 6px rgba(220,38,38,0.4)' },
+                  '& .MuiSlider-rail': { bgcolor: 'rgba(0,0,0,0.12)' },
+                }}
+              />
+              <IconButton
+                size="small"
+                onClick={() => setZoom(z => Math.min(3, z + 0.2))}
+                sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.12)', '&:hover': { bgcolor: '#DC2626', color: 'white', borderColor: '#DC2626' } }}
+              >
+                <ZoomInIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            <Typography variant="caption" sx={{ color: '#DC2626', fontWeight: 700, minWidth: 32, textAlign: 'right' }}>
+              {zoom.toFixed(1)}×
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Actions */}
+        <Box sx={{
+          px: 3, py: 2,
+          display: 'flex', gap: 1.5, justifyContent: 'flex-end',
+          bgcolor: 'white', borderTop: '1px solid rgba(0,0,0,0.06)',
+        }}>
+          <Button
+            onClick={() => { setCropSrc(null); setCropQueue([]); }}
+            sx={{ color: 'text.secondary', borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleCropConfirm}
+            startIcon={<UploadIcon />}
+            sx={{
+              bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' },
+              borderRadius: 2, px: 3, fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(220,38,38,0.3)',
+            }}
+          >
+            {cropQueue.length > 0 ? `Crop & Next (${cropQueue.length} left)` : 'Crop & Upload'}
+          </Button>
+        </Box>
       </Dialog>
     </Box>
   );

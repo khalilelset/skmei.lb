@@ -11,7 +11,7 @@ export default function BottomNav() {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { getTotalItems, openCart } = useCartStore();
+  const { getTotalItems, isOpen: cartOpen, openCart, closeCart } = useCartStore();
   const cartCount = getTotalItems();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -74,8 +74,9 @@ export default function BottomNav() {
           {/* Home */}
           <Link
             href="/"
+            onClick={closeCart}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              isActive('/') ? 'text-brand-red' : 'text-brand-gray'
+              isActive('/') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}
           >
             <Home className="w-6 h-6" />
@@ -85,8 +86,9 @@ export default function BottomNav() {
           {/* Shop */}
           <Link
             href="/store/products"
+            onClick={closeCart}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              isActive('/store/products') ? 'text-brand-red' : 'text-brand-gray'
+              isActive('/store/products') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}
           >
             <Store className="w-6 h-6" />
@@ -95,7 +97,7 @@ export default function BottomNav() {
 
           {/* Search */}
           <button
-            onClick={() => setSearchOpen(true)}
+            onClick={() => { closeCart(); setSearchOpen(true); }}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-brand-gray transition-colors"
           >
             <Search className="w-6 h-6" />
@@ -104,9 +106,9 @@ export default function BottomNav() {
 
           {/* Cart */}
           <button
-            onClick={openCart}
+            onClick={() => cartOpen ? closeCart() : openCart()}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              cartCount > 0 ? 'text-brand-red' : 'text-brand-gray'
+              cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}
           >
             <div className="relative">
@@ -123,8 +125,9 @@ export default function BottomNav() {
           {/* Account */}
           <Link
             href="/account"
+            onClick={closeCart}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              isActive('/account') ? 'text-brand-red' : 'text-brand-gray'
+              isActive('/account') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}
           >
             <User className="w-6 h-6" />

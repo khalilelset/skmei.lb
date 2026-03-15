@@ -1,21 +1,16 @@
 import HeroSection from "@/components/store/HeroSection";
-import ProductCard from "@/components/store/ProductCard";
 import BrandStorySection from "@/components/store/BrandStorySection";
 import InstagramFeed from "@/components/store/InstagramFeed";
 import FeedbackSection from "@/components/store/FeedbackSection";
 import BestsellingSection from "@/components/store/BestsellingSection";
-import {
-  getFeaturedProducts,
-  getSaleProducts,
-  categories,
-} from "@/data/products";
-import Image from "next/image";
+import CategoryImage from "@/components/store/CategoryImage";
+import HomeProductGrid from "@/components/store/HomeProductGrid";
+import { getFeaturedProducts, categories } from "@/data/products";
 import Link from "next/link";
 import { ChevronRight, ArrowRight } from "lucide-react";
 
-export default function HomePage() {
+export default async function HomePage() {
   const featuredProducts = getFeaturedProducts();
-  const saleProducts = getSaleProducts();
 
   const categoryConfig: Record<string, { count: number; image: string }> = {
     digital: { count: 24, image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop' },
@@ -58,12 +53,10 @@ export default function HomePage() {
                   className="group relative shrink-0 w-52 sm:w-auto overflow-hidden rounded-2xl"
                 >
                   {/* Portrait image */}
-                  <div className="relative aspect-[3/4] overflow-hidden">
-                    <Image
+                  <div className="relative aspect-[3/4] overflow-hidden bg-brand-silver-light">
+                    <CategoryImage
                       src={cfg.image}
                       alt={category.name}
-                      fill
-                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                       sizes="(max-width: 640px) 208px, 20vw"
                     />
 
@@ -129,11 +122,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-            {featuredProducts.slice(0, 8).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <HomeProductGrid type="featured" count={8} />
 
           <div className="mt-10 flex justify-center">
             <Link
@@ -179,11 +168,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-            {saleProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <HomeProductGrid type="sale" count={4} />
         </div>
       </section>
 

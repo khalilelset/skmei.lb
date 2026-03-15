@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Product } from "@/types";
@@ -12,7 +13,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addItem, openCart } = useCartStore();
+  const { addItem } = useCartStore();
+  const [imgLoaded, setImgLoaded] = useState(false);
   const discount = product.originalPrice
     ? calculateDiscount(product.originalPrice, product.price)
     : 0;
@@ -20,7 +22,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addItem(product, 1);
-    openCart();
   };
 
   return (
@@ -29,19 +30,33 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Image Container - Mobile Optimized */}
         <div className="relative aspect-square overflow-hidden bg-brand-silver-light">
+          {/* Shimmer while image loads */}
+          {!imgLoaded && <div className="skeleton-shimmer absolute inset-0 z-10" />}
+
           <Image
             src={product.images[0]}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
+            className={`object-cover group-hover:scale-110 transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            onLoad={() => setImgLoaded(true)}
           />
 
-          {/* Badges - Mobile Friendly Size */}
-          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5 sm:gap-2">
+          {/* Badges */}
+          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5 sm:gap-2 z-20">
             {product.isNew && (
               <span className="bg-brand-red text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                 NEW
+              </span>
+            )}
+            {product.onSale && (
+              <span className="bg-orange-400 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                SALE
+              </span>
+            )}
+            {product.isBestseller && (
+              <span className="bg-blue-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                BESTSELLER
               </span>
             )}
             {discount > 0 && (
@@ -52,7 +67,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Quick Add — desktop hover overlay only */}
-          <div className="hidden lg:block absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="hidden lg:block absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
             <button
               onClick={handleAddToCart}
               className="w-full bg-brand-red text-white py-2.5 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg text-sm"

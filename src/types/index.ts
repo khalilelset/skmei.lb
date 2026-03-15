@@ -14,6 +14,8 @@ export interface Product {
   features: string[];
   specifications: ProductSpecifications;
   isNew?: boolean;
+  onSale?: boolean;
+  isBestseller?: boolean;
   isFeatured?: boolean;
   gender?: 'men' | 'women' | 'unisex';
   rating: number;
@@ -65,6 +67,8 @@ export interface Order {
   subtotal: number;
   shipping: number;
   tax: number;
+  discount?: number;
+  couponCode?: string | null;
   total: number;
   shippingAddress: Address;
   paymentMethod: string;

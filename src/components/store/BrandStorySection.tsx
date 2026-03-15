@@ -16,8 +16,16 @@ const items = [
     desc: 'Competitive prices for both individual and bulk orders',
   },
   {
-    title: 'Local Support',
-    desc: 'Online store with delivery to all Lebanon',
+    title: 'Direct from Factory',
+    desc: 'Every product is original, sourced straight from the SKMEI factory — no fakes, no middlemen',
+  },
+  {
+    title: 'Real Photos, Real Products',
+    desc: 'Every image we share is 100% real — what you see is exactly what you receive',
+  },
+  {
+    title: 'Official Warranty',
+    desc: '1-year manufacturer warranty included with every watch',
   },
 ];
 

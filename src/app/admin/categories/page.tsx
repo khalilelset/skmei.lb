@@ -23,6 +23,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
+import TableSkeleton from '@/components/admin/TableSkeleton';
 
 interface Category {
   id: string;
@@ -212,11 +213,11 @@ export default function CategoriesPage() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {categories.length} categor{categories.length !== 1 ? 'ies' : 'y'} · sorted by Order field
         </Typography>
-        <DataTable
-          columns={columns}
-          data={categories}
-          emptyMessage={isLoading ? 'Loading...' : 'No categories yet. Add one above.'}
-        />
+        {isLoading ? (
+          <TableSkeleton columns={5} rows={6} />
+        ) : (
+          <DataTable columns={columns} data={categories} emptyMessage="No categories yet. Add one above." />
+        )}
       </Paper>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>

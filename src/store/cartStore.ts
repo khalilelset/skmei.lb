@@ -5,6 +5,7 @@ import { Product, CartItem } from "@/types";
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
+  bump: number; // increments on every addItem to signal the cart icon
 
   // Actions
   addItem: (product: Product, quantity?: number) => void;
@@ -26,6 +27,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       isOpen: false,
+      bump: 0,
 
       addItem: (product: Product, quantity: number = 1) => {
         set((state) => {
@@ -35,6 +37,7 @@ export const useCartStore = create<CartState>()(
 
           if (existingItem) {
             return {
+              bump: state.bump + 1,
               items: state.items.map((item) =>
                 item.product.id === product.id
                   ? { ...item, quantity: item.quantity + quantity }
@@ -44,6 +47,7 @@ export const useCartStore = create<CartState>()(
           }
 
           return {
+            bump: state.bump + 1,
             items: [...state.items, { product, quantity }],
           };
         });

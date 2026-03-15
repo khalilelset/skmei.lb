@@ -82,8 +82,8 @@ export default function FeedbackSection() {
   };
 
   return (
-    <section className="py-14 sm:py-20 bg-brand-silver-light">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="feedback" className="py-10 sm:py-20 bg-brand-silver-light">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-12">
@@ -105,29 +105,26 @@ export default function FeedbackSection() {
         {items.length > 0 ? (
           <>
             {/* Grid + side arrows */}
-            <div className="relative">
-              {/* Left arrow — desktop only */}
-              {totalPages > 1 && (
-                <button
-                  onClick={prev}
-                  disabled={page === 0}
-                  className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full z-10 items-center justify-center text-brand-gray hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed pr-3"
-                >
-                  <ChevronLeft className="w-7 h-7" />
-                </button>
-              )}
+            <div className="flex items-center gap-2 sm:gap-6">
+              {/* Left arrow */}
+              <button
+                onClick={prev}
+                disabled={!totalPages || page === 0}
+                className="flex shrink-0 items-center justify-center text-brand-gray hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+              </button>
 
               {/* Grid — swipeable on mobile */}
               <div
-                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
               >
                 {pageItems.map((item) => (
                   <div
                     key={item.id}
-                    className="relative rounded-2xl overflow-hidden bg-white shadow-sm"
-                    style={{ aspectRatio: '16/9' }}
+                    className="relative rounded-2xl overflow-hidden bg-white shadow-sm aspect-4/3"
                   >
                     <Image
                       src={item.image}
@@ -141,15 +138,13 @@ export default function FeedbackSection() {
               </div>
 
               {/* Right arrow — desktop only */}
-              {totalPages > 1 && (
-                <button
-                  onClick={next}
-                  disabled={page === totalPages - 1}
-                  className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-full z-10 items-center justify-center text-brand-gray hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed pl-3"
-                >
-                  <ChevronRight className="w-7 h-7" />
-                </button>
-              )}
+              <button
+                onClick={next}
+                disabled={!totalPages || page === totalPages - 1}
+                className="flex shrink-0 items-center justify-center text-brand-gray hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+              </button>
             </div>
 
             {/* Page numbers */}
