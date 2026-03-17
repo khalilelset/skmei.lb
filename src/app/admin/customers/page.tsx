@@ -288,12 +288,20 @@ export default function CustomersPage() {
                   <Stack spacing={2}>
                     {selectedCustomer.addresses.map((address, index) => (
                       <Paper key={index} sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                          {address.street}
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
+                          {[address.area, address.city].filter(Boolean).join(', ') || address.state || '—'}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {address.city}, {address.state} {address.postalCode}
-                        </Typography>
+                        {address.street && (
+                          <Typography variant="body2" color="text.secondary">
+                            {address.street}
+                          </Typography>
+                        )}
+                        {address.building && (
+                          <Typography variant="body2" color="text.secondary">
+                            {address.building}
+                          </Typography>
+                        )}
+                        <Typography variant="body2" color="text.secondary">Lebanon</Typography>
                       </Paper>
                     ))}
                   </Stack>

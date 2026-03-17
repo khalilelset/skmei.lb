@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useToastStore } from "@/store/toastStore";
 import { formatPrice, calculateDiscount, getStockStatus } from "@/lib/utils";
 import ProductCard from "@/components/store/ProductCard";
 import ReviewSection from "@/components/store/ReviewSection";
@@ -20,8 +21,12 @@ export default function ProductDetailClient({ slug }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [stickyVisible, setStickyVisible] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const { addItem } = useCartStore();
+  const showToast = useToastStore((s) => s.show);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   const scrollToImage = useCallback((index: number) => {
     setSelectedImage(index);
@@ -47,6 +52,17 @@ export default function ProductDetailClient({ slug }: Props) {
       })
       .catch(() => setIsLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setStickyVisible(!entry.isIntersecting),
+      { rootMargin: '-112px 0px 0px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [product]);
 
   if (isLoading) {
     return (
@@ -91,10 +107,64 @@ export default function ProductDetailClient({ slug }: Props) {
 
   const handleAddToCart = () => {
     addItem(product, quantity);
+    showToast({
+      productName: product.name,
+      productImage: product.images[0] ?? '',
+      productPrice: product.price,
+      quantity,
+    });
+    setJustAdded(true);
+    setTimeout(() => {
+      setJustAdded(false);
+      setStickyVisible(false);
+    }, 1500);
   };
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Sticky Product Bar */}
+      <div
+        className={`fixed top-[88px] sm:top-[104px] left-0 right-0 z-49 bg-white border-b border-brand-silver shadow-md transition-all duration-300 ${
+          stickyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'
+        }`}
+      >
+        <div className="container mx-auto px-4 py-2.5 flex items-center gap-4">
+          {/* Thumbnail */}
+          <div className="relative w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-brand-silver-light border border-brand-silver">
+            <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+          </div>
+          {/* Name + Price */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-brand-black truncate">{product.name}</p>
+            <p className="text-sm font-semibold text-brand-red">{formatPrice(product.price)}</p>
+          </div>
+          {/* Add to Cart */}
+          <button
+            onClick={handleAddToCart}
+            disabled={product.stock === 0 || justAdded}
+            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-bold text-white transition-all flex items-center gap-2 shadow-sm ${
+              justAdded
+                ? 'bg-green-500 cursor-default'
+                : product.stock === 0
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-brand-red hover:bg-brand-red-dark active:scale-95'
+            }`}
+          >
+            {justAdded ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                Added!
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Breadcrumb */}
       <div className="container mx-auto px-4 pt-5 pb-2">
         <nav className="flex items-center gap-1 text-sm min-w-0">
@@ -221,7 +291,7 @@ export default function ProductDetailClient({ slug }: Props) {
               </Link>
 
               {/* Name */}
-              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mt-2 mb-4">
+              <h1 ref={titleRef} className="text-2xl lg:text-3xl font-bold text-slate-900 mt-2 mb-4">
                 {product.name}
               </h1>
 
@@ -378,6 +448,15 @@ export default function ProductDetailClient({ slug }: Props) {
               <div className="border border-brand-silver rounded-xl overflow-hidden mt-2 mb-4">
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-brand-silver">
                   <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">100% Authentic Products</p>
+                    <p className="text-xs text-slate-500">Official SKMEI dealer · 1-year warranty included</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-brand-silver">
+                  <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                   <div>
@@ -385,22 +464,13 @@ export default function ProductDetailClient({ slug }: Props) {
                     <p className="text-xs text-slate-500">Cash on delivery — pay when you receive</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-brand-silver">
-                  <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">Fast Delivery Across Lebanon</p>
-                    <p className="text-xs text-slate-500">Delivered in 2–4 days · Every order inspected before shipping</p>
-                  </div>
-                </div>
                 <div className="flex items-center gap-3 px-4 py-3">
                   <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">100% Authentic Products</p>
-                    <p className="text-xs text-slate-500">Official SKMEI dealer · 1-year warranty included</p>
+                    <p className="text-sm font-semibold text-slate-800">Every Order Inspected Before Shipping</p>
+                    <p className="text-xs text-slate-500">Quality checked and verified before it reaches you</p>
                   </div>
                 </div>
               </div>

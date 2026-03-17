@@ -109,6 +109,8 @@ export interface Address {
   firstName: string;
   lastName: string;
   street: string;
+  building?: string;
+  area?: string;
   city: string;
   state: string;
   country: string;

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Star, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useToastStore } from '@/store/toastStore';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import type { Product } from '@/types';
 
@@ -29,6 +30,7 @@ function StarRating({ rating }: { rating: number }) {
 
 function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCartStore();
+  const showToast = useToastStore((s) => s.show);
   const [imgLoaded, setImgLoaded] = useState(false);
   const discount = product.originalPrice
     ? calculateDiscount(product.originalPrice, product.price)
@@ -37,6 +39,12 @@ function ProductCard({ product }: { product: Product }) {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     addItem(product, 1);
+    showToast({
+      productName: product.name,
+      productImage: product.images[0] ?? '',
+      productPrice: product.price,
+      quantity: 1,
+    });
   };
 
   const badge = product.isNew

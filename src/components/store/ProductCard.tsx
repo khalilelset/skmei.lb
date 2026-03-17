@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Product } from "@/types";
 import { formatPrice, calculateDiscount } from "@/lib/utils";
 import { useCartStore } from "@/store/cartStore";
+import { useToastStore } from "@/store/toastStore";
 import { ShoppingCart, Star } from "lucide-react";
 
 interface ProductCardProps {
@@ -14,6 +15,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCartStore();
+  const { show } = useToastStore();
   const [imgLoaded, setImgLoaded] = useState(false);
   const discount = product.originalPrice
     ? calculateDiscount(product.originalPrice, product.price)
@@ -22,6 +24,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addItem(product, 1);
+    show({
+      productName: product.name,
+      productImage: product.images[0] ?? '',
+      productPrice: product.price,
+      quantity: 1,
+    });
   };
 
   return (

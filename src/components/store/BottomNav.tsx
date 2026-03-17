@@ -11,7 +11,7 @@ export default function BottomNav() {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { getTotalItems, isOpen: cartOpen, openCart, closeCart } = useCartStore();
+  const { getTotalItems, isOpen: cartOpen, openCart, closeCart, closeMobileMenu } = useCartStore();
   const cartCount = getTotalItems();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -74,7 +74,7 @@ export default function BottomNav() {
           {/* Home */}
           <Link
             href="/"
-            onClick={closeCart}
+            onClick={() => { closeCart(); closeMobileMenu(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
               isActive('/') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}
@@ -86,7 +86,7 @@ export default function BottomNav() {
           {/* Shop */}
           <Link
             href="/store/products"
-            onClick={closeCart}
+            onClick={() => { closeCart(); closeMobileMenu(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
               isActive('/store/products') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}
@@ -97,7 +97,7 @@ export default function BottomNav() {
 
           {/* Search */}
           <button
-            onClick={() => { closeCart(); setSearchOpen(true); }}
+            onClick={() => { closeCart(); closeMobileMenu(); setSearchOpen(true); }}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-brand-gray transition-colors"
           >
             <Search className="w-6 h-6" />
@@ -106,7 +106,7 @@ export default function BottomNav() {
 
           {/* Cart */}
           <button
-            onClick={() => cartOpen ? closeCart() : openCart()}
+            onClick={() => { closeMobileMenu(); cartOpen ? closeCart() : openCart(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
               cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}
@@ -125,7 +125,7 @@ export default function BottomNav() {
           {/* Account */}
           <Link
             href="/account"
-            onClick={closeCart}
+            onClick={() => { closeCart(); closeMobileMenu(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
               isActive('/account') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
             }`}

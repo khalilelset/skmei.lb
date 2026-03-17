@@ -6,6 +6,7 @@ interface CartState {
   items: CartItem[];
   isOpen: boolean;
   bump: number; // increments on every addItem to signal the cart icon
+  mobileMenuOpen: boolean;
 
   // Actions
   addItem: (product: Product, quantity?: number) => void;
@@ -15,6 +16,8 @@ interface CartState {
   toggleCart: () => void;
   openCart: () => void;
   closeCart: () => void;
+  toggleMobileMenu: () => void;
+  closeMobileMenu: () => void;
 
   // Computed
   getTotalItems: () => number;
@@ -28,6 +31,7 @@ export const useCartStore = create<CartState>()(
       items: [],
       isOpen: false,
       bump: 0,
+      mobileMenuOpen: false,
 
       addItem: (product: Product, quantity: number = 1) => {
         set((state) => {
@@ -86,6 +90,14 @@ export const useCartStore = create<CartState>()(
 
       closeCart: () => {
         set({ isOpen: false });
+      },
+
+      toggleMobileMenu: () => {
+        set((state) => ({ mobileMenuOpen: !state.mobileMenuOpen }));
+      },
+
+      closeMobileMenu: () => {
+        set({ mobileMenuOpen: false });
       },
 
       getTotalItems: () => {

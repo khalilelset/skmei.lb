@@ -38,14 +38,13 @@ const navigation = [
 ];
 
 export default function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
 
-  const { getTotalItems, openCart, bump } = useCartStore();
+  const { getTotalItems, openCart, bump, mobileMenuOpen, toggleMobileMenu, closeMobileMenu: closeMenu } = useCartStore();
   const cartItemsCount = getTotalItems();
   const badgeRef = useRef<HTMLSpanElement>(null);
 
@@ -140,7 +139,7 @@ export default function Header() {
 
           {/* Mobile Menu Button */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => toggleMobileMenu()}
             className="lg:hidden p-2 -ml-2 text-brand-black hover:text-brand-red transition-colors"
             aria-label="Toggle menu"
           >
@@ -301,7 +300,7 @@ export default function Header() {
 
       {/* Mobile Menu — slide from left */}
       <div
-        className={`lg:hidden fixed inset-0 top-[112px] bg-white z-40 overflow-y-auto transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed inset-0 top-[84px] bg-white z-40 overflow-y-auto transition-transform duration-300 ease-in-out ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -312,7 +311,7 @@ export default function Header() {
                 <div className="flex items-center">
                   <Link
                     href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => closeMenu()}
                     className="flex-1 py-4 text-base font-semibold text-brand-black hover:text-brand-red transition-colors flex items-center gap-3"
                   >
                     <span className="text-brand-red">{item.icon}</span>
@@ -344,7 +343,7 @@ export default function Header() {
                       <Link
                         key={subitem.name}
                         href={subitem.href}
-                        onClick={() => setMobileMenuOpen(false)}
+                        onClick={() => closeMenu()}
                         className="flex items-center gap-2.5 px-4 py-3.5 bg-brand-silver/20 hover:bg-brand-red hover:text-white rounded-xl text-sm font-medium text-brand-black transition-all group active:scale-95"
                       >
                         <span className="text-brand-red group-hover:text-white transition-colors shrink-0">
@@ -356,7 +355,7 @@ export default function Header() {
                     {/* View all card */}
                     <Link
                       href="/store/products"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => closeMenu()}
                       className="col-span-2 flex items-center justify-center gap-2 px-4 py-3 bg-brand-black text-white rounded-xl text-sm font-semibold transition-all active:scale-95"
                     >
                       View All Products
@@ -371,7 +370,7 @@ export default function Header() {
             <div className="border-t border-brand-silver/50">
               <Link
                 href="/#feedback"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => closeMenu()}
                 className="flex items-center gap-3 py-4 text-base font-semibold text-brand-black hover:text-brand-red transition-colors"
               >
                 <svg className="w-4 h-4 text-brand-red" fill="currentColor" viewBox="0 0 24 24">
@@ -385,8 +384,8 @@ export default function Header() {
 
       {/* Mobile Menu Overlay — fade in/out */}
       <div
-        onClick={() => setMobileMenuOpen(false)}
-        className={`lg:hidden fixed inset-0 bg-black/50 z-30 top-28 transition-opacity duration-300 ${
+        onClick={() => closeMenu()}
+        className={`lg:hidden fixed inset-0 bg-black/50 z-30 top-[84px] transition-opacity duration-300 ${
           mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         aria-hidden="true"

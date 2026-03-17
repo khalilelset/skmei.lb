@@ -7,6 +7,7 @@ import Footer from '@/components/store/Footer';
 import CartDrawer from '@/components/store/CartDrawer';
 import FloatingWhatsApp from '@/components/store/FloatingWhatsApp';
 import BottomNav from '@/components/store/BottomNav';
+import CartToast from '@/components/store/CartToast';
 import { useCartStore } from '@/store/cartStore';
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <CartDrawer />
       <FloatingWhatsApp />
       <BottomNav />
+      <CartToast />
     </>
   );
 }

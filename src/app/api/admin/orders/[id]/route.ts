@@ -65,7 +65,7 @@ export async function PATCH(
   if (EMAIL_STATUSES.includes(status as EmailStatus)) {
     const { data: order, error: orderFetchError } = await supabaseServer
       .from('orders')
-      .select('id, order_number, customer_name, customer_email, customer_phone, items, total')
+      .select('id, order_number, customer_name, customer_email, customer_phone, items, total, address')
       .eq('id', id)
       .single();
 
@@ -85,6 +85,7 @@ export async function PATCH(
           quantity: Number(item.quantity ?? 1),
         })),
         total: Number(order.total),
+        address: order.address as { street?: string; building?: string; area?: string; city?: string } | null,
       }).then(() => {
         console.log('[email] Status change email sent OK for', status);
       }).catch((err) => console.error('[email] Status change email threw:', err));

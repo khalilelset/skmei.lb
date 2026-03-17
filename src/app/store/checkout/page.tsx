@@ -30,6 +30,7 @@ interface PlacedOrder {
   phone: string;
   email: string;
   street: string;
+  area: string;
   city: string;
   notes: string;
   items: { name: string; price: number; quantity: number; image: string | null }[];
@@ -183,8 +184,8 @@ function OrderConfirmation({ order }: { order: PlacedOrder }) {
               <h3 className="font-bold text-brand-black text-sm">Delivery Address</h3>
             </div>
             <div className="space-y-1.5 text-sm text-brand-gray">
-              <p className="font-medium text-brand-black">{order.city}</p>
-              <p>{order.street}</p>
+              <p className="font-medium text-brand-black">{order.area}{order.city && order.city !== order.area ? `, ${order.city}` : ''}</p>
+              {order.street && <p>{order.street}</p>}
               <p>Lebanon</p>
             </div>
             {order.notes && (
@@ -234,12 +235,91 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
 
+  const LEBANON_AREAS: Record<string, string[]> = {
+    'Beirut': [
+      'Achrafieh', 'Badaro', 'Hamra', 'Verdun', 'Ras Beirut', 'Corniche El Mazraa',
+      'Basta', 'Bourj Hammoud', 'Chiyah', 'Dekwaneh', 'Furn El Chebbak',
+      'Geitawi', 'Jdeideh', 'Martyrs Square', 'Mar Elias', 'Mar Mikhael',
+      'Msaytbeh', 'Qoreitem', 'Ramlet El Baida', 'Sanayeh', 'Sodeco',
+      'Tallet El Khayat', 'Zarif',
+    ],
+    'Mount Lebanon': [
+      // Matn
+      'Antelias', 'Bsalim', 'Dbayeh', 'Dekwaneh', 'Fanar', 'Jdeideh', 'Mansourieh',
+      'Metn (Naccache)', 'Mtayleb', 'Rabieh', 'Roumieh', 'Sed El Baouchrieh',
+      'Sin El Fil', 'Zalka',
+      // Metn highlands
+      'Beit Mery', 'Broummana', 'Baskinta', 'Bikfaya', 'Ainab',
+      // Kesrouane
+      'Jounieh', 'Ghazir', 'Adma', 'Bouar', 'Faraya', 'Faqra', 'Jeita', 'Kfardebian', 'Sarba',
+      // Jbeil (Byblos)
+      'Byblos (Jbeil)', 'Amchit', 'Laqlouq',
+      // Batroun
+      'Batroun', 'Tannourine', 'Douma',
+      // Chouf
+      'Aley', 'Aramoun', 'Bhamdoun', 'Bchamoun', 'Choueifat', 'Deir El Qamar',
+      'Doha', 'Hadath', 'Jdeideh El Metn', 'Khalde', 'Kfarhbab',
+      'Sofar', 'Simone Abou Shakra', 'Yarze',
+      // South Matn / Iqlim
+      'Baabda', 'Beit El Chaar', 'Damour', 'Jieh', 'Naameh', 'Rmeil',
+    ],
+    'North Lebanon': [
+      // Tripoli district
+      'Tripoli', 'Mina', 'Beddawi', 'Qalamoun',
+      // Koura
+      'Amioun', 'Barsa', 'Btouratij', 'Kousba', 'Shekka',
+      // Zgharta
+      'Zgharta', 'Ehden', 'Miziara',
+      // Bcharre
+      'Bcharre', 'Bsharri', 'Hasroun', 'Qadisha Valley',
+      // Miniyeh-Danniyeh
+      'Miniyeh', 'Sir El Dinniyeh',
+      // Batroun (North)
+      'Enfeh', 'Chekka',
+    ],
+    'Akkar': [
+      'Halba', 'Andket', 'Qobayat', 'Berkayel', 'Fnaydeq', 'Mhammara',
+      'Akkar El Atika', 'Aarsal (border)', 'Rahbe', 'Tal Abbas', 'Wadi Khaled',
+    ],
+    'Bekaa': [
+      'Zahle', 'Bar Elias', 'Taalabaya', 'Saadnayel',
+      'Chtaura', 'Taanayel', 'Qabb Elias',
+      'Anjar', 'Deir El Ahmar', 'Yohmor', 'Saghbine', 'Lala',
+      'Rashaya', 'Yanta', 'Khirbet Qanafar',
+    ],
+    'Baalbek-Hermel': [
+      // Baalbek district
+      'Baalbek', 'Taalabaya', 'Britel', 'Nabi Othman', 'Nahleh', 'Iaat',
+      'Qsarnaba', 'Sbouba', 'Kherbet Daoud',
+      // Hermel district
+      'Hermel', 'Yammouneh', 'Hawsh El Oumara', 'Aarsal',
+    ],
+    'South Lebanon': [
+      // Saida district
+      'Saida (Sidon)', 'Darb El Sim', 'Ghaziyeh', 'Hlaliyeh', 'Maghdouche',
+      'Miyeh Miyeh', 'Sarafand',
+      // Jezzine district
+      'Jezzine', 'Ain Maarouf', 'Kfarhoune',
+      // Tyre district
+      'Tyre (Sour)', 'Abbasiyeh', 'Deir Qanoun', 'Qana',
+      // Zahrani
+      'Zahrani', 'Kafra', 'Adloun',
+    ],
+    'Nabatieh': [
+      'Nabatieh', 'Arnoun', 'Deir Zahrani', 'Kfar Rommane', 'Majdel Selm',
+      'Bint Jbeil', 'Aita El Chaab', 'Houla', 'Kfar Kila', 'Yarun',
+      'Marjeyoun', 'Deir Mimas', 'Ebel El Saqi', 'Qlayaa',
+      'Hasbaya', 'Chebaa', 'Rachaya El Wadi',
+    ],
+  };
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     street: '',
+    area: '',
     city: '',
     notes: '',
   });
@@ -260,8 +340,9 @@ export default function CheckoutPage() {
           firstName: c.first_name || prev.firstName,
           lastName:  c.last_name  || prev.lastName,
           email:     c.email      || prev.email,
-          street:    addr.street  || prev.street,
-          city:      addr.city    || prev.city,
+          street:    [addr.street, addr.building].filter(Boolean).join(', ') || prev.street,
+          area:      addr.area      || prev.area,
+          city:      addr.city      || prev.city,
         }));
       }
     } catch { /* silent */ } finally {
@@ -315,16 +396,16 @@ export default function CheckoutPage() {
     setCouponError('');
   };
 
-  const lebanonCities = [
-    'Tripoli', 'Beirut', 'Saida', 'Tyre', 'Jounieh',
-    'Byblos', 'Zahle', 'Baalbek', 'Nabatieh', 'Batroun', 'Other',
-  ];
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'area') {
+      setFormData((prev) => ({ ...prev, area: value, city: '' }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
     if (errors[name]) {
       setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
     }
@@ -346,7 +427,7 @@ export default function CheckoutPage() {
 
   const validateStep2 = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.street.trim()) newErrors.street = 'Street address is required';
+    if (!formData.area.trim()) newErrors.area = 'Region / Governorate is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -383,7 +464,7 @@ export default function CheckoutPage() {
           discount: discountAmount,
           coupon_code: appliedCoupon?.code ?? null,
           total,
-          address: { street: formData.street, city: formData.city },
+          address: { street: formData.street, area: formData.area, city: formData.city },
           notes: formData.notes || null,
           status: 'pending',
         }),
@@ -397,6 +478,7 @@ export default function CheckoutPage() {
         phone: formData.phone,
         email: formData.email,
         street: formData.street,
+        area: formData.area,
         city: formData.city,
         notes: formData.notes,
         items: orderItems,
@@ -535,23 +617,37 @@ export default function CheckoutPage() {
                   <div className="space-y-4">
                     <h3 className="text-lg font-bold text-brand-black mb-4">Shipping Address</h3>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">Street Address *</label>
-                      <input type="text" name="street" value={formData.street} onChange={handleChange}
-                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red ${errors.street ? 'border-red-500' : 'border-gray-300'}`} />
-                      {errors.street && <p className="text-red-600 text-sm mt-1">{errors.street}</p>}
+                      <label className="block text-sm font-semibold text-brand-black mb-2">Region / Governorate *</label>
+                      <select name="area" value={formData.area} onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red bg-white ${errors.area ? 'border-red-500' : 'border-gray-300'}`}>
+                        <option value="">Select Region / Governorate</option>
+                        {Object.keys(LEBANON_AREAS).map((area) => (
+                          <option key={area} value={area}>{area}</option>
+                        ))}
+                      </select>
+                      {errors.area && <p className="text-red-600 text-sm mt-1">{errors.area}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-brand-black mb-2">City *</label>
                       <select name="city" value={formData.city} onChange={handleChange}
-                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red ${errors.city ? 'border-red-500' : 'border-gray-300'}`}>
-                        <option value="">Select City</option>
-                        {lebanonCities.map((city) => <option key={city} value={city}>{city}</option>)}
+                        disabled={!formData.area}
+                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed ${errors.city ? 'border-red-500' : 'border-gray-300'}`}>
+                        <option value="">{formData.area ? 'Select City' : 'Select Region first'}</option>
+                        {[...new Set(LEBANON_AREAS[formData.area] ?? [])].map((city, i) => (
+                          <option key={`${city}-${i}`} value={city}>{city}</option>
+                        ))}
                       </select>
                       {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">Delivery Notes (Optional)</label>
-                      <textarea name="notes" value={formData.notes} onChange={handleChange} rows={3}
+                      <label className="block text-sm font-semibold text-brand-black mb-2">More Address <span className="font-normal text-brand-gray">(Optional)</span></label>
+                      <input type="text" name="street" value={formData.street} onChange={handleChange}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red"
+                        placeholder="Street, Building, Floor..." />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-brand-black mb-2">Delivery Notes <span className="font-normal text-brand-gray">(Optional)</span></label>
+                      <textarea name="notes" value={formData.notes} onChange={handleChange} rows={2}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red resize-none"
                         placeholder="Any special delivery instructions..." />
                     </div>
@@ -583,7 +679,7 @@ export default function CheckoutPage() {
                       <p className="text-sm text-brand-gray mb-1">{formData.firstName} {formData.lastName}</p>
                       <p className="text-sm text-brand-gray mb-1">{formData.email}</p>
                       <p className="text-sm text-brand-gray mb-1">{formData.phone}</p>
-                      <p className="text-sm text-brand-gray">{formData.street}, {formData.city}</p>
+                      <p className="text-sm text-brand-gray">{[formData.area, formData.city, formData.street].filter(Boolean).join(', ')}</p>
                     </div>
                     <button type="submit" disabled={isSubmitting}
                       className="w-full bg-brand-red text-white px-6 py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors mt-4 disabled:bg-gray-400 disabled:cursor-not-allowed">

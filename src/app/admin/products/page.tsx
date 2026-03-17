@@ -48,11 +48,17 @@ const categoryOptions = [
   ...categories.map((cat) => ({ value: cat.slug, label: cat.name })),
 ];
 
+const emptySpecs = {
+  movement: '', caseMaterial: '', bandMaterial: '',
+  dialColor: '', caseSize: '', waterResistance: '', warranty: '',
+};
+
 const emptyForm = {
   name: '', slug: '', description: '', price: '', originalPrice: '',
   category: 'digital', stock: '', images: [] as string[],
   features: [] as string[],
   isNew: false, onSale: false, isBestseller: false, gender: '' as '' | 'men' | 'women' | 'unisex',
+  specifications: { ...emptySpecs },
 };
 
 export default function ProductsPage() {
@@ -116,6 +122,7 @@ export default function ProductsPage() {
       onSale: product.onSale ?? false,
       isBestseller: product.isBestseller ?? false,
       gender: (product.gender ?? '') as '' | 'men' | 'women' | 'unisex',
+      specifications: { ...emptySpecs, ...(product.specifications ?? {}) },
     });
     setDialogOpen(true);
   };
@@ -184,6 +191,7 @@ export default function ProductsPage() {
       onSale: form.onSale,
       isBestseller: form.isBestseller,
       gender: form.gender || null,
+      specifications: form.specifications,
     };
 
     if (editProduct) {
@@ -499,6 +507,49 @@ export default function ProductsPage() {
                   ))}
                 </Box>
               )}
+            </Grid>
+
+            {/* Specifications Table */}
+            <Grid size={12}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5, mt: 1 }}>Specifications</Typography>
+              <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: 2, overflow: 'hidden' }}>
+                {([
+                  { key: 'movement',       label: 'Movement' },
+                  { key: 'caseMaterial',   label: 'Case Material' },
+                  { key: 'bandMaterial',   label: 'Band Material' },
+                  { key: 'dialColor',      label: 'Dial Color' },
+                  { key: 'caseSize',       label: 'Case Size' },
+                  { key: 'waterResistance',label: 'Water Resistance' },
+                  { key: 'warranty',       label: 'Warranty' },
+                ] as { key: keyof typeof emptySpecs; label: string }[]).map(({ key, label }, i, arr) => (
+                  <Box key={key} sx={{
+                    display: 'flex', alignItems: 'center',
+                    borderBottom: i < arr.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none',
+                  }}>
+                    <Box sx={{
+                      width: 160, minWidth: 160, px: 2, py: 1.25,
+                      bgcolor: 'rgba(0,0,0,0.02)',
+                      borderRight: '1px solid rgba(0,0,0,0.08)',
+                    }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: 13 }}>
+                        {label}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, px: 1.5, py: 0.75 }}>
+                      <TextField
+                        fullWidth size="small" variant="standard"
+                        placeholder={`Enter ${label.toLowerCase()}...`}
+                        value={form.specifications[key]}
+                        onChange={(e) => setForm(f => ({
+                          ...f,
+                          specifications: { ...f.specifications, [key]: e.target.value },
+                        }))}
+                        InputProps={{ disableUnderline: true, sx: { fontSize: 13 } }}
+                      />
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
             </Grid>
 
             {/* Label Toggles */}

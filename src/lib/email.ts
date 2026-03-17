@@ -29,7 +29,7 @@ interface OrderEmailData {
   discount: number;
   couponCode: string | null;
   total: number;
-  address: { street?: string; city?: string } | null;
+  address: { street?: string; building?: string; area?: string; city?: string } | null;
   notes: string | null;
 }
 
@@ -112,7 +112,7 @@ function buildAdminEmail(data: OrderEmailData): string {
               <p style="margin:0 0 20px;font-size:15px;font-weight:700;color:#0f0f0f;">${data.customerName}</p>
               <p style="margin:0 0 20px;font-size:14px;color:#444;">📞 +961 ${data.customerPhone}</p>
               ${data.customerEmail ? `<p style="margin:0 0 20px;font-size:14px;color:#444;">✉️ ${data.customerEmail}</p>` : ""}
-              ${data.address ? `<p style="margin:0;font-size:14px;color:#444;">📍 ${[data.address.street, data.address.city, "Lebanon"].filter(Boolean).join(", ")}</p>` : ""}
+              ${data.address ? `<p style="margin:0;font-size:14px;color:#444;">📍 ${[data.address.area, data.address.city, data.address.street, "Lebanon"].filter(Boolean).join(", ")}</p>` : ""}
               ${data.notes ? `<p style="margin:12px 0 0;font-size:13px;color:#666;font-style:italic;">Note: ${data.notes}</p>` : ""}
             </div>
 
@@ -176,6 +176,7 @@ interface StatusEmailData {
   customerPhone: string;
   items: { name: string; price: number; quantity: number }[];
   total: number;
+  address?: { street?: string; building?: string; area?: string; city?: string } | null;
 }
 
 function statusLabel(d: StatusEmailData) {
@@ -322,7 +323,7 @@ function buildShippedEmail(d: StatusEmailData): string {
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:18px 20px;margin-bottom:32px;text-align:left;">
         <p style="margin:0;font-size:14px;color:#1d4ed8;line-height:1.8;">
           🕐 <strong>Estimated delivery:</strong> 2–4 business days.<br/>
-          Our delivery team will contact you on <strong>+961 ${d.customerPhone}</strong> before arriving.
+          Our delivery team will contact you on <strong>+961 ${d.customerPhone}</strong> before arriving.${d.address ? `<br/>📍 <strong>Delivering to:</strong> ${[d.address.area, d.address.city, d.address.street, "Lebanon"].filter(Boolean).join(", ")}` : ""}
         </p>
       </div>
 
