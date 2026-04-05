@@ -15,12 +15,22 @@ export async function GET(
 
   const { data, error } = await supabaseServer
     .from('customers')
-    .select('id, first_name, last_name, email, phone, addresses, created_at')
+    .select('id, first_name, last_name, phone, addresses')
     .eq('phone', phone)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ found: false });
   if (!data) return NextResponse.json({ found: false });
 
-  return NextResponse.json({ found: true, customer: data });
+  // Return only what the checkout form needs — no email, no created_at
+  return NextResponse.json({
+    found: true,
+    customer: {
+      id:         data.id,
+      first_name: data.first_name,
+      last_name:  data.last_name,
+      phone:      data.phone,
+      addresses:  data.addresses ?? [],
+    },
+  });
 }

@@ -34,13 +34,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Link href={`/store/products/${product.slug}`} className="group block">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-brand-silver hover:border-brand-red/30">
+      <div className="bg-[#111] rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-white/8 hover:border-brand-red/30">
 
-        {/* Image Container - Mobile Optimized */}
-        <div className="relative aspect-square overflow-hidden bg-brand-silver-light">
-          {/* Shimmer while image loads */}
+        {/* Image Container */}
+        <div className="relative aspect-square overflow-hidden bg-white/5">
           {!imgLoaded && <div className="skeleton-shimmer absolute inset-0 z-10" />}
-
           <Image
             src={product.images[0]}
             alt={product.name}
@@ -52,29 +50,26 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Badges */}
           <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5 sm:gap-2 z-20">
-            {product.isNew && (
-              <span className="bg-brand-red text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                NEW
+            {product.brand && product.brand.toUpperCase() !== 'SKMEI' && (
+              <span className="bg-white/90 text-gray-900 text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg backdrop-blur-sm">
+                {product.brand}
               </span>
+            )}
+            {product.isNew && (
+              <span className="bg-brand-red text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">NEW</span>
             )}
             {product.onSale && (
-              <span className="bg-orange-400 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                SALE
-              </span>
+              <span className="bg-orange-400 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">SALE</span>
             )}
             {product.isBestseller && (
-              <span className="bg-blue-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                BESTSELLER
-              </span>
+              <span className="bg-blue-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">BESTSELLER</span>
             )}
             {discount > 0 && (
-              <span className="bg-brand-black text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                -{discount}%
-              </span>
+              <span className="bg-gray-900 dark:bg-brand-black text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">-{discount}%</span>
             )}
           </div>
 
-          {/* Quick Add — desktop hover overlay only */}
+          {/* Quick Add — desktop hover */}
           <div className="hidden lg:block absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
             <button
               onClick={handleAddToCart}
@@ -87,19 +82,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
 
-        {/* Content - Mobile Optimized Padding */}
+        {/* Content */}
         <div className="p-3 sm:p-4">
-
-          {/* Category */}
           <p className="text-[10px] sm:text-xs text-brand-red font-bold uppercase tracking-wide mb-1">
             {product.category}
           </p>
-
-          {/* Name - Proper line clamp for mobile */}
-          <h3 className="font-semibold text-sm sm:text-base text-brand-black group-hover:text-brand-red transition-colors line-clamp-2 mb-2 min-h-10 sm:min-h-12">
+          <h3 className="font-semibold text-sm sm:text-base text-white group-hover:text-brand-red transition-colors line-clamp-2 mb-2 min-h-10 sm:min-h-12">
             {product.name}
           </h3>
-
 
           {/* Star Rating */}
           {product.rating > 0 && (
@@ -114,25 +104,40 @@ export default function ProductCard({ product }: ProductCardProps) {
                   />
                 ))}
               </div>
-              <span className="text-[10px] sm:text-xs text-brand-gray">
-                ({product.reviewCount})
-              </span>
+              <span className="text-[10px] sm:text-xs text-gray-400">({product.reviewCount})</span>
             </div>
           )}
 
-          {/* Price - Mobile Friendly Size */}
+          {/* Color dots */}
+          {product.colors && product.colors.length > 0 && (
+            <div className="flex items-center gap-1.5 mb-2.5">
+              {product.colors.slice(0, 6).map((color, i) => (
+                <span
+                  key={i}
+                  title={color.name}
+                  className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-sm shrink-0"
+                  style={{ backgroundColor: color.hex }}
+                />
+              ))}
+              {product.colors.length > 6 && (
+                <span className="text-[9px] text-gray-400 font-medium">+{product.colors.length - 6}</span>
+              )}
+            </div>
+          )}
+
+          {/* Price */}
           <div className="flex items-baseline gap-2">
-            <span className="text-base sm:text-lg font-bold text-brand-black">
+            <span className="text-base sm:text-lg font-bold text-white">
               {formatPrice(product.price)}
             </span>
             {product.originalPrice && (
-              <span className="text-xs sm:text-sm text-brand-gray line-through">
+              <span className="text-xs sm:text-sm text-gray-400 line-through">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
 
-          {/* Add to Cart Button — mobile only */}
+          {/* Add to Cart — mobile */}
           <button
             onClick={handleAddToCart}
             disabled={product.stock === 0}
@@ -143,16 +148,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             Add to Cart
           </button>
 
-          {/* Stock Indicator - Mobile */}
           {product.stock < 10 && product.stock > 0 && (
-            <p className="text-[10px] sm:text-xs text-brand-red font-medium mt-2">
-              Only {product.stock} left!
-            </p>
+            <p className="text-[10px] sm:text-xs text-brand-red font-medium mt-2">Only {product.stock} left!</p>
           )}
           {product.stock === 0 && (
-            <p className="text-[10px] sm:text-xs text-brand-gray font-medium mt-2">
-              Out of Stock
-            </p>
+            <p className="text-[10px] sm:text-xs text-gray-400 font-medium mt-2">Out of Stock</p>
           )}
         </div>
       </div>

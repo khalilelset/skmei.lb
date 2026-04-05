@@ -4,9 +4,11 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Star, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useToastStore } from '@/store/toastStore';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
+import SectionHeader from './SectionHeader';
 import type { Product } from '@/types';
 
 interface Props {
@@ -60,7 +62,7 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/store/products/${product.slug}`}
-      className="group relative flex flex-col bg-white border border-brand-silver rounded-2xl overflow-hidden hover:border-brand-red/40 hover:shadow-lg transition-all duration-300 h-full"
+      className="group relative flex flex-col bg-[#111] border border-white/8 rounded-2xl overflow-hidden hover:border-brand-red/40 hover:shadow-lg transition-all duration-300 h-full"
     >
       {/* Badge */}
       {badge && (
@@ -70,7 +72,7 @@ function ProductCard({ product }: { product: Product }) {
       )}
 
       {/* Image */}
-      <div className="relative aspect-square bg-brand-silver-light overflow-hidden shrink-0">
+      <div className="relative aspect-square bg-white/5 overflow-hidden shrink-0">
         {!imgLoaded && <div className="skeleton-shimmer absolute inset-0 z-10" />}
         <Image
           src={product.images[0]}
@@ -90,24 +92,24 @@ function ProductCard({ product }: { product: Product }) {
         </p>
 
         {/* Name */}
-        <h3 className="font-semibold text-brand-black text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-brand-red transition-colors">
+        <h3 className="font-semibold text-white text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-brand-red transition-colors">
           {product.name}
         </h3>
 
         {/* Stars */}
         <div className="flex items-center gap-2">
           <StarRating rating={product.rating} />
-          <span className="text-xs text-brand-gray">({product.reviewCount})</span>
+          <span className="text-xs text-gray-400">({product.reviewCount})</span>
         </div>
 
         {/* Price + Add to Cart */}
         <div className="flex items-center justify-between mt-auto pt-2">
           <div className="flex items-baseline gap-2">
-            <span className="text-base sm:text-lg font-bold text-brand-black">
+            <span className="text-base sm:text-lg font-bold text-white">
               {formatPrice(product.price)}
             </span>
             {product.originalPrice && (
-              <span className="text-xs text-brand-gray line-through">
+              <span className="text-xs text-gray-400 line-through">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
@@ -126,30 +128,56 @@ function ProductCard({ product }: { product: Product }) {
   );
 }
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 32 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as [number, number, number, number], delay: i * 0.08 },
+  }),
+};
+
 export default function BestsellingSection({ products }: Props) {
   return (
-    <section className="py-16 sm:py-24 bg-brand-silver-light">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative py-16 sm:py-24 bg-brand-black overflow-hidden">
+
+      {/* Architectural background watermark */}
+      <div
+        aria-hidden
+        className="absolute inset-0 flex items-center justify-start pointer-events-none select-none overflow-hidden"
+      >
+        <span className="text-[clamp(80px,15vw,140px)] font-black text-white/[0.028] leading-none whitespace-nowrap tracking-tight">
+          BESTSELLERS&nbsp;•&nbsp;BESTSELLERS&nbsp;•&nbsp;BESTSELLERS
+        </span>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="text-center mb-10 sm:mb-14">
-          <p className="text-brand-red text-xs font-bold uppercase tracking-widest mb-3">
-            Featured Products
-          </p>
-          <h2 className="text-3xl sm:text-5xl font-black text-brand-black mb-4 leading-tight">
-            Bestselling Timepieces
-          </h2>
-          <p className="text-brand-gray text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Discover our most sought-after watches, chosen by collectors and enthusiasts worldwide.
-          </p>
+        <div className="mb-10 sm:mb-14">
+          <SectionHeader
+            label="Featured Products"
+            title="Bestselling Timepieces"
+            subtitle="Discover our most sought-after watches, chosen by collectors and enthusiasts worldwide."
+            align="center"
+            light
+          />
         </div>
 
         {/* Cards — horizontal scroll on mobile, grid on desktop */}
         <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sm:items-stretch">
-          {products.slice(0, 4).map((product) => (
-            <div key={product.id} className="shrink-0 w-64 sm:w-auto sm:flex sm:flex-col">
+          {products.slice(0, 4).map((product, i) => (
+            <motion.div
+              key={product.id}
+              custom={i}
+              variants={cardVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.1 }}
+              className="shrink-0 w-64 sm:w-auto sm:flex sm:flex-col"
+            >
               <ProductCard product={product} />
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -157,10 +185,10 @@ export default function BestsellingSection({ products }: Props) {
         <div className="mt-10 flex justify-center">
           <Link
             href="/store/products?filter=bestselling"
-            className="group inline-flex items-center gap-3 bg-brand-black text-white px-8 py-4 rounded-full font-bold text-sm sm:text-base hover:bg-brand-red transition-colors duration-300 shadow-lg shadow-brand-black/20"
+            className="group inline-flex items-center gap-3 bg-white text-brand-black px-8 py-4 rounded-full font-bold text-sm sm:text-base hover:bg-brand-red hover:text-white transition-colors duration-300 shadow-lg"
           >
             View All Bestsellers
-            <span className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-0.5 transition-transform duration-300">
+            <span className="w-7 h-7 rounded-full bg-brand-black/10 group-hover:bg-white/20 flex items-center justify-center group-hover:translate-x-0.5 transition-all duration-300">
               <ChevronRight className="w-4 h-4" />
             </span>
           </Link>

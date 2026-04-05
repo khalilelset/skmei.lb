@@ -13,10 +13,10 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
+  --background: #000000;
+  --foreground: #ffffff;
 
-  /* SKMEI Brand Colors - Based on Logo */
+  /* SKMEI Brand Colors */
   --brand-red: #dc2626;
   --brand-red-dark: #b91c1c;
   --brand-red-light: #ef4444;
@@ -28,7 +28,10 @@
   --brand-silver: #e5e7eb;
   --brand-silver-light: #f3f4f6;
 
-  /* Semantic Colors */
+  --brand-red-glow: rgba(220, 38, 38, 0.12);
+  --brand-red-border: rgba(220, 38, 38, 0.25);
+  --shimmer-base: #0d0d0d;
+
   --color-primary: var(--brand-red);
   --color-primary-hover: var(--brand-red-dark);
   --color-secondary: var(--brand-black);
@@ -136,10 +139,17 @@ img {
   display: block;
 }
 
-/* Focus styles - Brand Red */
-:focus-visible {
+/* Focus styles - only for buttons and links, not inputs */
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--brand-red);
   outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
 }
 
 /* Remove tap highlight on mobile */
@@ -237,6 +247,39 @@ body {
 
 .animate-ping-custom {
   animation: ping-custom 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ── Draw line (scaleX reveal) ────────────────────────────────────────────── */
+@keyframes draw-line {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-draw-line {
+  animation: draw-line 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: left center;
+}
+
+/* ── Float (gentle bob) ───────────────────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ── Shimmer sweep (button shine) ────────────────────────────────────────── */
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%)  skewX(-12deg); }
+}
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 0.7s ease-out forwards;
+}
+
+/* ── Loader bar glow ─────────────────────────────────────────────────────── */
+.loader-bar-glow {
+  box-shadow: 0 0 8px var(--brand-red), 0 0 16px var(--brand-red-glow);
 }
 
 /* Animation for mobile performance */

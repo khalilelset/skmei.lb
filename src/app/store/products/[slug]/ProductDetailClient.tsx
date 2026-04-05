@@ -3,12 +3,23 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Home } from "lucide-react";
+import {
+  ChevronRight,
+  Home,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
+  X,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { useToastStore } from "@/store/toastStore";
 import { formatPrice, calculateDiscount, getStockStatus } from "@/lib/utils";
 import ProductCard from "@/components/store/ProductCard";
 import ReviewSection from "@/components/store/ReviewSection";
+import SectionHeader from "@/components/store/SectionHeader";
 import type { Product } from "@/types";
 
 interface Props {
@@ -20,17 +31,33 @@ export default function ProductDetailClient({ slug }: Props) {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState<number | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
+  const [hasVideoStarted, setHasVideoStarted] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [controlsVisible, setControlsVisible] = useState(false);
   const { addItem } = useCartStore();
   const showToast = useToastStore((s) => s.show);
   const carouselRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollToImage = useCallback((index: number) => {
     setSelectedImage(index);
-    carouselRef.current?.scrollTo({ left: index * carouselRef.current.clientWidth, behavior: "smooth" });
+    carouselRef.current?.scrollTo({
+      left: index * carouselRef.current.clientWidth,
+      behavior: "smooth",
+    });
   }, []);
 
   const handleCarouselScroll = useCallback(() => {
@@ -58,23 +85,47 @@ export default function ProductDetailClient({ slug }: Props) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setStickyVisible(!entry.isIntersecting),
-      { rootMargin: '-112px 0px 0px 0px' }
+      { rootMargin: "-112px 0px 0px 0px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [product]);
 
+  useEffect(() => {
+    const section = videoSectionRef.current;
+    if (!section || !product?.videoUrl) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && videoRef.current && !hasVideoStarted) {
+          videoRef.current.muted = true;
+          videoRef.current.play().catch(() => {});
+          setIsVideoPlaying(true);
+          setHasVideoStarted(true);
+        } else if (!entry.isIntersecting && videoRef.current) {
+          videoRef.current.pause();
+          setIsVideoPlaying(false);
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [product, hasVideoStarted]);
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-brand-black">
         <div className="container mx-auto px-4 py-12">
-          <div className="grid lg:grid-cols-2 gap-12 animate-pulse">
-            <div className="aspect-square bg-gray-200 rounded-2xl" />
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-1/4" />
-              <div className="h-8 bg-gray-200 rounded w-3/4" />
-              <div className="h-10 bg-gray-200 rounded w-1/3" />
-              <div className="h-20 bg-gray-200 rounded" />
+          <div className="grid lg:grid-cols-2 gap-12">
+            <div className="aspect-square rounded-2xl bg-white/5 animate-pulse" />
+            <div className="space-y-5 pt-2">
+              <div className="h-3 rounded-full w-24 bg-white/10 animate-pulse" />
+              <div className="h-10 rounded-lg w-3/4 bg-white/10 animate-pulse" />
+              <div className="h-12 rounded-lg w-1/3 bg-white/10 animate-pulse" />
+              <div className="h-4 rounded w-full bg-white/6 animate-pulse" />
+              <div className="h-4 rounded w-5/6 bg-white/6 animate-pulse" />
+              <div className="h-4 rounded w-4/6 bg-white/6 animate-pulse" />
+              <div className="h-14 rounded-xl w-full bg-brand-red/20 animate-pulse mt-4" />
             </div>
           </div>
         </div>
@@ -84,15 +135,10 @@ export default function ProductDetailClient({ slug }: Props) {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-brand-black flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">
-            Product Not Found
-          </h1>
-          <Link
-            href="/store/products"
-            className="text-brand-red hover:text-brand-red-dark"
-          >
+          <h1 className="text-2xl font-black text-white mb-4">Product Not Found</h1>
+          <Link href="/store/products" className="text-brand-red hover:text-brand-red-dark font-semibold">
             Back to Products
           </Link>
         </div>
@@ -105,11 +151,78 @@ export default function ProductDetailClient({ slug }: Props) {
     : 0;
   const stockStatus = getStockStatus(product.stock);
 
+  const toggleVideoPlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play().catch(() => {});
+      setIsVideoPlaying(true);
+    } else {
+      v.pause();
+      setIsVideoPlaying(false);
+    }
+    setHasVideoStarted(true);
+  };
+
+  const toggleVideoMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setIsVideoMuted(v.muted);
+  };
+
+  const enterFullscreen = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.requestFullscreen) v.requestFullscreen();
+    else if (
+      (v as HTMLVideoElement & { webkitEnterFullscreen?: () => void })
+        .webkitEnterFullscreen
+    ) {
+      (v as HTMLVideoElement & { webkitEnterFullscreen?: () => void })
+        .webkitEnterFullscreen!();
+    }
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setVideoCurrentTime(v.currentTime);
+    if (v.duration) setVideoProgress((v.currentTime / v.duration) * 100);
+  };
+
+  const handleLoadedMetadata = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setVideoDuration(v.duration);
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const v = videoRef.current;
+    const bar = progressBarRef.current;
+    if (!v || !bar || !v.duration) return;
+    const rect = bar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    v.currentTime = pct * v.duration;
+  };
+
+  const showControls = () => {
+    setControlsVisible(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
+  };
+
   const handleAddToCart = () => {
     addItem(product, quantity);
     showToast({
       productName: product.name,
-      productImage: product.images[0] ?? '',
+      productImage: product.images[0] ?? "",
       productPrice: product.price,
       quantity,
     });
@@ -121,416 +234,711 @@ export default function ProductDetailClient({ slug }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-brand-black">
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-200 bg-black/95 flex items-center justify-center"
+            onClick={() => setLightboxOpen(false)}
+          >
+            <motion.div
+              layoutId={`product-img-${selectedImage}`}
+              className="relative w-full max-w-lg aspect-square mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={product.images[selectedImage]}
+                alt={product.name}
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, 512px"
+              />
+            </motion.div>
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sticky Product Bar */}
       <div
-        className={`fixed top-[88px] sm:top-[104px] left-0 right-0 z-49 bg-white border-b border-brand-silver shadow-md transition-all duration-300 ${
-          stickyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'
+        className={`fixed top-[88px] sm:top-[104px] left-0 right-0 z-49 bg-brand-black border-b border-white/10 shadow-lg shadow-black/50 transition-all duration-300 ${
+          stickyVisible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 -translate-y-full pointer-events-none"
         }`}
       >
         <div className="container mx-auto px-4 py-2.5 flex items-center gap-4">
-          {/* Thumbnail */}
-          <div className="relative w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-brand-silver-light border border-brand-silver">
+          <div className="relative w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-white/10 border border-white/15">
             <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
           </div>
-          {/* Name + Price */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-brand-black truncate">{product.name}</p>
+            <p className="text-sm font-bold text-white truncate">{product.name}</p>
             <p className="text-sm font-semibold text-brand-red">{formatPrice(product.price)}</p>
           </div>
-          {/* Add to Cart */}
           <button
             onClick={handleAddToCart}
             disabled={product.stock === 0 || justAdded}
             className={`shrink-0 px-4 py-2 rounded-lg text-sm font-bold text-white transition-all flex items-center gap-2 shadow-sm ${
               justAdded
-                ? 'bg-green-500 cursor-default'
+                ? "bg-green-500 cursor-default"
                 : product.stock === 0
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-brand-red hover:bg-brand-red-dark active:scale-95'
+                  ? "bg-white/20 cursor-not-allowed"
+                  : "bg-brand-red hover:bg-brand-red-dark active:scale-95"
             }`}
           >
             {justAdded ? (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
                 Added!
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
               </>
             )}
+          </button>
+          <button
+            onClick={() => setStickyVisible(false)}
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition text-white/50 hover:text-white"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Breadcrumb */}
-      <div className="container mx-auto px-4 pt-5 pb-2">
-        <nav className="flex items-center gap-1 text-sm min-w-0">
-          <Link
-            href="/"
-            className="flex items-center gap-1 text-brand-gray hover:text-brand-black transition-colors shrink-0"
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>Home</span>
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-          <Link
-            href="/store/products"
-            className="text-brand-gray hover:text-brand-black transition-colors shrink-0"
-          >
-            Products
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-          <Link
-            href={`/store/products?category=${product.category}`}
-            className="text-brand-gray hover:text-brand-black transition-colors capitalize shrink-0"
-          >
-            {product.category}
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-          <span className="text-brand-red font-medium truncate">
-            {product.name}
-          </span>
-        </nav>
-      </div>
+      {/* ── Main Dark Section: Breadcrumb + Product ── */}
+      <div className="relative overflow-hidden">
+        {/* Radial glow behind image */}
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-brand-red/5 blur-3xl pointer-events-none" />
+        {/* Diagonal stripe texture */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
+          style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '18px 18px' }} />
 
-      {/* Product Details */}
-      <section className="py-8 lg:py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* Images Carousel */}
-            <div className="flex flex-col gap-3">
-              {/* Swipeable Carousel */}
-              <div className="relative rounded-2xl overflow-hidden bg-brand-silver-light border border-brand-silver shadow-lg">
-                <div
-                  ref={carouselRef}
-                  onScroll={handleCarouselScroll}
-                  className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth aspect-square"
-                  style={{ scrollbarWidth: "none" }}
-                >
-                  {product.images.map((image, index) => (
-                    <div key={index} className="relative shrink-0 w-full aspect-square">
-                      <Image
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        fill
-                        className="object-cover"
-                        priority={index === 0}
-                      />
+        {/* Breadcrumb */}
+        <div className="relative z-10 container mx-auto px-4 pt-6 pb-2">
+          <nav className="flex items-center gap-1.5 text-xs text-white/35 flex-wrap">
+            <Link href="/" className="flex items-center gap-1 hover:text-white/60 transition-colors">
+              <Home className="w-3 h-3" />
+              <span>Home</span>
+            </Link>
+            <ChevronRight className="w-3 h-3 shrink-0" />
+            <Link href="/store/products" className="hover:text-white/60 transition-colors shrink-0">Products</Link>
+            <ChevronRight className="w-3 h-3 shrink-0" />
+            <Link href={`/store/products?category=${product.category}`} className="hover:text-white/60 transition-colors capitalize shrink-0">
+              {product.category}
+            </Link>
+            <ChevronRight className="w-3 h-3 shrink-0" />
+            <span className="text-brand-red font-medium truncate">{product.name}</span>
+          </nav>
+        </div>
+
+        {/* Product Details Grid */}
+        <section className="relative z-10 py-8 lg:py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-14">
+
+              {/* Images Carousel */}
+              <div className="flex flex-col gap-3">
+                <div className="relative rounded-2xl overflow-hidden bg-[#0d0d0d] border border-white/8 shadow-2xl shadow-black/60">
+                  <div
+                    ref={carouselRef}
+                    onScroll={handleCarouselScroll}
+                    className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth aspect-square"
+                    style={{ scrollbarWidth: "none" }}
+                  >
+                    {product.images.map((image, index) => (
+                      <motion.div
+                        key={index}
+                        layoutId={`product-img-${index}`}
+                        className="relative shrink-0 w-full aspect-square cursor-zoom-in"
+                        onClick={() => { setSelectedImage(index); setLightboxOpen(true); }}
+                      >
+                        <Image
+                          src={image}
+                          alt={`${product.name} ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          priority={index === 0}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Badges */}
+                  <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                    {product.isNew && (
+                      <span className="bg-emerald-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">NEW</span>
+                    )}
+                    {discount > 0 && (
+                      <span className="bg-brand-red text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">-{discount}% OFF</span>
+                    )}
+                  </div>
+
+                  {/* Dot Indicators */}
+                  {product.images.length > 1 && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                      {product.images.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => scrollToImage(index)}
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            selectedImage === index ? "bg-white w-5" : "bg-white/40 w-2 hover:bg-white/70"
+                          }`}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
-
-                {/* Badges */}
-                <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                  {product.isNew && (
-                    <span className="bg-emerald-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
-                      NEW
-                    </span>
-                  )}
-                  {discount > 0 && (
-                    <span className="bg-brand-red text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
-                      -{discount}% OFF
-                    </span>
                   )}
                 </div>
 
-                {/* Dot Indicators */}
+                {/* Thumbnails */}
                 {product.images.length > 1 && (
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                    {product.images.map((_, index) => (
+                  <div className="flex gap-2.5 overflow-x-auto py-1">
+                    {product.images.map((image, index) => (
                       <button
                         key={index}
                         onClick={() => scrollToImage(index)}
-                        className={`h-2 rounded-full transition-all duration-300 ${
+                        className={`relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                           selectedImage === index
-                            ? "bg-white w-5"
-                            : "bg-white/50 w-2 hover:bg-white/80"
+                            ? "border-brand-red shadow-md shadow-brand-red/30 scale-105"
+                            : "border-white/15 hover:border-brand-red/50 hover:scale-105"
                         }`}
-                      />
+                      >
+                        <Image src={image} alt={`${product.name} ${index + 1}`} fill className="object-cover" />
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Thumbnails */}
-              {product.images.length > 1 && (
-                <div className="flex gap-2.5 overflow-x-auto py-1">
-                  {product.images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => scrollToImage(index)}
-                      className={`relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-                        selectedImage === index
-                          ? "border-brand-red shadow-md shadow-brand-red/30 scale-105"
-                          : "border-brand-silver hover:border-brand-red/50 hover:scale-105"
-                      }`}
-                    >
-                      <Image
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Product Info */}
-            <div>
-              {/* Category */}
-              <Link
-                href={`/store/products?category=${product.category}`}
-                className="text-sm text-brand-red font-medium uppercase tracking-wide hover:text-brand-red-dark"
-              >
-                {product.category}
-              </Link>
-
-              {/* Name */}
-              <h1 ref={titleRef} className="text-2xl lg:text-3xl font-bold text-slate-900 mt-2 mb-4">
-                {product.name}
-              </h1>
-
-
-              {/* Price */}
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-3xl font-bold text-slate-900">
-                  {formatPrice(product.price)}
-                </span>
-                {product.originalPrice && (
-                  <>
-                    <span className="text-xl text-slate-400 line-through">
-                      {formatPrice(product.originalPrice)}
-                    </span>
-                    <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-sm font-medium">
-                      Save {formatPrice(product.originalPrice - product.price)}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {/* Add to Cart — mobile only, right under price */}
-              <div className="flex lg:hidden items-center gap-3 mb-6">
-                <div className="flex items-center border border-brand-silver rounded-lg shrink-0">
-                  <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="px-3 py-2.5 hover:bg-slate-100 transition">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
-                  </button>
-                  <span className="px-3 py-2.5 font-semibold min-w-8 text-center">{quantity}</span>
-                  <button onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} className="px-3 py-2.5 hover:bg-slate-100 transition">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  </button>
-                </div>
-                <button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                  className="flex-1 bg-brand-red text-white py-2.5 rounded-lg font-semibold hover:bg-brand-red-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-brand-red/30"
+              {/* Product Info */}
+              <div>
+                {/* Category */}
+                <Link
+                  href={`/store/products?category=${product.category}`}
+                  className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red hover:text-brand-red-dark transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                </button>
-              </div>
+                  {product.category}
+                </Link>
 
-              {/* Stock Status */}
-              <div className="flex items-center gap-2 mb-6">
-                <span className={`${stockStatus.color} font-medium`}>
-                  {stockStatus.label}
-                </span>
-                {product.stock > 0 && product.stock < 50 && (
-                  <span className="text-slate-500">
-                    - Only {product.stock} left
-                  </span>
-                )}
-              </div>
+                {/* Red rule */}
+                <div className="h-px w-8 bg-brand-red mt-2 mb-3" />
 
-              {/* Description */}
-              <p className="text-slate-600 mb-6">{product.description}</p>
+                {/* Name */}
+                <h1
+                  ref={titleRef}
+                  className="text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight mb-4"
+                >
+                  {product.name}
+                </h1>
 
-              {/* Features */}
-              <div className="mb-6">
-                <h3 className="font-semibold text-slate-900 mb-3">
-                  Key Features
-                </h3>
-                <ul className="grid grid-cols-2 gap-2">
-                  {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm">
-                      <svg
-                        className="w-4 h-4 text-brand-red"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
+                {/* Price */}
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-4xl font-black text-white">{formatPrice(product.price)}</span>
+                  {product.originalPrice && (
+                    <>
+                      <span className="text-xl text-white/30 line-through">{formatPrice(product.originalPrice)}</span>
+                      <span className="bg-brand-red/15 text-brand-red border border-brand-red/25 rounded-sm px-2 py-0.5 text-xs font-bold">
+                        Save {formatPrice(product.originalPrice - product.price)}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {/* Color Selector */}
+                {product.colors && product.colors.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Color</span>
+                      {selectedColor !== null && (
+                        <span className="text-sm font-semibold text-white">
+                          — {product.colors[selectedColor].name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2.5">
+                      {product.colors.map((color, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedColor(selectedColor === i ? null : i)}
+                          title={color.name}
+                          className="relative w-9 h-9 rounded-full transition-all duration-200 active:scale-90 focus:outline-none"
+                          style={{
+                            backgroundColor: color.hex,
+                            boxShadow: selectedColor === i
+                              ? `0 0 0 3px #0d0d0d, 0 0 0 5px ${color.hex}, 0 4px 12px ${color.hex}60`
+                              : '0 2px 6px rgba(0,0,0,0.4)',
+                            transform: selectedColor === i ? 'scale(1.15)' : 'scale(1)',
+                          }}
+                          aria-pressed={selectedColor === i}
+                          aria-label={color.name}
                         />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add to Cart — mobile only */}
+                <div className="flex lg:hidden items-center gap-3 mb-5">
+                  <div className="flex items-center border border-white/15 rounded-lg shrink-0 bg-white/5">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="px-3 py-2.5 hover:bg-white/10 transition text-white/60 hover:text-white"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                       </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Add to Cart — desktop only */}
-              <div className="hidden lg:flex items-center gap-4 mb-6">
-                {/* Quantity */}
-                <div className="flex items-center border rounded-lg">
-                  <button
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="px-4 py-3 hover:bg-slate-100 transition"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                    </button>
+                    <span className="px-3 py-2.5 font-semibold min-w-8 text-center text-white">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+                      className="px-3 py-2.5 hover:bg-white/10 transition text-white/60 hover:text-white"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 12H4"
-                      />
-                    </svg>
-                  </button>
-                  <span className="px-4 py-3 font-medium">{quantity}</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
                   <button
-                    onClick={() =>
-                      setQuantity((q) => Math.min(product.stock, q + 1))
-                    }
-                    className="px-4 py-3 hover:bg-slate-100 transition"
+                    onClick={handleAddToCart}
+                    disabled={product.stock === 0}
+                    className="group relative flex-1 overflow-hidden bg-brand-red text-white py-2.5 rounded-lg font-semibold hover:bg-brand-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-brand-red/30"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
+                    <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
+                    {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
                   </button>
                 </div>
 
-                {/* Add Button */}
-                <button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                  className="flex-1 bg-brand-red text-white py-3 rounded-lg font-semibold hover:bg-brand-red-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-brand-red/30"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                {/* Stock Status */}
+                <div className="flex items-center gap-2 mb-5">
+                  <span className={`${stockStatus.color} font-medium text-sm`}>{stockStatus.label}</span>
+                  {product.stock > 0 && product.stock < 50 && (
+                    <span className="text-white/35 text-sm">— Only {product.stock} left</span>
+                  )}
+                </div>
+
+                {/* Description */}
+                <p className="text-white/55 mb-6 leading-relaxed text-sm sm:text-base">{product.description}</p>
+
+                {/* Features */}
+                <div className="mb-6">
+                  <h3 className="font-bold text-white mb-3 text-[10px] uppercase tracking-[0.2em]">Key Features</h3>
+                  <ul className="grid grid-cols-2 gap-2">
+                    {product.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2 text-sm text-white/65">
+                        <svg className="w-4 h-4 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Add to Cart — desktop */}
+                <div className="hidden lg:flex items-center gap-4 mb-6">
+                  <div className="flex items-center bg-white/6 border border-white/12 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="px-4 py-3.5 hover:bg-white/10 transition text-white/50 hover:text-white"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <span className="px-4 py-3.5 font-bold text-lg text-white min-w-[3rem] text-center">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+                      className="px-4 py-3.5 hover:bg-white/10 transition text-white/50 hover:text-white"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={product.stock === 0}
+                    className="group relative flex-1 overflow-hidden bg-brand-red text-white py-4 rounded-xl font-bold text-base hover:bg-brand-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-brand-red/40 active:scale-95"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                    />
-                  </svg>
-                  Add to Cart
-                </button>
-              </div>
+                    <span aria-hidden className="absolute inset-0 -translate-x-full skew-x-[-12deg] bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    Add to Cart
+                  </button>
+                </div>
 
-              {/* Trust Badges */}
-              <div className="border border-brand-silver rounded-xl overflow-hidden mt-2 mb-4">
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-brand-silver">
-                  <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">100% Authentic Products</p>
-                    <p className="text-xs text-slate-500">Official SKMEI dealer · 1-year warranty included</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-brand-silver">
-                  <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">Secure Checkout</p>
-                    <p className="text-xs text-slate-500">Cash on delivery — pay when you receive</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">Every Order Inspected Before Shipping</p>
-                    <p className="text-xs text-slate-500">Quality checked and verified before it reaches you</p>
-                  </div>
-                </div>
-              </div>
+                {/* Trust Badges — brand-aware */}
+                {(() => {
+                  const isSKMEI = product.brand?.toUpperCase() === 'SKMEI';
+                  const badges = [
+                    {
+                      icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+                      title: isSKMEI ? "100% Authentic SKMEI" : `${product.brand} Product`,
+                      desc: isSKMEI ? "Official authorized dealer · 1-year manufacturer warranty" : "2-week seller warranty included",
+                    },
+                    {
+                      icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
+                      title: "Secure Checkout",
+                      desc: "Cash on delivery — pay when you receive",
+                    },
+                    {
+                      icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+                      title: "Every Order Inspected",
+                      desc: "Quality checked and verified before it reaches you",
+                    },
+                    {
+                      icon: "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
+                      title: "Check Before You Accept",
+                      desc: "Open & inspect your order in front of delivery — refuse if not satisfied",
+                    },
+                  ];
+                  return (
+                    <div className="rounded-2xl border border-white/8 overflow-hidden bg-white/3">
+                      {badges.map((badge, i) => (
+                        <div key={i} className={`flex items-center gap-3 px-4 py-3.5 border-l-2 border-brand-red/40 ml-4 ${i < badges.length - 1 ? 'border-b border-white/6' : ''}`}>
+                          <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={badge.icon} />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-bold text-white">{badge.title}</p>
+                            <p className="text-xs text-white/45">{badge.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
 
-              {/* SKU */}
-              <p className="text-sm text-slate-500">
-                SKU: <span className="text-slate-700">{product.sku}</span>
-              </p>
+                {/* SKU */}
+                <p className="text-sm text-white/30 mt-4">
+                  SKU: <span className="text-white/60 font-medium">{product.sku}</span>
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Specifications */}
-      <section className="py-12 bg-slate-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">
-            Specifications
-          </h2>
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full">
-              <tbody>
-                {Object.entries(product.specifications).map(
-                  ([key, value], index) => (
-                    <tr
-                      key={key}
-                      className={index % 2 === 0 ? "bg-white" : "bg-slate-50"}
-                    >
-                      <td className="px-6 py-4 font-medium text-slate-900 capitalize w-1/3">
-                        {key.replace(/([A-Z])/g, " $1").trim()}
-                      </td>
-                      <td className="px-6 py-4 text-slate-600">{value}</td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
+      </div>
+
+      {/* ── Specifications — Dark ── */}
+      <section className="py-14 bg-[#0d0d0d] relative overflow-hidden">
+        {/* Subtle red glow top-left */}
+        <div className="absolute top-0 left-0 w-72 h-72 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at top left, rgba(220,38,38,0.06) 0%, transparent 60%)' }} />
+        <div className="relative z-10 container mx-auto px-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">Details</p>
+          <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Specifications</h2>
+          <div className="h-px w-10 bg-brand-red mb-8" />
+          <div className="rounded-2xl border border-white/8 overflow-hidden">
+            <dl>
+              {Object.entries(product.specifications).map(([key, value], index, arr) => (
+                <div
+                  key={key}
+                  className={`flex px-6 py-4 ${index % 2 === 0 ? 'bg-white/3' : 'bg-transparent'} ${index < arr.length - 1 ? 'border-b border-white/6' : ''}`}
+                >
+                  <dt className="font-bold text-sm text-white/55 capitalize w-1/3 border-l-2 border-brand-red/30 pl-3">
+                    {key.replace(/([A-Z])/g, " $1").trim()}
+                  </dt>
+                  <dd className="text-sm text-white/85 flex-1 font-medium">{value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </div>
       </section>
 
-      {/* Reviews */}
+      {/* ── Video Section — Cinematic ── */}
+      {product.videoUrl && (
+        <section ref={videoSectionRef} className="relative bg-black overflow-hidden">
+
+          {/* Architectural watermark */}
+          <div className="absolute inset-0 flex items-center pointer-events-none select-none overflow-hidden">
+            <span className="text-[clamp(60px,14vw,160px)] font-black leading-none tracking-[-0.04em] whitespace-nowrap pl-6 lg:pl-16"
+              style={{ color: 'rgba(255,255,255,0.022)' }}>
+              IN MOTION
+            </span>
+          </div>
+
+          {/* Red ambient glow — right side behind video */}
+          <div className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse 50% 70% at 85% 50%, rgba(220,38,38,0.09) 0%, transparent 65%)' }} />
+
+          <div className="relative z-10 container mx-auto px-4 py-16 lg:py-24">
+            <div className="grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-12 lg:gap-20 items-center">
+
+              {/* ── Left: Copy ── */}
+              <motion.div
+                className="order-2 lg:order-1"
+                initial={{ opacity: 0, x: -24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {/* Badge */}
+                <div className="inline-flex items-center gap-2.5 border-l-2 border-brand-red pl-3 mb-6">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse shrink-0" />
+                  <span className="text-[10px] font-bold tracking-[0.3em] text-brand-red uppercase">Product Video</span>
+                </div>
+
+                <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-none mb-5">
+                  Watch It<br />
+                  <span className="text-brand-red">In Motion</span>
+                </h2>
+                <div className="h-px w-12 bg-brand-red mb-6" />
+
+                <p className="text-white/45 text-base leading-relaxed mb-8 max-w-sm">
+                  Experience every angle, every detail — exactly as it looks and moves on your wrist. No filters, no tricks. Just the watch.
+                </p>
+
+                {/* Feature points */}
+                <div className="space-y-3 mb-10">
+                  {[
+                    'True-to-life colors & finish',
+                    'Real movement and weight feel',
+                    'See every detail up close',
+                  ].map((point, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-brand-red/12 border border-brand-red/25 flex items-center justify-center shrink-0">
+                        <svg className="w-2.5 h-2.5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-white/55">{point}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Product tag */}
+                <div className="inline-flex items-center gap-3 bg-white/4 border border-white/8 rounded-xl px-4 py-3">
+                  <div className="w-2 h-2 rounded-full bg-brand-red" />
+                  <span className="text-sm font-bold text-white/70 tracking-wide">{product.name}</span>
+                </div>
+
+                {/* Watermark line */}
+                <p className="text-white/15 text-xs tracking-[0.4em] uppercase mt-10 font-semibold">
+                  Official SKMEI · Lebanon
+                </p>
+              </motion.div>
+
+              {/* ── Right: Video Player ── */}
+              <motion.div
+                className="order-1 lg:order-2 relative"
+                initial={{ opacity: 0, x: 24, scale: 1.02 }}
+                whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {/* Outer ambient glow ring */}
+                <div className="absolute -inset-6 rounded-[2rem] pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse at center, rgba(220,38,38,0.15) 0%, transparent 65%)' }} />
+
+                {/* Thin red border glow */}
+                <div className="absolute -inset-px rounded-2xl pointer-events-none z-10"
+                  style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.3) 0%, transparent 50%, rgba(220,38,38,0.1) 100%)' }} />
+
+                {/* Player wrapper */}
+                <div
+                  className="relative rounded-2xl overflow-hidden bg-[#080808] cursor-pointer"
+                  style={{ boxShadow: '0 0 0 1px rgba(220,38,38,0.12), 0 40px 80px rgba(0,0,0,0.9), 0 0 60px rgba(220,38,38,0.07)' }}
+                  onMouseMove={showControls}
+                  onMouseEnter={showControls}
+                  onClick={toggleVideoPlay}
+                >
+                  {/* Top bar: Live badge + mute */}
+                  <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 pb-8 bg-linear-to-b from-black/80 to-transparent flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse" />
+                      <span className="text-[9px] font-bold text-white/40 tracking-[0.3em] uppercase">Official Video</span>
+                    </div>
+                    <button
+                      className="pointer-events-auto w-8 h-8 rounded-full bg-black/40 border border-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition"
+                      onClick={(e) => { e.stopPropagation(); toggleVideoMute(); }}
+                    >
+                      {isVideoMuted
+                        ? <VolumeX className="w-3.5 h-3.5 text-white/60" />
+                        : <Volume2 className="w-3.5 h-3.5 text-white/60" />
+                      }
+                    </button>
+                  </div>
+
+                  {/* Video */}
+                  <div className="aspect-[3/4]">
+                    <video
+                      ref={videoRef}
+                      src={product.videoUrl}
+                      className="w-full h-full object-cover"
+                      playsInline
+                      muted
+                      loop
+                      onPlay={() => setIsVideoPlaying(true)}
+                      onPause={() => setIsVideoPlaying(false)}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                    />
+                  </div>
+
+                  {/* Center play button — shows before start */}
+                  <AnimatePresence>
+                    {!hasVideoStarted && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute inset-0 flex items-center justify-center z-20"
+                        style={{ background: 'radial-gradient(ellipse 60% 60% at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 100%)' }}
+                      >
+                        <div className="relative flex items-center justify-center">
+                          {/* Rings */}
+                          <div className="absolute w-28 h-28 rounded-full border border-white/6 animate-ping" style={{ animationDuration: '3s' }} />
+                          <div className="absolute w-20 h-20 rounded-full border border-white/10" />
+                          {/* Button */}
+                          <div className="relative w-14 h-14 rounded-full bg-brand-red flex items-center justify-center shadow-xl shadow-brand-red/50 hover:scale-110 hover:bg-brand-red-dark transition-all duration-200">
+                            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Controls — fade on hover/activity */}
+                  <div className={`absolute bottom-0 left-0 right-0 z-30 transition-all duration-300 ${hasVideoStarted && controlsVisible ? 'opacity-100 translate-y-0' : hasVideoStarted ? 'opacity-0 translate-y-1' : 'opacity-0'}`}>
+                    {/* Progress bar */}
+                    <div
+                      ref={progressBarRef}
+                      onClick={(e) => { e.stopPropagation(); handleProgressClick(e); }}
+                      className="group/bar h-5 flex items-end px-0 cursor-pointer"
+                    >
+                      <div className="w-full h-0.5 group-hover/bar:h-1 bg-white/15 transition-all duration-150 relative overflow-visible">
+                        <div
+                          className="h-full bg-brand-red relative transition-none"
+                          style={{ width: `${videoProgress}%` }}
+                        >
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-brand-red opacity-0 group-hover/bar:opacity-100 transition-opacity shadow-sm shadow-brand-red/60" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Controls row */}
+                    <div
+                      className="flex items-center gap-3 px-4 pb-4 pt-1"
+                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Play/Pause */}
+                      <button
+                        onClick={toggleVideoPlay}
+                        className="w-8 h-8 rounded-full bg-white/10 border border-white/12 backdrop-blur-sm flex items-center justify-center hover:bg-brand-red hover:border-brand-red transition-all"
+                      >
+                        {isVideoPlaying
+                          ? <Pause className="w-3.5 h-3.5 text-white fill-white" />
+                          : <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                        }
+                      </button>
+
+                      {/* Time */}
+                      <span className="text-[10px] font-mono text-white/40 tabular-nums">
+                        {formatTime(videoCurrentTime)}
+                      </span>
+                      <span className="text-[10px] text-white/20">/</span>
+                      <span className="text-[10px] font-mono text-white/25 tabular-nums">
+                        {formatTime(videoDuration)}
+                      </span>
+
+                      <div className="flex-1" />
+
+                      {/* Mute */}
+                      <button
+                        onClick={toggleVideoMute}
+                        className="w-8 h-8 rounded-full bg-white/10 border border-white/12 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition"
+                      >
+                        {isVideoMuted
+                          ? <VolumeX className="w-3.5 h-3.5 text-white" />
+                          : <Volume2 className="w-3.5 h-3.5 text-white" />
+                        }
+                      </button>
+
+                      {/* Fullscreen */}
+                      <button
+                        onClick={enterFullscreen}
+                        className="w-8 h-8 rounded-full bg-white/10 border border-white/12 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition"
+                      >
+                        <Maximize className="w-3.5 h-3.5 text-white" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pause indicator — brief flash */}
+                  <AnimatePresence>
+                    {hasVideoStarted && !isVideoPlaying && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.7 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+                          <Pause className="w-5 h-5 text-white/80 fill-white/80" />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Reviews ── */}
       <ReviewSection
         slug={slug}
         initialRating={product.rating}
         initialCount={product.reviewCount}
       />
 
-      {/* Related Products */}
+      {/* ── Related Products — Dark ── */}
       {relatedProducts.length > 0 && (
-        <section className="py-12">
+        <section className="py-14 bg-[#080808]">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">
-              Related Products
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory">
-              {relatedProducts.map((product) => (
-                <div key={product.id} className="shrink-0 w-64 snap-start">
-                  <ProductCard product={product} />
-                </div>
+            <div className="mb-8">
+              <SectionHeader label="You May Also Like" title="Related Products" align="left" light />
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
+              {relatedProducts.map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  className="shrink-0 w-64 snap-start"
+                >
+                  <ProductCard product={p} />
+                </motion.div>
               ))}
             </div>
           </div>

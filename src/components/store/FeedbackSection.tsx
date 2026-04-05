@@ -82,23 +82,19 @@ export default function FeedbackSection() {
   };
 
   return (
-    <section id="feedback" className="py-10 sm:py-20 bg-brand-silver-light">
+    <section id="feedback" className="py-14 sm:py-20 bg-brand-black">
       <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-12">
-          <div>
-            <p className="text-brand-red text-xs font-bold uppercase tracking-widest mb-2">
-              Real Reviews
-            </p>
-            <h2 className="text-2xl sm:text-4xl font-black text-brand-black leading-tight">
-              What Our Customers Say
-            </h2>
-            <div className="flex items-center gap-2 mt-3">
-              <span className="text-sm text-brand-gray">500+ Happy Customers</span>
-            </div>
-          </div>
-
+        <div className="mb-8 sm:mb-12">
+          <p className="text-brand-red text-[10px] font-bold uppercase tracking-[0.3em] mb-3">
+            Real Reviews
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-3">
+            What Our Customers Say
+          </h2>
+          <div className="h-0.5 w-12 bg-brand-red mb-3" />
+          <span className="text-white/40 text-sm">500+ Happy Customers</span>
         </div>
 
         {/* Carousel */}
@@ -110,7 +106,7 @@ export default function FeedbackSection() {
               <button
                 onClick={prev}
                 disabled={!totalPages || page === 0}
-                className="flex shrink-0 items-center justify-center text-brand-gray hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                className="flex shrink-0 items-center justify-center text-white/40 hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
               </button>
@@ -141,7 +137,7 @@ export default function FeedbackSection() {
               <button
                 onClick={next}
                 disabled={!totalPages || page === totalPages - 1}
-                className="flex shrink-0 items-center justify-center text-brand-gray hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                className="flex shrink-0 items-center justify-center text-white/40 hover:text-brand-red transition-colors duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
               </button>
@@ -157,7 +153,7 @@ export default function FeedbackSection() {
                     className={`w-8 h-8 rounded-lg text-sm font-semibold transition-all duration-200 ${
                       i === page
                         ? 'bg-brand-red text-white shadow-md shadow-brand-red/30'
-                        : 'bg-white text-brand-gray border border-gray-200 hover:border-brand-red hover:text-brand-red'
+                        : 'bg-white/10 text-white/50 border border-white/15 hover:border-brand-red hover:text-brand-red'
                     }`}
                   >
                     {i + 1}
@@ -167,7 +163,7 @@ export default function FeedbackSection() {
             )}
           </>
         ) : (
-          <div className="flex items-center justify-center h-40 rounded-2xl bg-white/60 text-brand-gray text-sm">
+          <div className="flex items-center justify-center h-40 rounded-2xl bg-white/5 border border-white/10 text-white/40 text-sm">
             No feedback images yet.
           </div>
         )}

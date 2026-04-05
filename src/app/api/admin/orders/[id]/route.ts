@@ -83,6 +83,7 @@ export async function PATCH(
           name: String(item.name ?? item.productName ?? ''),
           price: Number(item.price ?? 0),
           quantity: Number(item.quantity ?? 1),
+          image: (item.image ?? item.productImage ?? null) as string | null,
         })),
         total: Number(order.total),
         address: order.address as { street?: string; building?: string; area?: string; city?: string } | null,

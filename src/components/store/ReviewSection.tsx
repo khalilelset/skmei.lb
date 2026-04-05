@@ -32,8 +32,8 @@ function Stars({ rating, size = 'sm', interactive = false, onRate }: {
       {[1, 2, 3, 4, 5].map((s) => (
         <Star
           key={s}
-          className={`${sizes[size]} transition-colors ${interactive ? 'cursor-pointer' : ''} ${
-            s <= active ? 'fill-brand-red stroke-brand-red' : 'fill-transparent stroke-gray-300'
+          className={`${sizes[size]} transition-colors ${interactive ? 'cursor-pointer hover:scale-110' : ''} ${
+            s <= active ? 'fill-brand-red stroke-brand-red' : 'fill-transparent stroke-white/20'
           }`}
           onMouseEnter={() => interactive && setHovered(s)}
           onMouseLeave={() => interactive && setHovered(0)}
@@ -48,15 +48,15 @@ function RatingBar({ label, count, total }: { label: string; count: number; tota
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-brand-gray w-3 text-right shrink-0">{label}</span>
+      <span className="text-white/40 w-3 text-right shrink-0">{label}</span>
       <Star className="w-3 h-3 fill-brand-red stroke-brand-red shrink-0" />
-      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+      <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
         <div
-          className="h-full bg-brand-red rounded-full transition-all duration-500"
+          className="h-full bg-brand-red rounded-full transition-all duration-700"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-brand-gray w-4 shrink-0 text-right">{count}</span>
+      <span className="text-white/30 w-4 shrink-0 text-right">{count}</span>
     </div>
   );
 }
@@ -71,7 +71,6 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
   const [showModal, setShowModal] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  // Form state
   const [name, setName] = useState('');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -82,11 +81,22 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
   useEffect(() => {
     fetch(`/api/products/${slug}/reviews`)
       .then((r) => r.json())
-      .then((d) => { setReviews(d.reviews ?? []); setLoading(false); })
+      .then((d) => {
+        const fetched: Review[] = d.reviews ?? [];
+        setReviews(fetched);
+        if (fetched.length > 0) {
+          const avg = fetched.reduce((sum, r) => sum + r.rating, 0) / fetched.length;
+          setAvgRating(Math.round(avg * 10) / 10);
+          setTotalCount(fetched.length);
+        } else {
+          setAvgRating(0);
+          setTotalCount(0);
+        }
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [slug]);
 
-  // Lock body scroll when modal is open
   useEffect(() => {
     if (showModal) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
@@ -128,42 +138,42 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
   const closeModal = () => { setShowModal(false); setSubmitted(false); setError(''); };
 
   return (
-    <section className="py-10 bg-white border-t border-brand-silver/40">
-      <div className="container mx-auto px-4">
+    <section className="py-14 bg-brand-black relative overflow-hidden">
+      {/* Subtle glow */}
+      <div className="absolute bottom-0 right-0 w-96 h-96 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at bottom right, rgba(220,38,38,0.05) 0%, transparent 65%)' }} />
+
+      <div className="relative z-10 container mx-auto px-4">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-start sm:items-center justify-between mb-8 gap-4 flex-wrap">
           <div>
-            <h2 className="text-xl font-bold text-brand-black">Customer Reviews</h2>
-            {totalCount > 0 && (
-              <div className="flex items-center gap-2 mt-1">
-                <Stars rating={avgRating} size="sm" />
-                <span className="text-sm font-semibold text-brand-black">{avgRating.toFixed(1)}</span>
-                <span className="text-sm text-brand-gray">· {totalCount} review{totalCount !== 1 ? 's' : ''}</span>
-              </div>
-            )}
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">Verified Buyers</p>
+            <h2 className="text-2xl font-black text-white tracking-tight">Customer Reviews</h2>
+            <div className="h-px w-10 bg-brand-red mt-2" />
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-brand-black text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-brand-red transition-colors duration-200 shrink-0"
+            className="group relative inline-flex items-center gap-2 overflow-hidden bg-brand-red text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-brand-red-dark transition-colors shadow-lg shadow-brand-red/25 shrink-0"
           >
+            <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
             <Pencil className="w-3.5 h-3.5" />
             Write a Review
           </button>
         </div>
 
-        {/* Main Content: Summary + Reviews */}
-        <div className="flex flex-col sm:flex-row gap-5">
+        {/* Rating summary + reviews */}
+        <div className="flex flex-col sm:flex-row gap-6">
 
-          {/* Rating Summary sidebar */}
+          {/* Sidebar — summary */}
           {totalCount > 0 && (
-            <div className="sm:w-44 shrink-0 bg-brand-silver-light rounded-2xl p-4 flex sm:flex-col items-center sm:items-stretch gap-4 sm:gap-3 self-start">
+            <div className="sm:w-48 shrink-0 bg-white/4 border border-white/8 rounded-2xl p-5 flex sm:flex-col items-center sm:items-stretch gap-4 sm:gap-4 self-start">
               <div className="text-center shrink-0">
-                <p className="text-4xl font-black text-brand-black leading-none">{avgRating.toFixed(1)}</p>
+                <p className="text-5xl font-black text-white leading-none mb-1">{avgRating.toFixed(1)}</p>
                 <Stars rating={avgRating} size="sm" />
-                <p className="text-xs text-brand-gray mt-1">{totalCount} review{totalCount !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-white/35 mt-2">{totalCount} review{totalCount !== 1 ? 's' : ''}</p>
               </div>
-              <div className="flex flex-col gap-1 flex-1 sm:flex-none">
+              <div className="flex flex-col gap-1.5 flex-1 sm:flex-none">
                 {distribution.map((d) => (
                   <RatingBar key={d.label} label={d.label} count={d.count} total={totalCount} />
                 ))}
@@ -171,35 +181,37 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
             </div>
           )}
 
-          {/* Reviews list — fixed height, internal scroll */}
+          {/* Reviews list */}
           <div className="flex-1 min-w-0">
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-20" />
+                  <div key={i} className="animate-pulse bg-white/5 rounded-xl h-20" />
                 ))}
               </div>
             ) : reviews.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-brand-gray">
-                <Star className="w-10 h-10 stroke-gray-200 mb-3" />
-                <p className="font-semibold text-brand-black">No reviews yet</p>
-                <p className="text-sm mt-1">Be the first to share your thoughts!</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-16 h-16 rounded-full bg-brand-red/10 border border-brand-red/20 flex items-center justify-center mb-4">
+                  <Star className="w-7 h-7 stroke-brand-red/50" />
+                </div>
+                <p className="font-bold text-white/70 text-lg mb-1">No reviews yet</p>
+                <p className="text-sm text-white/35">Be the first to share your experience</p>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 {(showAll ? reviews : reviews.slice(0, INITIAL_SHOW)).map((review) => (
                   <div
                     key={review.id}
-                    className="bg-brand-silver-light rounded-xl p-4 border border-brand-silver/50"
+                    className="bg-white/4 border border-white/8 rounded-xl p-4 hover:bg-white/6 transition-colors duration-200"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-brand-red/10 flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-brand-red/15 border border-brand-red/20 flex items-center justify-center shrink-0">
                           <User className="w-4 h-4 text-brand-red" />
                         </div>
                         <div>
-                          <p className="font-semibold text-brand-black text-sm leading-tight">{review.customer_name}</p>
-                          <p className="text-xs text-brand-gray">
+                          <p className="font-bold text-white text-sm leading-tight">{review.customer_name}</p>
+                          <p className="text-xs text-white/30 mt-0.5">
                             {new Date(review.created_at).toLocaleDateString('en-US', {
                               year: 'numeric', month: 'short', day: 'numeric',
                             })}
@@ -209,7 +221,7 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
                       <Stars rating={review.rating} size="sm" />
                     </div>
                     {review.comment && (
-                      <p className="text-sm text-brand-gray leading-relaxed mt-2 ml-10">
+                      <p className="text-sm text-white/55 leading-relaxed mt-3 ml-11 border-l border-white/10 pl-3">
                         {review.comment}
                       </p>
                     )}
@@ -218,9 +230,9 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
                 {reviews.length > INITIAL_SHOW && (
                   <button
                     onClick={() => setShowAll((v) => !v)}
-                    className="text-sm font-semibold text-brand-red hover:underline self-start mt-1"
+                    className="text-sm font-bold text-brand-red hover:text-brand-red-dark transition-colors self-start mt-1"
                   >
-                    {showAll ? 'Show less' : `Show all ${reviews.length} reviews`}
+                    {showAll ? '↑ Show less' : `Show all ${reviews.length} reviews →`}
                   </button>
                 )}
               </div>
@@ -231,44 +243,46 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
 
       {/* Write a Review Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={closeModal}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-md" onClick={closeModal}>
           <div
-            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            className="bg-[#111] border border-white/10 rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Handle bar (mobile) */}
+            <div className="w-10 h-1 bg-white/15 rounded-full mx-auto mb-5 sm:hidden" />
+
             {/* Modal Header */}
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-brand-black">Write a Review</h3>
-              <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-brand-silver transition-colors">
-                <X className="w-4 h-4 text-brand-gray" />
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-red mb-1">Share your experience</p>
+                <h3 className="text-lg font-black text-white">Write a Review</h3>
+              </div>
+              <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/6 hover:bg-white/12 border border-white/10 transition-colors">
+                <X className="w-4 h-4 text-white/60" />
               </button>
             </div>
 
             {submitted ? (
-              <div className="flex flex-col items-center gap-3 py-6 text-center">
-                <CheckCircle className="w-12 h-12 text-green-500" />
-                <p className="font-bold text-brand-black text-lg">Thank you!</p>
-                <p className="text-sm text-brand-gray">Your review has been submitted.</p>
-                <div className="flex gap-3 mt-2">
-                  <button
-                    onClick={() => setSubmitted(false)}
-                    className="text-sm text-brand-red underline"
-                  >
+              <div className="flex flex-col items-center gap-3 py-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-400" />
+                </div>
+                <p className="font-black text-white text-xl mt-2">Thank you!</p>
+                <p className="text-sm text-white/40">Your review has been submitted.</p>
+                <div className="flex gap-4 mt-3">
+                  <button onClick={() => setSubmitted(false)} className="text-sm text-brand-red font-semibold hover:underline">
                     Write another
                   </button>
-                  <button
-                    onClick={closeModal}
-                    className="text-sm text-brand-gray underline"
-                  >
+                  <button onClick={closeModal} className="text-sm text-white/40 hover:underline">
                     Close
                   </button>
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 {/* Star picker */}
                 <div>
-                  <label className="text-sm font-medium text-brand-gray mb-1.5 block">
+                  <label className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2 block">
                     Your Rating <span className="text-brand-red">*</span>
                   </label>
                   <Stars rating={rating} size="lg" interactive onRate={setRating} />
@@ -276,7 +290,7 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
 
                 {/* Name */}
                 <div>
-                  <label className="text-sm font-medium text-brand-gray mb-1.5 block">
+                  <label className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2 block">
                     Your Name <span className="text-brand-red">*</span>
                   </label>
                   <input
@@ -284,33 +298,34 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Ahmad"
-                    className="w-full border border-brand-silver rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red/30 focus:border-brand-red transition"
+                    className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-brand-red focus:ring-2 focus:ring-brand-red/15 transition"
                   />
                 </div>
 
                 {/* Comment */}
                 <div>
-                  <label className="text-sm font-medium text-brand-gray mb-1.5 block">
-                    Comment <span className="text-brand-gray/60">(optional)</span>
+                  <label className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2 block">
+                    Comment <span className="text-white/25">(optional)</span>
                   </label>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Share your experience..."
+                    placeholder="Share your experience with this watch..."
                     rows={3}
-                    className="w-full border border-brand-silver rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red/30 focus:border-brand-red transition resize-none"
+                    className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-brand-red focus:ring-2 focus:ring-brand-red/15 transition resize-none"
                   />
                 </div>
 
                 {error && (
-                  <p className="text-sm text-red-500">{error}</p>
+                  <p className="text-sm text-brand-red bg-brand-red/10 border border-brand-red/20 rounded-lg px-3 py-2">{error}</p>
                 )}
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex items-center justify-center gap-2 bg-brand-red text-white py-2.5 rounded-lg font-semibold hover:bg-brand-red-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative flex items-center justify-center gap-2 overflow-hidden bg-brand-red text-white py-3 rounded-xl font-bold hover:bg-brand-red-dark transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand-red/30"
                 >
+                  <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
                   <Send className="w-4 h-4" />
                   {submitting ? 'Submitting…' : 'Submit Review'}
                 </button>

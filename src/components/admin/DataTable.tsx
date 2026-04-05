@@ -97,7 +97,8 @@ export default function DataTable({
               onClick={() => onRowClick?.(row)}
               sx={{
                 cursor: onRowClick ? 'pointer' : 'default',
-                '&:hover': onRowClick ? { bgcolor: 'rgba(220, 38, 38, 0.04)' } : {},
+                bgcolor: index % 2 === 1 ? 'rgba(0,0,0,0.018)' : undefined,
+                '&:hover': onRowClick ? { bgcolor: 'rgba(220, 38, 38, 0.04) !important' } : {},
               }}
             >
               {columns.map((column) => {

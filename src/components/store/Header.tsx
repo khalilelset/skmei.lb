@@ -87,12 +87,14 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white shadow-md" : "bg-white"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled
+          ? "bg-[#1a1a1a]/90 backdrop-blur-md shadow-2xl shadow-black/60 border-b border-white/6"
+          : "bg-brand-black"
       }`}
     >
       {/* Top Bar */}
-      <div className="bg-brand-black border-b border-white/5 py-1 overflow-hidden">
+      <div className="bg-brand-black py-1 overflow-hidden">
         {/* Desktop: static centered */}
         <div className="hidden md:flex items-center justify-center gap-0">
           <div className="flex items-center gap-1 px-6">
@@ -140,7 +142,7 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => toggleMobileMenu()}
-            className="lg:hidden p-2 -ml-2 text-brand-black hover:text-brand-red transition-colors"
+            className="lg:hidden p-2 -ml-2 text-white/80 hover:text-brand-red transition-colors"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -150,7 +152,7 @@ export default function Header() {
           <Link href="/" className="flex items-center flex-shrink-0">
             <div className="relative w-36 h-10 sm:w-56 sm:h-14">
               <Image
-                src="/images/logo/white.png"
+                src="/images/logo/black.png"
                 alt="SKMEI.LB"
                 fill
                 className="object-contain"
@@ -170,7 +172,7 @@ export default function Header() {
               >
                 <Link
                   href={item.href}
-                  className="text-brand-black hover:text-brand-red font-medium transition-colors flex items-center gap-1 py-2"
+                  className="text-white/80 hover:text-white font-medium transition-colors flex items-center gap-1 py-2"
                 >
                   {item.name}
                   {item.submenu && (
@@ -229,21 +231,21 @@ export default function Header() {
           <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="hidden lg:flex p-2 text-brand-black hover:text-brand-red transition-colors"
+              className="hidden lg:flex p-2 text-white/70 hover:text-white transition-colors"
               aria-label="Search"
             >
               <Search className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
             <Link
               href="/account"
-              className="hidden lg:flex p-2 text-brand-black hover:text-brand-red transition-colors"
+              className="hidden lg:flex p-2 text-white/70 hover:text-white transition-colors"
               aria-label="Account"
             >
               <User className="h-5 w-5 sm:h-6 sm:w-6" />
             </Link>
             <button
               onClick={openCart}
-              className="hidden lg:flex relative p-2 text-brand-black hover:text-brand-red transition-colors"
+              className="hidden lg:flex relative p-2 text-white/70 hover:text-white transition-colors"
               aria-label="Shopping cart"
             >
               <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -261,16 +263,16 @@ export default function Header() {
 
       {/* Search Bar Dropdown */}
       {searchOpen && (
-        <div className="border-t border-brand-silver bg-white shadow-lg">
+        <div className="border-t border-white/8 bg-brand-black/98 backdrop-blur-md shadow-2xl">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-brand-gray" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for watches..."
-                className="w-full pl-12 pr-24 py-3.5 bg-brand-silver-light rounded-xl text-brand-black placeholder:text-brand-gray focus:outline-none focus:ring-2 focus:ring-brand-red/30 border border-brand-silver focus:border-brand-red transition-all"
+                className="w-full pl-12 pr-24 py-3.5 bg-white/6 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-0 focus:border-white/10 transition-all"
                 autoFocus
               />
               <button
@@ -282,13 +284,13 @@ export default function Header() {
               </button>
             </form>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-brand-gray text-xs">Quick:</span>
+              <span className="text-white/30 text-xs">Quick:</span>
               {quickLinks.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
                   onClick={() => setSearchOpen(false)}
-                  className="px-3 py-1 text-xs text-brand-gray-dark bg-brand-silver-light hover:bg-brand-red hover:text-white rounded-full transition-colors border border-brand-silver"
+                  className="px-3 py-1 text-xs text-white/50 bg-white/6 hover:bg-brand-red hover:text-white rounded-full transition-colors border border-white/10"
                 >
                   {item.label}
                 </Link>
@@ -300,43 +302,33 @@ export default function Header() {
 
       {/* Mobile Menu — slide from left */}
       <div
-        className={`lg:hidden fixed inset-0 top-[84px] bg-white z-40 overflow-y-auto transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed inset-0 top-[84px] bg-brand-black/98 backdrop-blur-md z-40 overflow-y-auto transition-transform duration-300 ease-in-out border-t border-white/6 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
           <nav className="px-4 py-4">
             {navigation.map((item) => (
-              <div key={item.name} className="border-b border-brand-silver/50 last:border-0">
-                {/* Row */}
+              <div key={item.name} className="border-b border-white/6 last:border-0">
                 <div className="flex items-center">
                   <Link
                     href={item.href}
                     onClick={() => closeMenu()}
-                    className="flex-1 py-4 text-base font-semibold text-brand-black hover:text-brand-red transition-colors flex items-center gap-3"
+                    className="flex-1 py-4 text-base font-semibold text-white/80 hover:text-white transition-colors flex items-center gap-3"
                   >
                     <span className="text-brand-red">{item.icon}</span>
                     {item.name}
                   </Link>
                   {item.submenu && (
                     <button
-                      onClick={() =>
-                        setMobileSubmenuOpen(
-                          mobileSubmenuOpen === item.name ? null : item.name
-                        )
-                      }
-                      className="p-3 text-brand-gray hover:text-brand-red transition-colors"
+                      onClick={() => setMobileSubmenuOpen(mobileSubmenuOpen === item.name ? null : item.name)}
+                      className="p-3 text-white/40 hover:text-brand-red transition-colors"
                       aria-label={`Toggle ${item.name} submenu`}
                     >
-                      <ChevronDown
-                        className={`w-5 h-5 transition-transform duration-200 ${
-                          mobileSubmenuOpen === item.name ? "rotate-180 text-brand-red" : ""
-                        }`}
-                      />
+                      <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${mobileSubmenuOpen === item.name ? "rotate-180 text-brand-red" : ""}`} />
                     </button>
                   )}
                 </div>
 
-                {/* Mobile Submenu — grid of category cards */}
                 {item.submenu && mobileSubmenuOpen === item.name && (
                   <div className="pb-4 grid grid-cols-2 gap-2.5">
                     {item.submenu.map((subitem) => (
@@ -344,7 +336,7 @@ export default function Header() {
                         key={subitem.name}
                         href={subitem.href}
                         onClick={() => closeMenu()}
-                        className="flex items-center gap-2.5 px-4 py-3.5 bg-brand-silver/20 hover:bg-brand-red hover:text-white rounded-xl text-sm font-medium text-brand-black transition-all group active:scale-95"
+                        className="flex items-center gap-2.5 px-4 py-3.5 bg-white/6 hover:bg-brand-red hover:text-white rounded-xl text-sm font-medium text-white/70 transition-all group active:scale-95 border border-white/8"
                       >
                         <span className="text-brand-red group-hover:text-white transition-colors shrink-0">
                           {categoryIcons[subitem.slug]}
@@ -352,11 +344,10 @@ export default function Header() {
                         <span className="leading-tight">{subitem.name}</span>
                       </Link>
                     ))}
-                    {/* View all card */}
                     <Link
                       href="/store/products"
                       onClick={() => closeMenu()}
-                      className="col-span-2 flex items-center justify-center gap-2 px-4 py-3 bg-brand-black text-white rounded-xl text-sm font-semibold transition-all active:scale-95"
+                      className="col-span-2 flex items-center justify-center gap-2 px-4 py-3 bg-brand-red text-white rounded-xl text-sm font-bold transition-all active:scale-95 hover:bg-brand-red-dark"
                     >
                       View All Products
                       <ChevronRight className="w-4 h-4" />
@@ -366,12 +357,11 @@ export default function Header() {
               </div>
             ))}
 
-            {/* Feedback — bottom of mobile menu */}
-            <div className="border-t border-brand-silver/50">
+            <div className="border-t border-white/6">
               <Link
                 href="/#feedback"
                 onClick={() => closeMenu()}
-                className="flex items-center gap-3 py-4 text-base font-semibold text-brand-black hover:text-brand-red transition-colors"
+                className="flex items-center gap-3 py-4 text-base font-semibold text-white/70 hover:text-brand-red transition-colors"
               >
                 <svg className="w-4 h-4 text-brand-red" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>

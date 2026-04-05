@@ -1,15 +1,25 @@
 'use client';
 
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion } from "framer-motion";
+import LiveWatchFace from "./LiveWatchFace";
+
+const ease = [0.22, 1, 0.36, 1] as const;
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setInView(true); }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!inView) return;
@@ -19,183 +29,174 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
     const increment = target / (duration / step);
     const timer = setInterval(() => {
       start += increment;
-      if (start >= target) {
-        setCount(target);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(Math.floor(start));
     }, step);
     return () => clearInterval(timer);
   }, [inView, target]);
 
-  return (
-    <span ref={ref}>
-      {count}{suffix}
-    </span>
-  );
+  return <span ref={ref}>{count}{suffix}</span>;
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
+const WORDS_LINE1 = ["Discover", "Your"];
+const WORDS_LINE2 = ["Perfect", "Timepiece"];
 
 export default function HeroSection() {
   return (
-    <section className="relative bg-gradient-to-br from-brand-black via-brand-gray-dark to-brand-black overflow-hidden">
-      {/* Red Swoosh Background Accent */}
-      <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
-        <div className="absolute top-1/4 right-0 w-3/4 h-1 bg-gradient-to-r from-transparent via-brand-red to-transparent transform rotate-12" />
-        <div className="absolute top-1/2 right-0 w-2/3 h-1 bg-gradient-to-r from-transparent via-brand-red to-transparent transform -rotate-6" />
-        <div className="absolute bottom-1/4 right-0 w-3/4 h-1 bg-gradient-to-r from-transparent via-brand-red to-transparent transform rotate-3" />
+    <section className="relative bg-brand-black overflow-hidden min-h-[90vh] flex flex-col justify-center">
+
+      {/* Background radial glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 70% 70% at 70% 50%, #3d0a0a 0%, transparent 65%)' }}
+      />
+
+      {/* Diagonal stripe texture */}
+      <div className="absolute inset-0 opacity-[0.025] pointer-events-none"
+        style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '18px 18px' }} />
+
+      {/* Red line accents — desktop only to avoid crossing watch on mobile */}
+      <div className="absolute inset-0 pointer-events-none hidden lg:block">
+        <div className="absolute top-[22%] left-0 w-2/3 h-px bg-linear-to-r from-brand-red via-transparent to-transparent opacity-30" />
+        <div className="absolute top-[90%] right-0 w-1/2 h-px bg-linear-to-l from-transparent via-brand-red to-transparent opacity-20" />
       </div>
 
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-16 lg:py-24">
-        <div className="grid lg:grid-cols-2 gap-4 lg:gap-12 items-center">
+          {/* ── Left: Copy ── */}
+          <div className="order-2 lg:order-1">
 
-          {/* Content */}
-          <div className="text-center lg:text-left order-2 lg:order-1">
-
-            {/* Badge */}
+            {/* Editorial badge */}
             <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0 }}
-              className="inline-flex items-center gap-2 bg-brand-red/20 text-brand-red px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-6 border border-brand-red/30"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease }}
+              className="inline-flex items-center gap-3 border-l-2 border-brand-red pl-3 mb-5"
             >
-              <span className="w-2 h-2 bg-brand-red rounded-full animate-pulse"></span>
-              Official Authorized Dealer in Lebanon
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse shrink-0" />
+              <span className="text-[10px] font-bold tracking-[0.3em] text-brand-red uppercase">Official Authorized Dealer · Lebanon</span>
             </motion.div>
 
-            {/* Heading */}
-            <motion.h1
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 sm:mb-6 leading-tight"
-            >
-              Discover Your
-              <span className="text-brand-red block mt-1 sm:mt-2">
-                Perfect Timepiece
-              </span>
-            </motion.h1>
+            {/* Red rule */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.5, delay: 0.15, ease }}
+              style={{ originX: 0 }}
+              className="h-px w-10 bg-brand-red mb-5"
+            />
+
+            {/* Headline — per-word clip reveal */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-none tracking-[-0.03em] mb-6">
+              <div className="overflow-hidden flex flex-wrap gap-x-3 mb-1">
+                {WORDS_LINE1.map((word, i) => (
+                  <motion.span
+                    key={word}
+                    initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                    animate={{ clipPath: 'inset(0 0% 0 0)' }}
+                    transition={{ duration: 0.6, delay: 0.2 + i * 0.1, ease }}
+                    className="text-white/70 inline-block"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </div>
+              <div className="overflow-hidden flex flex-wrap gap-x-3">
+                {WORDS_LINE2.map((word, i) => (
+                  <motion.span
+                    key={word}
+                    initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                    animate={{ clipPath: 'inset(0 0% 0 0)' }}
+                    transition={{ duration: 0.6, delay: 0.4 + i * 0.1, ease }}
+                    className="text-white inline-block"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </div>
+            </h1>
 
             {/* Description */}
             <motion.p
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
-              className="text-sm sm:text-lg text-brand-silver mb-4 sm:mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.55, ease }}
+              className="text-sm sm:text-base text-white/50 mb-8 max-w-md leading-relaxed"
             >
               Explore our exclusive collection of SKMEI watches. From sporty
               digital to elegant analog, find the watch that matches your style
               at unbeatable prices.
             </motion.p>
 
-            {/* CTA Buttons */}
+            {/* CTA */}
             <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.65, ease }}
             >
               <Link
                 href="/store/products"
-                className="inline-flex items-center justify-center gap-2 bg-brand-red text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold hover:bg-brand-red-dark transition-all hover:scale-105 active:scale-95 shadow-lg shadow-brand-red/50"
+                className="group relative inline-flex items-center justify-center gap-2 overflow-hidden bg-brand-red text-white px-8 py-4 rounded-lg font-bold hover:bg-brand-red-dark transition-colors active:scale-95 shadow-lg shadow-brand-red/40"
               >
+                <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
                 Shop Collection
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </motion.div>
 
-            {/* Stats with animated counters */}
+            {/* Stats cards */}
             <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0.4 }}
-              className="mt-5 sm:mt-12 grid grid-cols-3 gap-3 sm:gap-6 max-w-md mx-auto lg:mx-0"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.75, ease }}
+              className="mt-10 grid grid-cols-3 gap-3 sm:gap-6 max-w-md"
             >
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-white/15 transition-all">
-                <div className="flex flex-col items-center justify-center h-full">
-                  <p className="text-2xl sm:text-3xl font-bold text-brand-red mb-1">
-                    <AnimatedCounter target={500} suffix="+" />
+              {[
+                { target: 500, suffix: "+", label: "Happy\nCustomers" },
+                { target: 100, suffix: "%", label: "Authentic\nProducts" },
+                { target: 400, suffix: "+", label: "Orders\nDelivered" },
+              ].map(({ target, suffix, label }) => (
+                <div key={label} className="relative flex flex-col items-center justify-center text-center p-3 sm:p-4 rounded-xl border border-white/8 bg-white/3 hover:bg-white/6 transition-colors duration-300 overflow-hidden group">
+                  {/* Top red accent */}
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-brand-red to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+                  <p className="text-2xl sm:text-3xl font-semibold text-white mb-1">
+                    <AnimatedCounter target={target} suffix={suffix} />
                   </p>
-                  <p className="text-[10px] sm:text-xs text-brand-silver text-center leading-tight">Happy<br className="sm:hidden" /> Customers</p>
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-white/15 transition-all">
-                <div className="flex flex-col items-center justify-center h-full">
-                  <p className="text-2xl sm:text-3xl font-bold text-brand-red mb-1">
-                    <AnimatedCounter target={100} suffix="%" />
+                  <p className="text-[10px] sm:text-xs text-brand-red/80 font-semibold tracking-[0.15em] uppercase leading-tight">
+                    {label.split('\n').map((line, i) => (
+                      <span key={i}>{line}{i === 0 && <br className="sm:hidden" />}{i === 0 && <span className="hidden sm:inline"> </span>}</span>
+                    ))}
                   </p>
-                  <p className="text-[10px] sm:text-xs text-brand-silver text-center leading-tight">Authentic<br className="sm:hidden" /> Products</p>
                 </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-white/15 transition-all">
-                <div className="flex flex-col items-center justify-center h-full">
-                  <p className="text-2xl sm:text-3xl font-bold text-brand-red mb-1">
-                    <AnimatedCounter target={400} suffix="+" />
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-brand-silver text-center leading-tight">Orders<br className="sm:hidden" /> Delivered</p>
-                </div>
-              </div>
+              ))}
             </motion.div>
           </div>
 
-          {/* Hero Image */}
+          {/* ── Right: Live Analog Watch ── */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, amount: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-            className="relative order-1 lg:order-2"
+            initial={{ opacity: 0, x: 40, scale: 1.05 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.2, ease }}
+            className="relative order-1 lg:order-2 flex items-center justify-center"
           >
-            <div className="relative z-10">
-              <div className="relative w-full aspect-square max-w-[180px] sm:max-w-md lg:max-w-lg mx-auto">
-                <div className="absolute inset-0 bg-brand-red/30 rounded-full blur-3xl"></div>
-                <div className="relative z-10">
-                  <Image
-                    src="https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=600"
-                    alt="SKMEI Watch"
-                    fill
-                    className="object-contain drop-shadow-2xl"
-                    priority
-                    sizes="(max-width: 640px) 320px, (max-width: 768px) 384px, 512px"
-                  />
-                </div>
-              </div>
+            {/* Outer radial glow */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-4/5 h-4/5 rounded-full bg-brand-red/18 blur-3xl" />
+            </div>
+            {/* Secondary warm glow */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-3/5 h-3/5 rounded-full bg-brand-red/10 blur-2xl" />
+            </div>
+
+            <div className="relative w-full max-w-[320px] sm:max-w-sm lg:max-w-[440px] xl:max-w-[480px]">
+              <LiveWatchFace className="w-full h-auto drop-shadow-2xl" />
             </div>
           </motion.div>
+
         </div>
       </div>
 
-      {/* Bottom Wave */}
-      <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
-        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-          <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" />
-        </svg>
-      </div>
     </section>
   );
 }

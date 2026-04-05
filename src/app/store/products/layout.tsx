@@ -1,27 +1,43 @@
 import type { Metadata } from "next";
 
+const SITE_URL = "https://skmei.lb";
+
 export const metadata: Metadata = {
-  title: "All Watches",
+  title: "Buy SKMEI Watches in Lebanon – Full Collection | Official Store",
   description:
-    "Browse our full collection of authentic SKMEI watches in Lebanon. Filter by category: Digital, Analog, Sports, Smart, and Luxury timepieces. Free delivery nationwide.",
+    "Shop the largest collection of authentic SKMEI watches in Lebanon. Digital, Analog, Sports, Smart & Luxury watches from $15. Free nationwide delivery. 1-year warranty. Official authorized dealer.",
   keywords: [
+    "buy SKMEI watches Lebanon",
     "SKMEI watch collection Lebanon",
-    "buy SKMEI watch",
-    "digital watches",
-    "sports watches",
-    "smart watches",
-    "analog watches",
+    "SKMEI watches online Lebanon",
+    "digital watches Lebanon",
+    "sports watches Lebanon",
+    "smart watches Lebanon",
+    "analog watches Lebanon",
     "luxury watches Lebanon",
+    "affordable watches Lebanon",
+    "SKMEI shop Lebanon",
+    "شراء ساعات SKMEI لبنان",
+    "ساعات رياضية رخيصة لبنان",
+    "متجر ساعات اونلاين لبنان",
   ],
   openGraph: {
-    title: "All SKMEI Watches – Browse Our Full Collection | SKMEI.LB",
+    title: "Buy SKMEI Watches in Lebanon – 100+ Models | SKMEI.LB",
     description:
-      "Browse authentic SKMEI watches in Lebanon. Digital, Analog, Sports, Smart & Luxury. Free delivery. 1-year warranty.",
+      "Shop 100+ authentic SKMEI watches in Lebanon. Digital, Analog, Sports, Smart & Luxury from $15. Free delivery. 1-year warranty.",
     type: "website",
-    url: "https://skmei.lb/store/products",
+    url: `${SITE_URL}/store/products`,
+    siteName: "SKMEI.LB",
+    images: [{ url: "/images/og-image.jpg", width: 1200, height: 630, alt: "SKMEI Watches Lebanon Collection" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Buy SKMEI Watches in Lebanon – Official Store",
+    description: "100+ authentic SKMEI watches. Free delivery. 1-year warranty. Best prices in Lebanon.",
+    images: ["/images/og-image.jpg"],
   },
   alternates: {
-    canonical: "https://skmei.lb/store/products",
+    canonical: `${SITE_URL}/store/products`,
   },
 };
 

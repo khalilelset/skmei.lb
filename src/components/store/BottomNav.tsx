@@ -35,24 +35,24 @@ export default function BottomNav() {
             className="lg:hidden fixed inset-0 z-[60] bg-black/50"
             onClick={() => setSearchOpen(false)}
           />
-          <div className="lg:hidden fixed top-0 left-0 right-0 z-61 bg-white shadow-lg">
+          <div className="lg:hidden fixed top-0 left-0 right-0 z-61 bg-[#0f0f0f] shadow-lg border-b border-white/10">
             <form onSubmit={handleSearch} className="flex items-center gap-2 px-3 py-3">
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
-                className="p-2 text-brand-gray shrink-0"
+                className="p-2 text-white/40 shrink-0"
                 aria-label="Close search"
               >
                 <X className="w-5 h-5" />
               </button>
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-gray" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search for watches..."
-                  className="w-full pl-9 pr-3 py-2.5 bg-gray-100 rounded-xl text-brand-black placeholder:text-brand-gray focus:outline-none focus:ring-2 focus:ring-brand-red/30 text-sm"
+                  className="w-full pl-9 pr-3 py-2.5 bg-white/6 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-0 text-sm"
                   autoFocus
                 />
               </div>
@@ -68,7 +68,7 @@ export default function BottomNav() {
       )}
 
       {/* Bottom Nav Bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f0f0f] border-t border-white/10 shadow-[0_-2px_12px_rgba(0,0,0,0.4)]">
         <div className="flex items-center h-16">
 
           {/* Home */}
@@ -76,7 +76,7 @@ export default function BottomNav() {
             href="/"
             onClick={() => { closeCart(); closeMobileMenu(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              isActive('/') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
+              isActive('/') && !cartOpen ? 'text-brand-red' : 'text-white/40'
             }`}
           >
             <Home className="w-6 h-6" />
@@ -88,7 +88,7 @@ export default function BottomNav() {
             href="/store/products"
             onClick={() => { closeCart(); closeMobileMenu(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              isActive('/store/products') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
+              isActive('/store/products') && !cartOpen ? 'text-brand-red' : 'text-white/40'
             }`}
           >
             <Store className="w-6 h-6" />
@@ -98,7 +98,7 @@ export default function BottomNav() {
           {/* Search */}
           <button
             onClick={() => { closeCart(); closeMobileMenu(); setSearchOpen(true); }}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-brand-gray transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-white/40 transition-colors"
           >
             <Search className="w-6 h-6" />
             <span className="text-[10px] font-medium">Search</span>
@@ -108,13 +108,13 @@ export default function BottomNav() {
           <button
             onClick={() => { closeMobileMenu(); cartOpen ? closeCart() : openCart(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              cartOpen ? 'text-brand-red' : 'text-brand-gray'
+              cartOpen ? 'text-brand-red' : 'text-white/40'
             }`}
           >
             <div className="relative">
               <ShoppingBag className="w-6 h-6" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] bg-brand-red text-white text-[9px] rounded-full flex items-center justify-center font-bold border-2 border-white">
+                <span className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] bg-brand-red text-white text-[9px] rounded-full flex items-center justify-center font-bold border-2 border-[#0f0f0f]">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
@@ -127,7 +127,7 @@ export default function BottomNav() {
             href="/account"
             onClick={() => { closeCart(); closeMobileMenu(); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              isActive('/account') && !cartOpen ? 'text-brand-red' : 'text-brand-gray'
+              isActive('/account') && !cartOpen ? 'text-brand-red' : 'text-white/40'
             }`}
           >
             <User className="w-6 h-6" />
@@ -136,7 +136,7 @@ export default function BottomNav() {
 
         </div>
         {/* Safe area for iPhone notch */}
-        <div className="h-[env(safe-area-inset-bottom,0px)] bg-white" />
+        <div className="h-[env(safe-area-inset-bottom,0px)] bg-[#0f0f0f]" />
       </nav>
     </>
   );

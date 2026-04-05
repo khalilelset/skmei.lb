@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 
-function mapProduct(row: Record<string, unknown>) {
+function mapProduct(row: Record<string, unknown>, reviews: { rating: number }[] = []) {
+  const reviewCount = reviews.length;
+  const rating = reviewCount > 0
+    ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount) * 10) / 10
+    : 0;
   return {
     id: row.id,
     name: row.name,
@@ -16,10 +20,13 @@ function mapProduct(row: Record<string, unknown>) {
     stock: row.stock,
     features: row.features,
     specifications: row.specifications,
+    videoUrl: row.video_url ?? null,
     isNew: row.is_new,
     isFeatured: row.is_featured,
-    rating: Number(row.rating),
-    reviewCount: row.review_count,
+    gender: row.gender,
+    colors: row.colors ?? [],
+    rating,
+    reviewCount,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -38,10 +45,16 @@ export async function GET(
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Product not found', detail: error?.message }, { status: 404 });
   }
 
-  // Fetch related products (same category, exclude this one)
+  // Fetch reviews separately
+  const { data: reviewRows } = await supabaseServer
+    .from('reviews')
+    .select('rating')
+    .eq('product_id', data.id);
+
+  // Fetch related products
   const { data: related } = await supabaseServer
     .from('products')
     .select('*')
@@ -49,8 +62,16 @@ export async function GET(
     .neq('slug', slug)
     .limit(4);
 
+  const relatedWithReviews = await Promise.all(
+    (related ?? []).map(async (p) => {
+      const { data: rr } = await supabaseServer
+        .from('reviews').select('rating').eq('product_id', p.id);
+      return mapProduct(p as Record<string, unknown>, rr ?? []);
+    })
+  );
+
   return NextResponse.json({
-    product: mapProduct(data),
-    related: (related ?? []).map(mapProduct),
+    product: mapProduct(data as Record<string, unknown>, reviewRows ?? []),
+    related: relatedWithReviews,
   });
 }

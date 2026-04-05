@@ -19,8 +19,9 @@ function mapProduct(row: Record<string, unknown>) {
     isNew: row.is_new,
     isFeatured: row.is_featured,
     gender: row.gender,
-    rating: Number(row.rating),
-    reviewCount: row.review_count,
+    colors: row.colors ?? [],
+    rating: Number(row.rating ?? 0),
+    reviewCount: Number(row.review_count ?? 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

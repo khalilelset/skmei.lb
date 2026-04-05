@@ -21,7 +21,7 @@ import {
   MenuItem,
   Slider,
 } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon } from '@mui/icons-material';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
@@ -29,7 +29,7 @@ import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
 import { categories } from '@/data/products';
 import { formatPrice } from '@/lib/utils';
-import type { Product } from '@/types';
+import type { Product, ProductColor } from '@/types';
 
 function getStockLabel(stock: number): 'in-stock' | 'low-stock' | 'out-of-stock' {
   if (stock === 0) return 'out-of-stock';
@@ -57,7 +57,10 @@ const emptyForm = {
   name: '', slug: '', description: '', price: '', originalPrice: '',
   category: 'digital', stock: '', images: [] as string[],
   features: [] as string[],
+  videoUrl: '',
+  brand: 'SKMEI',
   isNew: false, onSale: false, isBestseller: false, gender: '' as '' | 'men' | 'women' | 'unisex',
+  colors: [] as ProductColor[],
   specifications: { ...emptySpecs },
 };
 
@@ -71,8 +74,10 @@ export default function ProductsPage() {
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [featureInput, setFeatureInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
 
   // Crop dialog state
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -121,7 +126,10 @@ export default function ProductsPage() {
       isNew: product.isNew ?? false,
       onSale: product.onSale ?? false,
       isBestseller: product.isBestseller ?? false,
+      videoUrl: product.videoUrl ?? '',
       gender: (product.gender ?? '') as '' | 'men' | 'women' | 'unisex',
+      brand: product.brand ?? 'SKMEI',
+      colors: product.colors ?? [],
       specifications: { ...emptySpecs, ...(product.specifications ?? {}) },
     });
     setDialogOpen(true);
@@ -174,6 +182,22 @@ export default function ProductsPage() {
     setForm(f => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
   };
 
+  const handleVideoSelected = async (file: File) => {
+    if (videoFileRef.current) videoFileRef.current.value = '';
+    setIsUploadingVideo(true);
+    try {
+      const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, '-') || 'temp';
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('slug', slug);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.url) setForm(f => ({ ...f, videoUrl: data.url }));
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     const payload = {
@@ -187,10 +211,13 @@ export default function ProductsPage() {
       stock: parseInt(form.stock) || 0,
       images: form.images,
       features: form.features,
+      videoUrl: form.videoUrl || null,
       isNew: form.isNew,
       onSale: form.onSale,
       isBestseller: form.isBestseller,
       gender: form.gender || null,
+      brand: form.brand || 'SKMEI',
+      colors: form.colors,
       specifications: form.specifications,
     };
 
@@ -220,10 +247,10 @@ export default function ProductsPage() {
       minWidth: 80,
       sortable: false,
       format: (value, product: Product) => (
-        <Box sx={{ width: 50, height: 50, position: 'relative', bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1, overflow: 'hidden' }}>
+        <Box sx={{ width: 64, height: 64, position: 'relative', bgcolor: '#f3f4f6', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
           {product.images?.[0] && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.images[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
+            <img src={product.images[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           )}
         </Box>
       ),
@@ -278,11 +305,28 @@ export default function ProductsPage() {
       align: 'center',
       sortable: false,
       format: (_, product: Product) => (
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {product.isNew && <Chip label="New" size="small" sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 600, fontSize: 10 }} />}
-          {product.onSale && <Chip label="Sale" size="small" sx={{ bgcolor: 'rgba(251,146,60,0.1)', color: '#FB923C', fontWeight: 600, fontSize: 10 }} />}
-          {product.isBestseller && <Chip label="Bestseller" size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontWeight: 600, fontSize: 10 }} />}
-          {!product.isNew && !product.onSale && !product.isBestseller && <span style={{ color: '#9CA3AF', fontSize: 12 }}>—</span>}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {product.brand && product.brand.toUpperCase() !== 'SKMEI' && (
+              <Chip label={product.brand} size="small" sx={{ bgcolor: 'rgba(251,146,60,0.12)', color: '#B45309', fontWeight: 700, fontSize: 10, border: '1px solid rgba(251,146,60,0.3)' }} />
+            )}
+            {product.isNew && <Chip label="New" size="small" sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 600, fontSize: 10 }} />}
+            {product.onSale && <Chip label="Sale" size="small" sx={{ bgcolor: 'rgba(251,146,60,0.1)', color: '#FB923C', fontWeight: 600, fontSize: 10 }} />}
+            {product.isBestseller && <Chip label="Bestseller" size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontWeight: 600, fontSize: 10 }} />}
+            {!product.brand || product.brand.toUpperCase() === 'SKMEI' ? (
+              !product.isNew && !product.onSale && !product.isBestseller && !(product.colors?.length) && <span style={{ color: '#9CA3AF', fontSize: 12 }}>—</span>
+            ) : null}
+          </Box>
+          {product.colors && product.colors.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {product.colors.slice(0, 6).map((c, i) => (
+                <Box key={i} title={c.name} sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: c.hex, border: '1.5px solid rgba(0,0,0,0.15)', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+              ))}
+              {product.colors.length > 6 && (
+                <Typography variant="caption" sx={{ fontSize: 9, color: 'text.secondary', lineHeight: '14px' }}>+{product.colors.length - 6}</Typography>
+              )}
+            </Box>
+          )}
         </Box>
       ),
     },
@@ -391,6 +435,15 @@ export default function ProductsPage() {
                 <MenuItem value="unisex">Unisex</MenuItem>
               </TextField>
             </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth size="small" label="Brand"
+                value={form.brand}
+                onChange={(e) => setForm(f => ({ ...f, brand: e.target.value }))}
+                helperText={form.brand.toUpperCase() !== 'SKMEI' ? '2-week warranty · No stainless/water guarantee' : '1-year warranty · Official SKMEI dealer'}
+                FormHelperTextProps={{ sx: { color: form.brand.toUpperCase() !== 'SKMEI' ? '#FB923C' : '#22C55E', fontSize: 10 } }}
+              />
+            </Grid>
 
             {/* Image Upload Section */}
             <Grid size={12}>
@@ -446,6 +499,37 @@ export default function ProductsPage() {
               </Box>
               {isUploading && (
                 <Typography variant="caption" color="text.secondary">Uploading to Cloudinary...</Typography>
+              )}
+            </Grid>
+
+            {/* Video Upload Section */}
+            <Grid size={12}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>Product Video <Typography component="span" variant="caption" color="text.secondary">(optional — shown on product page)</Typography></Typography>
+              <input ref={videoFileRef} type="file" accept="video/*" disabled={isUploadingVideo} style={{ display: 'none' }}
+                onChange={(e) => { if (e.target.files?.[0]) handleVideoSelected(e.target.files[0]); }} />
+              {form.videoUrl ? (
+                <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.12)', bgcolor: '#000', aspectRatio: '3/4', maxWidth: 200 }}>
+                  <video src={form.videoUrl} controls style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }} />
+                  <IconButton size="small" onClick={() => setForm(f => ({ ...f, videoUrl: '' }))}
+                    sx={{ position: 'absolute', top: 6, right: 6, bgcolor: 'rgba(0,0,0,0.6)', color: 'white', '&:hover': { bgcolor: '#DC2626' } }}>
+                    <CloseIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Box>
+              ) : (
+                <label style={{ cursor: isUploadingVideo ? 'default' : 'pointer' }}>
+                  <Box component="span" sx={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: 1, width: 240, height: 120,
+                    border: '2px dashed', borderColor: isUploadingVideo ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.23)',
+                    borderRadius: 2, fontSize: 12, color: isUploadingVideo ? 'rgba(0,0,0,0.26)' : 'text.secondary',
+                    transition: 'all 0.2s',
+                    '&:hover': isUploadingVideo ? {} : { borderColor: '#DC2626', color: '#DC2626', bgcolor: 'rgba(220,38,38,0.02)' },
+                  }}>
+                    {isUploadingVideo ? <CircularProgress size={24} sx={{ color: '#DC2626' }} /> : <><VideoIcon sx={{ fontSize: 28 }} /><span>Upload Video</span></>}
+                  </Box>
+                  <input type="file" accept="video/*" disabled={isUploadingVideo} style={{ display: 'none' }}
+                    onChange={(e) => { if (e.target.files?.[0]) handleVideoSelected(e.target.files[0]); }} />
+                </label>
               )}
             </Grid>
 
@@ -552,6 +636,103 @@ export default function ProductsPage() {
               </Box>
             </Grid>
 
+            {/* Color Variants */}
+            <Grid size={12}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, mt: 1 }}>Color Variants</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Tap a color to add it. Tap again (or click ×) to remove. Shown as swatches on product pages.
+              </Typography>
+
+              {/* Preset palette */}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                {([
+                  { name: 'Black',      hex: '#1a1a1a' },
+                  { name: 'White',      hex: '#f5f5f5' },
+                  { name: 'Silver',     hex: '#C0C0C0' },
+                  { name: 'Gold',       hex: '#D4AF37' },
+                  { name: 'Rose Gold',  hex: '#B76E79' },
+                  { name: 'Red',        hex: '#DC2626' },
+                  { name: 'Blue',       hex: '#1D4ED8' },
+                  { name: 'Light Blue', hex: '#60A5FA' },
+                  { name: 'Aqua',       hex: '#06B6D4' },
+                  { name: 'Green',      hex: '#16A34A' },
+                  { name: 'Orange',     hex: '#EA580C' },
+                  { name: 'Brown',      hex: '#78350F' },
+                  { name: 'Grey',       hex: '#6B7280' },
+                  { name: 'Champagne',  hex: '#F7E7CE' },
+                  { name: 'Gunmetal',   hex: '#2C3539' },
+                ] as ProductColor[]).map((preset) => {
+                  const active = form.colors.some(c => c.name === preset.name);
+                  return (
+                    <Box
+                      key={preset.name}
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        colors: active
+                          ? f.colors.filter(c => c.name !== preset.name)
+                          : [...f.colors, preset],
+                      }))}
+                      sx={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.6,
+                        cursor: 'pointer',
+                        '&:hover .swatch': { transform: 'scale(1.12)' },
+                      }}
+                    >
+                      <Box
+                        className="swatch"
+                        sx={{
+                          width: 38, height: 38, borderRadius: '50%',
+                          bgcolor: preset.hex,
+                          border: active ? '3px solid #DC2626' : preset.hex === '#f5f5f5' ? '2px solid rgba(0,0,0,0.15)' : '2px solid rgba(0,0,0,0.08)',
+                          boxShadow: active ? `0 0 0 2px white, 0 0 0 4px #DC2626, 0 4px 12px ${preset.hex}60` : '0 2px 6px rgba(0,0,0,0.18)',
+                          transition: 'all 0.18s',
+                          position: 'relative',
+                        }}
+                      >
+                        {active && (
+                          <Box sx={{
+                            position: 'absolute', inset: 0, borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            bgcolor: 'rgba(0,0,0,0.35)',
+                          }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </Box>
+                        )}
+                      </Box>
+                      <Typography variant="caption" sx={{
+                        fontSize: 9, fontWeight: active ? 700 : 500,
+                        color: active ? '#DC2626' : 'text.secondary',
+                        textAlign: 'center', lineHeight: 1.2, maxWidth: 46,
+                      }}>
+                        {preset.name}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Selected colors summary */}
+              {form.colors.length > 0 && (
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: '#DC2626', fontSize: 11 }}>
+                    Selected:
+                  </Typography>
+                  {form.colors.map((c, i) => (
+                    <Chip
+                      key={i}
+                      size="small"
+                      label={c.name}
+                      onDelete={() => setForm(f => ({ ...f, colors: f.colors.filter((_, idx) => idx !== i) }))}
+                      avatar={<Box sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: c.hex, border: '1px solid rgba(0,0,0,0.15)', ml: '6px !important' }} />}
+                      sx={{ bgcolor: 'rgba(220,38,38,0.07)', color: '#DC2626', fontWeight: 600, fontSize: 11, '& .MuiChip-deleteIcon': { color: '#DC2626', fontSize: 14 } }}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Grid>
+
             {/* Label Toggles */}
             <Grid size={12}><Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5, mt: 1 }}>Product Labels</Typography></Grid>
             {[
@@ -593,7 +774,7 @@ export default function ProductsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" disabled={isSaving || isUploading || !form.name || !form.price}
+          <Button variant="contained" disabled={isSaving || isUploading || isUploadingVideo || !form.name || !form.price}
             onClick={handleSave}
             sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
             {isSaving ? 'Saving...' : editProduct ? 'Save Changes' : 'Add Product'}

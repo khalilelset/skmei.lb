@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   ShoppingBag,
   ArrowLeft,
@@ -21,6 +23,7 @@ import {
   Package,
   Clock,
   Calendar,
+  Lock,
 } from 'lucide-react';
 
 interface PlacedOrder {
@@ -44,72 +47,95 @@ interface PlacedOrder {
 
 function OrderConfirmation({ order }: { order: PlacedOrder }) {
   return (
-    <div className="min-h-screen bg-brand-silver-light py-8 px-4">
+    <div className="min-h-screen bg-brand-black py-8 px-4">
       <div className="max-w-2xl mx-auto">
 
-        {/* Success hero */}
-        <div className="text-center mb-8">
-          <div className="relative w-24 h-24 mx-auto mb-5">
-            <div className="absolute inset-0 bg-brand-red/15 rounded-full animate-ping opacity-60" />
-            <div className="relative w-24 h-24 bg-brand-red rounded-full flex items-center justify-center shadow-xl shadow-brand-red/30">
-              <CheckCircle2 className="w-12 h-12 text-white" strokeWidth={2.5} />
+        {/* Success hero — spring entrance */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+          className="text-center mb-8"
+        >
+          {/* Layered rings */}
+          <div className="relative w-36 h-36 mx-auto mb-5 flex items-center justify-center">
+            <div className="absolute w-36 h-36 rounded-full border border-brand-red/20" />
+            <div className="absolute w-28 h-28 rounded-full border border-brand-red/10" />
+            <div className="absolute w-20 h-20 bg-brand-red rounded-full flex items-center justify-center shadow-xl shadow-brand-red/30">
+              <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2.5} />
             </div>
+            {/* Ping runs only twice */}
+            <div className="absolute w-36 h-36 rounded-full border border-brand-red/30 animate-ping" style={{ animationIterationCount: 2 }} />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-brand-black mb-2">Order Confirmed!</h1>
-          <p className="text-brand-gray">
-            Thank you, <span className="font-semibold text-brand-black">{order.customerName.split(' ')[0]}</span>! Your order has been received.
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight">Order Confirmed!</h1>
+          <p className="text-brand-red font-semibold mb-1">Your watch is on its way</p>
+          <p className="text-white/45 text-sm">
+            Thank you, <span className="font-bold text-white">{order.customerName.split(' ')[0]}</span>! Your order has been received.
           </p>
-        </div>
 
-        {/* Order number + date */}
-        <div className="bg-white rounded-2xl border border-brand-silver shadow-sm p-5 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Animated fill bar — purely visual, satisfaction cue */}
+          <div className="mt-5 h-0.5 max-w-xs mx-auto bg-brand-silver rounded-full overflow-hidden">
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
+              className="h-full bg-brand-red origin-left"
+            />
+          </div>
+        </motion.div>
+
+        {/* Order number + date — dark card */}
+        <div className="bg-brand-black rounded-2xl p-5 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-xs text-brand-gray uppercase tracking-widest font-bold mb-1">Order Number</p>
-            <p className="text-2xl font-black text-brand-black tracking-wide">
+            <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Order Number</p>
+            <p className="text-3xl font-black text-white tracking-wide">
               {order.orderNumber ? `SK-${order.orderNumber}` : `SK-${order.orderId.replace(/-/g, '').slice(0, 8).toUpperCase()}`}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-brand-gray">
+          <div className="flex items-center gap-2 text-sm text-white/50">
             <Calendar className="w-4 h-4 text-brand-red shrink-0" />
             <span>{new Date(order.placedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         </div>
 
-        {/* Trust badges */}
+        {/* Trust badges — red top border on each card */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
-            { icon: Truck,       title: 'Delivery',  sub: '2–4 days' },
+            { icon: Truck,       title: 'Delivery',  sub: '3–5 days' },
             { icon: Banknote,    title: 'Payment',   sub: 'Cash on delivery' },
             { icon: ShieldCheck, title: 'Warranty',  sub: '1-year included' },
           ].map(({ icon: Icon, title, sub }) => (
-            <div key={title} className="bg-white rounded-xl p-4 border border-brand-silver shadow-sm text-center">
-              <div className="w-9 h-9 bg-brand-red/10 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Icon className="w-5 h-5 text-brand-red" />
+            <div key={title} className="bg-white/5 rounded-xl pt-0 border border-white/8 text-center overflow-hidden">
+              <div className="h-0.5 bg-brand-red" />
+              <div className="p-4">
+                <div className="w-9 h-9 bg-brand-red/10 rounded-lg flex items-center justify-center mx-auto mb-2 border border-brand-red/20">
+                  <Icon className="w-5 h-5 text-brand-red" />
+                </div>
+                <p className="text-xs font-bold text-white">{title}</p>
+                <p className="text-xs text-white/40 mt-0.5">{sub}</p>
               </div>
-              <p className="text-xs font-bold text-brand-black">{title}</p>
-              <p className="text-xs text-brand-gray mt-0.5">{sub}</p>
             </div>
           ))}
         </div>
 
         {/* Items ordered */}
-        <div className="bg-white rounded-2xl border border-brand-silver shadow-sm overflow-hidden mb-4">
-          <div className="px-5 py-4 border-b border-brand-silver flex items-center gap-2">
+        <div className="bg-white/5 rounded-2xl border border-white/8 overflow-hidden mb-4">
+          <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2">
             <Package className="w-4 h-4 text-brand-red" />
-            <h2 className="font-bold text-brand-black">
-              Items Ordered <span className="text-brand-gray font-normal">({order.items.length})</span>
+            <h2 className="font-bold text-white">
+              Items Ordered <span className="text-white/40 font-normal">({order.items.length})</span>
             </h2>
           </div>
-          <div className="divide-y divide-brand-silver">
+          <div className="divide-y divide-white/8">
             {order.items.map((item, i) => (
               <div key={i} className="flex items-center gap-4 px-5 py-4">
                 <div className="relative w-16 h-16 shrink-0">
-                  <div className="absolute inset-0 rounded-xl overflow-hidden bg-brand-silver-light border border-brand-silver">
+                  <div className="absolute inset-0 rounded-xl overflow-hidden bg-white/8 border border-white/12">
                     {item.image ? (
                       <Image src={item.image} alt={item.name} fill className="object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Package className="w-6 h-6 text-brand-gray" />
+                        <Package className="w-6 h-6 text-white/30" />
                       </div>
                     )}
                   </div>
@@ -118,10 +144,10 @@ function OrderConfirmation({ order }: { order: PlacedOrder }) {
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-brand-black text-sm leading-snug line-clamp-2">{item.name}</p>
-                  <p className="text-xs text-brand-gray mt-0.5">{formatPrice(item.price)} × {item.quantity}</p>
+                  <p className="font-semibold text-white text-sm leading-snug line-clamp-2">{item.name}</p>
+                  <p className="text-xs text-white/40 mt-0.5">{formatPrice(item.price)} × {item.quantity}</p>
                 </div>
-                <p className="font-bold text-brand-black text-sm shrink-0">
+                <p className="font-bold text-white text-sm shrink-0">
                   {formatPrice(item.price * item.quantity)}
                 </p>
               </div>
@@ -129,24 +155,24 @@ function OrderConfirmation({ order }: { order: PlacedOrder }) {
           </div>
 
           {/* Totals */}
-          <div className="px-5 py-4 bg-brand-silver-light border-t border-brand-silver space-y-2">
-            <div className="flex justify-between text-sm text-brand-gray">
+          <div className="px-5 py-4 bg-white/3 border-t border-white/8 space-y-2">
+            <div className="flex justify-between text-sm text-white/45">
               <span>Subtotal</span>
               <span>{formatPrice(order.subtotal)}</span>
             </div>
-            <div className="flex justify-between text-sm text-brand-gray">
+            <div className="flex justify-between text-sm text-white/45">
               <span>Shipping</span>
-              <span className={order.shipping === 0 ? 'text-green-600 font-semibold' : ''}>
+              <span className={order.shipping === 0 ? 'text-brand-red font-semibold' : ''}>
                 {order.shipping === 0 ? 'FREE' : formatPrice(order.shipping)}
               </span>
             </div>
             {order.discountAmount > 0 && (
-              <div className="flex justify-between text-sm text-green-600 font-medium">
+              <div className="flex justify-between text-sm text-brand-red font-medium">
                 <span>Discount{order.couponCode ? ` (${order.couponCode})` : ''}</span>
                 <span>-{formatPrice(order.discountAmount)}</span>
               </div>
             )}
-            <div className="flex justify-between font-black text-brand-black text-base pt-2 border-t border-brand-silver">
+            <div className="flex justify-between font-black text-white text-base pt-2 border-t border-white/10">
               <span>Total</span>
               <span>{formatPrice(order.total)}</span>
             </div>
@@ -155,43 +181,43 @@ function OrderConfirmation({ order }: { order: PlacedOrder }) {
 
         {/* Contact + Address */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-2xl border border-brand-silver shadow-sm p-5">
+          <div className="bg-white/5 rounded-2xl border border-white/8 p-5">
             <div className="flex items-center gap-2 mb-4">
               <User className="w-4 h-4 text-brand-red" />
-              <h3 className="font-bold text-brand-black text-sm">Contact Information</h3>
+              <h3 className="font-bold text-white text-sm">Contact Information</h3>
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
-                <User className="w-3.5 h-3.5 text-brand-gray shrink-0" />
-                <span className="font-medium text-brand-black">{order.customerName}</span>
+                <User className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                <span className="font-medium text-white">{order.customerName}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Phone className="w-3.5 h-3.5 text-brand-gray shrink-0" />
-                <span className="text-brand-gray">{order.phone}</span>
+                <Phone className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                <span className="text-white/55">{order.phone}</span>
               </div>
               {order.email && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-3.5 h-3.5 text-brand-gray shrink-0" />
-                  <span className="text-brand-gray">{order.email}</span>
+                  <Mail className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                  <span className="text-white/55">{order.email}</span>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-brand-silver shadow-sm p-5">
+          <div className="bg-white/5 rounded-2xl border border-white/8 p-5">
             <div className="flex items-center gap-2 mb-4">
               <MapPin className="w-4 h-4 text-brand-red" />
-              <h3 className="font-bold text-brand-black text-sm">Delivery Address</h3>
+              <h3 className="font-bold text-white text-sm">Delivery Address</h3>
             </div>
-            <div className="space-y-1.5 text-sm text-brand-gray">
-              <p className="font-medium text-brand-black">{order.area}{order.city && order.city !== order.area ? `, ${order.city}` : ''}</p>
+            <div className="space-y-1.5 text-sm text-white/55">
+              <p className="font-medium text-white">{order.area}{order.city && order.city !== order.area ? `, ${order.city}` : ''}</p>
               {order.street && <p>{order.street}</p>}
               <p>Lebanon</p>
             </div>
             {order.notes && (
-              <div className="mt-3 pt-3 border-t border-brand-silver">
-                <p className="text-xs font-semibold text-brand-gray uppercase tracking-wide mb-1">Notes</p>
-                <p className="text-sm text-brand-gray">{order.notes}</p>
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-xs font-semibold text-white/35 uppercase tracking-wide mb-1">Notes</p>
+                <p className="text-sm text-white/55">{order.notes}</p>
               </div>
             )}
           </div>
@@ -200,9 +226,9 @@ function OrderConfirmation({ order }: { order: PlacedOrder }) {
         {/* We will call you notice */}
         <div className="bg-brand-red/5 border border-brand-red/20 rounded-2xl p-4 flex items-start gap-3 mb-6">
           <Clock className="w-5 h-5 text-brand-red shrink-0 mt-0.5" />
-          <p className="text-sm text-brand-gray leading-relaxed">
+          <p className="text-sm text-white/55 leading-relaxed">
             We will contact you at{' '}
-            <span className="font-bold text-brand-black">{order.phone}</span>{' '}
+            <span className="font-bold text-white">{order.phone}</span>{' '}
             shortly to confirm your order and arrange delivery.
           </p>
         </div>
@@ -224,13 +250,14 @@ function OrderConfirmation({ order }: { order: PlacedOrder }) {
 }
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLookingUp, setIsLookingUp] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
+  const [isLookingUp, setIsLookingUp] = useState(false);
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
@@ -499,17 +526,17 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-brand-black">
         <div className="container mx-auto px-4 py-16 text-center">
           <div className="max-w-md mx-auto">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ShoppingBag className="w-12 h-12 text-brand-gray" />
+            <div className="w-24 h-24 bg-brand-red/10 border border-brand-red/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShoppingBag className="w-12 h-12 text-brand-red/60" />
             </div>
-            <h1 className="text-2xl font-bold text-brand-black mb-4">Your cart is empty</h1>
-            <p className="text-brand-gray mb-8">Add items to your cart before checking out</p>
+            <h1 className="text-2xl font-black text-white mb-4">Your cart is empty</h1>
+            <p className="text-white/40 mb-8">Add items to your cart before checking out</p>
             <Link
               href="/store/products"
-              className="inline-flex items-center justify-center bg-brand-red text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+              className="inline-flex items-center justify-center bg-brand-red text-white px-8 py-3 rounded-lg font-bold hover:bg-brand-red-dark transition-colors"
             >
               <ShoppingBag className="w-5 h-5 mr-2" />
               Start Shopping
@@ -521,39 +548,51 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-black">
+      {/* Sticky top secure checkout bar */}
+      <div className="sticky top-0 z-40 bg-brand-black/95 backdrop-blur-md border-b border-white/8">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/store/products" className="inline-flex items-center gap-1.5 text-white/40 hover:text-white transition-colors text-sm">
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Link>
+          <div className="flex items-center gap-2 text-xs font-bold text-white/60 tracking-wide">
+            <Lock className="w-3.5 h-3.5 text-brand-red" />
+            Secure Checkout
+          </div>
+          <div className="w-16" />
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-8 md:py-12">
         {/* Header */}
         <div className="mb-6 md:mb-8">
-          <Link
-            href="/store/products"
-            className="inline-flex items-center text-brand-gray hover:text-brand-red transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Continue Shopping
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-bold text-brand-black mb-2">Checkout</h1>
-          <p className="text-brand-gray">Complete your order</p>
+          <h1 className="text-2xl md:text-3xl font-black text-white mb-2 tracking-tight">Checkout</h1>
+          <p className="text-white/40 text-sm">Complete your order</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             {/* Checkout Form */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
+              <div className="bg-white/4 rounded-2xl border border-white/8 p-6 md:p-8">
                 {/* Progress Steps */}
                 <div className="mb-8">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     {[1, 2, 3].map((step) => (
                       <div key={step} className="flex items-center flex-1">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= step ? 'bg-brand-red text-white' : 'bg-gray-200 text-brand-gray'}`}>
-                          {step}
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm transition-colors ${currentStep >= step ? 'bg-brand-red text-white shadow-md shadow-brand-red/30' : 'bg-white/8 text-white/35 border border-white/10'}`}>
+                          {currentStep > step ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : step}
                         </div>
-                        {step < 3 && <div className={`flex-1 h-1 mx-2 ${currentStep > step ? 'bg-brand-red' : 'bg-gray-200'}`} />}
+                        {step < 3 && <div className={`flex-1 h-0.5 mx-2 transition-colors duration-500 ${currentStep > step ? 'bg-brand-red' : 'bg-white/10'}`} />}
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between text-xs text-brand-gray">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-white/40">
                     <span>Contact</span>
                     <span>Shipping</span>
                     <span>Payment</span>
@@ -563,17 +602,17 @@ export default function CheckoutPage() {
                 {/* Step 1 */}
                 {currentStep === 1 && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-brand-black mb-4">Contact Information</h3>
+                    <h3 className="text-lg font-bold text-white mb-4">Contact Information</h3>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">Phone Number *</label>
-                      <div className={`flex rounded-lg overflow-hidden border-2 ${errors.phone ? 'border-red-500' : 'border-gray-300 focus-within:border-brand-red'}`}>
-                        <span className="flex items-center px-3 bg-gray-100 border-r-2 border-gray-300 text-brand-black font-semibold text-sm shrink-0 select-none">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">Phone Number *</label>
+                      <div className={`flex rounded-xl overflow-hidden border ${errors.phone ? 'border-red-500' : 'border-white/12 focus-within:border-brand-red'}`}>
+                        <span className="flex items-center px-3 bg-white/8 border-r border-white/10 text-white/50 font-semibold text-sm shrink-0 select-none">
                           +961
                         </span>
                         <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
                           onBlur={handlePhoneBlur}
                           placeholder="XX XXX XXX"
-                          className="flex-1 px-3 py-3 bg-white focus:outline-none text-sm" />
+                          className="flex-1 px-3 py-3 bg-white/6 focus:outline-none text-sm text-white placeholder-white/25" />
                         {isLookingUp && (
                           <span className="flex items-center pr-3">
                             <svg className="w-4 h-4 text-brand-red animate-spin" fill="none" viewBox="0 0 24 24">
@@ -583,30 +622,30 @@ export default function CheckoutPage() {
                           </span>
                         )}
                       </div>
-                      {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
-                      <p className="text-xs text-brand-gray mt-1">Enter your phone and we'll auto-fill your saved info.</p>
+                      {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                      <p className="text-xs text-white/35 mt-1">Enter your phone and we&apos;ll auto-fill your saved info.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold text-brand-black mb-2">First Name *</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">First Name *</label>
                         <input type="text" name="firstName" value={formData.firstName} onChange={handleChange}
-                          className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red ${errors.firstName ? 'border-red-500' : 'border-gray-300'}`} />
-                        {errors.firstName && <p className="text-red-600 text-sm mt-1">{errors.firstName}</p>}
+                          className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red text-white bg-white/6 border ${errors.firstName ? 'border-red-500' : 'border-white/12'} placeholder-white/25`} />
+                        {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-brand-black mb-2">Last Name *</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">Last Name *</label>
                         <input type="text" name="lastName" value={formData.lastName} onChange={handleChange}
-                          className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red ${errors.lastName ? 'border-red-500' : 'border-gray-300'}`} />
-                        {errors.lastName && <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>}
+                          className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red text-white bg-white/6 border ${errors.lastName ? 'border-red-500' : 'border-white/12'} placeholder-white/25`} />
+                        {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">Email Address *</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">Email Address *</label>
                       <input type="email" name="email" value={formData.email} onChange={handleChange}
-                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
-                      {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
+                        className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red text-white bg-white/6 border ${errors.email ? 'border-red-500' : 'border-white/12'} placeholder-white/25`} />
+                      {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                     </div>
-                    <button type="button" onClick={handleNext} className="w-full bg-brand-red text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors mt-4">
+                    <button type="button" onClick={handleNext} className="w-full bg-brand-red text-white px-6 py-3.5 rounded-xl font-bold hover:bg-brand-red-dark transition-colors mt-4">
                       Continue to Shipping
                     </button>
                   </div>
@@ -615,46 +654,46 @@ export default function CheckoutPage() {
                 {/* Step 2 */}
                 {currentStep === 2 && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-brand-black mb-4">Shipping Address</h3>
+                    <h3 className="text-lg font-bold text-white mb-4">Shipping Address</h3>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">Region / Governorate *</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">Region / Governorate *</label>
                       <select name="area" value={formData.area} onChange={handleChange}
-                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red bg-white ${errors.area ? 'border-red-500' : 'border-gray-300'}`}>
-                        <option value="">Select Region / Governorate</option>
+                        className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red bg-white/6 border text-white ${errors.area ? 'border-red-500' : 'border-white/12'}`}>
+                        <option value="" className="bg-[#1a1a1a]">Select Region / Governorate</option>
                         {Object.keys(LEBANON_AREAS).map((area) => (
-                          <option key={area} value={area}>{area}</option>
+                          <option key={area} value={area} className="bg-[#1a1a1a]">{area}</option>
                         ))}
                       </select>
-                      {errors.area && <p className="text-red-600 text-sm mt-1">{errors.area}</p>}
+                      {errors.area && <p className="text-red-500 text-sm mt-1">{errors.area}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">City *</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">City *</label>
                       <select name="city" value={formData.city} onChange={handleChange}
                         disabled={!formData.area}
-                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed ${errors.city ? 'border-red-500' : 'border-gray-300'}`}>
-                        <option value="">{formData.area ? 'Select City' : 'Select Region first'}</option>
+                        className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red bg-white/6 border text-white disabled:opacity-40 disabled:cursor-not-allowed ${errors.city ? 'border-red-500' : 'border-white/12'}`}>
+                        <option value="" className="bg-[#1a1a1a]">{formData.area ? 'Select City' : 'Select Region first'}</option>
                         {[...new Set(LEBANON_AREAS[formData.area] ?? [])].map((city, i) => (
-                          <option key={`${city}-${i}`} value={city}>{city}</option>
+                          <option key={`${city}-${i}`} value={city} className="bg-[#1a1a1a]">{city}</option>
                         ))}
                       </select>
-                      {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
+                      {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">More Address <span className="font-normal text-brand-gray">(Optional)</span></label>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">More Address <span className="font-normal text-white/30">(Optional)</span></label>
                       <input type="text" name="street" value={formData.street} onChange={handleChange}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red"
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red bg-white/6 border border-white/12 text-white placeholder-white/25"
                         placeholder="Street, Building, Floor..." />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-brand-black mb-2">Delivery Notes <span className="font-normal text-brand-gray">(Optional)</span></label>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">Delivery Notes <span className="font-normal text-white/30">(Optional)</span></label>
                       <textarea name="notes" value={formData.notes} onChange={handleChange} rows={2}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red resize-none"
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red bg-white/6 border border-white/12 text-white placeholder-white/25 resize-none"
                         placeholder="Any special delivery instructions..." />
                     </div>
-                    <button type="button" onClick={handleNext} className="w-full bg-brand-red text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors mt-4">
+                    <button type="button" onClick={handleNext} className="w-full bg-brand-red text-white px-6 py-3.5 rounded-xl font-bold hover:bg-brand-red-dark transition-colors mt-4">
                       Continue to Payment
                     </button>
-                    <button type="button" onClick={() => setCurrentStep(1)} className="w-full border-2 border-gray-300 text-brand-gray px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                    <button type="button" onClick={() => setCurrentStep(1)} className="w-full border border-white/12 text-white/40 px-6 py-3 rounded-xl font-semibold hover:bg-white/5 hover:text-white/60 transition-colors">
                       Back to Contact Info
                     </button>
                   </div>
@@ -663,29 +702,45 @@ export default function CheckoutPage() {
                 {/* Step 3 */}
                 {currentStep === 3 && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-brand-black mb-4">Payment Method</h3>
+                    <h3 className="text-lg font-bold text-white mb-4">Payment Method</h3>
                     <div className="space-y-3">
-                      <label className="flex items-center gap-4 p-4 border-2 border-brand-red rounded-lg cursor-pointer bg-red-50">
-                        <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 text-brand-red" />
+                      <label className="flex items-center gap-4 p-4 border-2 border-brand-red rounded-xl cursor-pointer bg-brand-red/8">
+                        <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 text-brand-red accent-brand-red" />
                         <Banknote className="w-6 h-6 text-brand-red" />
                         <div className="flex-1">
-                          <p className="font-semibold text-brand-black">Cash on Delivery</p>
-                          <p className="text-sm text-brand-gray">Pay when you receive your order</p>
+                          <p className="font-semibold text-white">Cash on Delivery</p>
+                          <p className="text-sm text-white/45">Pay when you receive your order</p>
                         </div>
                       </label>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-lg mt-6">
-                      <h4 className="font-semibold text-brand-black mb-2">Order Summary</h4>
-                      <p className="text-sm text-brand-gray mb-1">{formData.firstName} {formData.lastName}</p>
-                      <p className="text-sm text-brand-gray mb-1">{formData.email}</p>
-                      <p className="text-sm text-brand-gray mb-1">{formData.phone}</p>
-                      <p className="text-sm text-brand-gray">{[formData.area, formData.city, formData.street].filter(Boolean).join(', ')}</p>
+                    <div className="bg-white/5 p-4 rounded-xl mt-6 border border-white/8">
+                      <h4 className="font-semibold text-white mb-2 text-sm">Order Summary</h4>
+                      <p className="text-sm text-white/50 mb-1">{formData.firstName} {formData.lastName}</p>
+                      <p className="text-sm text-white/50 mb-1">{formData.email}</p>
+                      <p className="text-sm text-white/50 mb-1">{formData.phone}</p>
+                      <p className="text-sm text-white/50">{[formData.area, formData.city, formData.street].filter(Boolean).join(', ')}</p>
                     </div>
+                    {/* Trust strip */}
+                    <div className="flex items-center justify-center gap-6 py-4 border-t border-white/10 mt-4">
+                      {[
+                        { icon: ShieldCheck, label: 'Authentic' },
+                        { icon: Clock, label: 'Warranty' },
+                        { icon: Banknote, label: 'Cash on Delivery' },
+                      ].map(({ icon: Icon, label }) => (
+                        <div key={label} className="flex items-center gap-1.5 text-white/40">
+                          <Icon className="w-3.5 h-3.5 text-brand-red" />
+                          <span className="text-[10px] font-bold uppercase tracking-wide">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Submit button — shimmer */}
                     <button type="submit" disabled={isSubmitting}
-                      className="w-full bg-brand-red text-white px-6 py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors mt-4 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                      {isSubmitting ? 'Processing...' : `Place Order - ${formatPrice(total)}`}
+                      className="group relative w-full overflow-hidden bg-brand-red text-white px-6 py-5 rounded-xl font-black text-lg hover:bg-brand-red-dark transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-brand-red/30">
+                      <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
+                      {isSubmitting ? 'Processing...' : `Place Order →`}
                     </button>
-                    <button type="button" onClick={() => setCurrentStep(2)} className="w-full border-2 border-gray-300 text-brand-gray px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                    <button type="button" onClick={() => setCurrentStep(2)} className="w-full border border-white/12 text-white/40 px-6 py-3 rounded-xl font-semibold hover:bg-white/5 hover:text-white/60 transition-colors">
                       Back to Shipping
                     </button>
                   </div>
@@ -693,40 +748,40 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Order Summary Sidebar */}
+            {/* Order Summary Sidebar — dark premium card */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
-                <h2 className="text-xl font-bold text-brand-black mb-6">Order Summary</h2>
+              <div className="bg-brand-black rounded-2xl p-6 sticky top-20">
+                <h2 className="text-lg font-black text-white mb-6 tracking-tight">Order Summary</h2>
                 <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
                   {items.map((item) => (
                     <div key={item.product.id} className="flex gap-3">
-                      <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                      <div className="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden border border-white/20">
                         <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
                         <span className="absolute top-0.5 right-0.5 w-5 h-5 bg-brand-red text-white text-xs rounded-full flex items-center justify-center font-bold shadow">
                           {item.quantity}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-brand-black line-clamp-2">{item.product.name}</p>
-                        <p className="text-sm text-brand-gray">{formatPrice(item.product.price)} × {item.quantity}</p>
+                        <p className="text-sm font-semibold text-white line-clamp-2">{item.product.name}</p>
+                        <p className="text-xs text-white/40 mt-0.5">{formatPrice(item.product.price)} × {item.quantity}</p>
                       </div>
-                      <p className="font-semibold text-brand-black text-sm">{formatPrice(item.product.price * item.quantity)}</p>
+                      <p className="font-bold text-white text-sm shrink-0">{formatPrice(item.product.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>
 
                 {/* Coupon */}
-                <div className="border-t pt-4 mb-4">
-                  <p className="text-sm font-semibold text-brand-black mb-2 flex items-center gap-1.5">
-                    <Tag className="w-4 h-4 text-brand-red" /> Coupon Code
+                <div className="border-t border-white/10 pt-4 mb-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-2 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-brand-red" /> Coupon Code
                   </p>
                   {appliedCoupon ? (
-                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">
+                    <div className="flex items-center justify-between bg-white/10 border border-white/20 rounded-xl px-3 py-2.5">
                       <div>
-                        <p className="text-sm font-bold text-green-700">{appliedCoupon.code}</p>
-                        <p className="text-xs text-green-600">{appliedCoupon.discount}% discount applied</p>
+                        <p className="text-sm font-bold text-brand-red">{appliedCoupon.code}</p>
+                        <p className="text-xs text-white/50">{appliedCoupon.discount}% discount applied</p>
                       </div>
-                      <button type="button" onClick={handleRemoveCoupon} className="text-green-600 hover:text-red-500 transition-colors p-1">
+                      <button type="button" onClick={handleRemoveCoupon} className="text-white/40 hover:text-brand-red transition-colors p-1">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -737,64 +792,41 @@ export default function CheckoutPage() {
                           onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
                           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
                           placeholder="Enter code"
-                          className={`flex-1 px-3 py-2 border-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red uppercase tracking-wide ${couponError ? 'border-red-400' : 'border-gray-200'}`} />
-                        <button type="button" onClick={handleApplyCoupon} className="px-4 py-2 bg-brand-black text-white rounded-lg text-sm font-semibold hover:bg-brand-gray-dark transition-colors">
+                          className={`flex-1 px-3 py-2.5 bg-white/10 border rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-red uppercase tracking-wide ${couponError ? 'border-red-400' : 'border-white/20'}`} />
+                        <button type="button" onClick={handleApplyCoupon} className="px-4 py-2 bg-brand-red text-white rounded-xl text-sm font-bold hover:bg-brand-red-dark transition-colors">
                           Apply
                         </button>
                       </div>
-                      {couponError && <p className="text-red-500 text-xs mt-1.5">{couponError}</p>}
+                      {couponError && <p className="text-brand-red text-xs mt-1.5">{couponError}</p>}
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-3 border-t pt-4">
-                  <div className="flex justify-between text-brand-gray">
+                <div className="space-y-3 border-t border-white/10 pt-4">
+                  <div className="flex justify-between text-sm text-white/60">
                     <span>Subtotal ({totalItems} items)</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-brand-gray">
+                  <div className="flex justify-between text-sm text-white/60">
                     <span>Shipping</span>
-                    <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
+                    <span className={shipping === 0 ? 'text-brand-red font-bold' : ''}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
                   </div>
                   {appliedCoupon && (
-                    <div className="flex justify-between text-green-600 font-medium">
+                    <div className="flex justify-between text-sm text-brand-red font-medium">
                       <span>Discount ({appliedCoupon.discount}%)</span>
                       <span>-{formatPrice(discountAmount)}</span>
                     </div>
                   )}
-                  {subtotal < 50 && (
-                    <div className="text-xs text-brand-gray bg-gray-50 p-3 rounded">
-                      Add {formatPrice(50 - subtotal)} more for free shipping
-                    </div>
-                  )}
-                  <div className="flex justify-between text-lg font-bold text-brand-black pt-3 border-t">
+                  <div className="flex justify-between text-lg font-black text-white pt-3 border-t border-white/10">
                     <span>Total</span>
                     <span>{formatPrice(total)}</span>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t space-y-3">
-                  <div className="flex items-start gap-3 text-sm">
-                    <Truck className="w-5 h-5 text-brand-red shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-brand-black">Delivery in 2–4 days</p>
-                      <p className="text-xs text-brand-gray mt-0.5">Fast & reliable across all Lebanon</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-brand-red shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-brand-black">Every order inspected</p>
-                      <p className="text-xs text-brand-gray mt-0.5">We carefully check your order before shipping</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 text-sm">
-                    <ShieldCheck className="w-5 h-5 text-brand-red shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-brand-black">Warranty against defects</p>
-                      <p className="text-xs text-brand-gray mt-0.5">1-year warranty on all products</p>
-                    </div>
-                  </div>
+                {/* 100% Secure badge */}
+                <div className="mt-5 pt-5 border-t border-white/10 flex items-center justify-center gap-2">
+                  <Lock className="w-3.5 h-3.5 text-brand-red" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">100% Secure Checkout</span>
                 </div>
               </div>
             </div>

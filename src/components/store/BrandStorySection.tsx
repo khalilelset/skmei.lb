@@ -34,7 +34,7 @@ export default function BrandStorySection() {
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section className="py-12 sm:py-16" ref={ref}>
+    <section className="py-16 sm:py-24 bg-white" ref={ref}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 items-center">
 
@@ -44,15 +44,32 @@ export default function BrandStorySection() {
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.65, ease: 'easeOut' }}
           >
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.05 }}
+              className="text-[10px] font-bold text-brand-red uppercase tracking-[0.3em] mb-3"
+            >
+              Why Us
+            </motion.p>
+
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="text-2xl sm:text-3xl font-bold text-brand-black mb-4"
+              className="text-3xl sm:text-4xl font-black text-brand-black tracking-tight mb-3 leading-tight"
             >
               Why Choose{' '}
               <span className="text-brand-red">SKMEI.LB</span>?
             </motion.h2>
+
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={inView ? { scaleX: 1 } : {}}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.18 }}
+              style={{ originX: 0 }}
+              className="h-0.5 w-12 bg-brand-red mb-4"
+            />
 
             <motion.p
               initial={{ opacity: 0, y: 16 }}

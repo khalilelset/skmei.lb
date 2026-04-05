@@ -1,3 +1,8 @@
+export interface ProductColor {
+  name: string;
+  hex: string;
+}
+
 // Product Types
 export interface Product {
   id: string;
@@ -13,11 +18,13 @@ export interface Product {
   stock: number;
   features: string[];
   specifications: ProductSpecifications;
+  videoUrl?: string | null;
   isNew?: boolean;
   onSale?: boolean;
   isBestseller?: boolean;
   isFeatured?: boolean;
   gender?: 'men' | 'women' | 'unisex';
+  colors?: ProductColor[];
   rating: number;
   reviewCount: number;
   createdAt: string;

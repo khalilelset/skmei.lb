@@ -71,6 +71,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState('');
   const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [statusSaved, setStatusSaved] = useState(false);
   const [inlineUpdating, setInlineUpdating] = useState<Record<string, boolean>>({});
 
   const loadOrders = useCallback(() => {
@@ -102,6 +103,11 @@ export default function OrdersPage() {
       body: JSON.stringify({ status: newStatus }),
     });
     setInlineUpdating((prev) => ({ ...prev, [orderId]: false }));
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      const waLink = buildWhatsAppLink(order, newStatus);
+      if (waLink) window.open(waLink, '_blank');
+    }
   };
 
   const handleUpdateStatus = async () => {
@@ -113,13 +119,89 @@ export default function OrdersPage() {
       body: JSON.stringify({ status: updatingStatus }),
     });
     setIsSavingStatus(false);
-    setSelectedOrder(null);
+    setStatusSaved(true);
     loadOrders();
+    const waLink = buildWhatsAppLink(selectedOrder, updatingStatus);
+    if (waLink) window.open(waLink, '_blank');
+  };
+
+  const buildWhatsAppLink = (order: Order, status: string) => {
+    const phone = `961${order.customer.phone.replace(/^(\+961|00961|961)/, '').replace(/\s/g, '')}`;
+    const firstName = order.customer.firstName;
+    const orderNum = order.orderNumber;
+
+    // Build items list for confirmed & cancelled
+    const itemsAr = order.items.map((i) => `- ${i.productName} x${i.quantity}`).join('\n');
+    const itemsEn = order.items.map((i) => `- ${i.productName} x${i.quantity}`).join('\n');
+
+    const sep = '\n\n---\n\n';
+    const messages: Record<string, string> = {
+      confirmed:
+        `\u0645\u0631\u062D\u0628\u0627\u064B ${firstName}! \u2705\n\n` +
+        `\u0637\u0644\u0628\u0643 \u0631\u0642\u0645 ${orderNum} \u062A\u0645 \u062A\u0623\u0643\u064A\u062F\u0647 \u0645\u0646 \u0642\u0650\u0628\u064E\u0644 \u0641\u0631\u064A\u0642\u0646\u0627.\n` +
+        `\u0646\u062D\u0646 \u0646\u062C\u0647\u0651\u0632 \u0637\u0644\u0628\u0643 \u0627\u0644\u0622\u0646 \u0644\u0644\u0634\u062D\u0646! \u{1F4E6}\n` +
+        `\u{1F4C5} \u0645\u062F\u0629 \u0627\u0644\u062A\u0648\u0635\u064A\u0644 \u0627\u0644\u0645\u062A\u0648\u0642\u0639\u0629: \u0628\u064A\u0646 3 \u0625\u0644\u0649 5 \u0623\u064A\u0627\u0645 \u0639\u0645\u0644.\n\n` +
+        `\u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A:\n\n${itemsAr}\n\n` +
+        `\u0634\u0643\u0631\u0627\u064B \u0644\u062B\u0642\u062A\u0643 \u0628\u0646\u0627 \u{231A}\u{1F64F}\nskmeilb.com` +
+        sep +
+        `Hello ${firstName}! \u2705\n\n` +
+        `Your order ${orderNum} has been confirmed by our team.\n` +
+        `We are now preparing your order for shipment! \u{1F4E6}\n` +
+        `\u{1F4C5} Estimated delivery: 3 to 5 business days.\n\n` +
+        `Items:\n\n${itemsEn}\n\n` +
+        `Thank you for choosing us \u{231A}\u{1F64F}\nskmeilb.com`,
+
+      shipped:
+        `\u0645\u0631\u062D\u0628\u0627\u064B ${firstName}! \u{1F69A}\n\n` +
+        `\u0637\u0644\u0628\u0643 \u0631\u0642\u0645 ${orderNum} \u0641\u064A \u0627\u0644\u0637\u0631\u064A\u0642 \u0625\u0644\u064A\u0643 \u0627\u0644\u0622\u0646!\n` +
+        `\u0633\u064A\u0635\u0644\u0643 \u0642\u0631\u064A\u0628\u0627\u064B \u2014 \u064A\u0631\u062C\u0649 \u0627\u0644\u062A\u0648\u0627\u062C\u062F \u0644\u0627\u0633\u062A\u0644\u0627\u0645\u0647.\n` +
+        `\u{1F4C5} \u0645\u062F\u0629 \u0627\u0644\u062A\u0648\u0635\u064A\u0644 \u0627\u0644\u0645\u062A\u0648\u0642\u0639\u0629: \u0628\u064A\u0646 2 \u0625\u0644\u0649 4 \u0623\u064A\u0627\u0645 \u0639\u0645\u0644.\n\n` +
+        `\u0634\u0643\u0631\u0627\u064B \u0644\u062B\u0642\u062A\u0643 \u0628\u0646\u0627 \u{231A}\u{1F64F}\nskmeilb.com` +
+        sep +
+        `Hello ${firstName}! \u{1F69A}\n\n` +
+        `Your order ${orderNum} is on its way!\n` +
+        `It will arrive shortly \u2014 please be available to receive it.\n` +
+        `\u{1F4C5} Estimated delivery: 2 to 4 business days.\n\n` +
+        `Thank you for choosing us \u{231A}\u{1F64F}\nskmeilb.com`,
+
+      delivered:
+        `\u0623\u0647\u0644\u0627\u064B ${firstName}! \u{1F389}\n\n` +
+        `\u062A\u0645 \u062A\u0648\u0635\u064A\u0644 \u0637\u0644\u0628\u0643 \u0628\u0646\u062C\u0627\u062D!\n` +
+        `\u0646\u0623\u0645\u0644 \u0623\u0646 \u062A\u0643\u0648\u0646 \u0633\u0639\u064A\u062F\u0627\u064B \u0628\u0645\u0634\u062A\u0631\u064A\u0627\u062A\u0643 \u{231A}\n\n` +
+        `\u{1F4AC} \u0631\u0623\u064A\u0643 \u064A\u0647\u0645\u0646\u0627 \u2014 \u0634\u0627\u0631\u0643\u0646\u0627 \u062A\u062C\u0631\u0628\u062A\u0643!\n` +
+        `\u{1F4F2} \u0627\u062D\u0641\u0638 \u0631\u0642\u0645\u0646\u0627 \u0644\u062A\u0635\u0644\u0643 \u0623\u062D\u062F\u062B \u0627\u0644\u0639\u0631\u0648\u0636.\n\n` +
+        `\u0634\u0643\u0631\u0627\u064B \u0644\u062B\u0642\u062A\u0643 \u0628\u0646\u0627 \u{1F64F}\nskmeilb.com` +
+        sep +
+        `Hello ${firstName}! \u{1F389}\n\n` +
+        `Your order has been delivered successfully!\n` +
+        `We hope you love your new purchase \u{231A}\n\n` +
+        `\u{1F4AC} Your feedback matters \u2014 share your experience!\n` +
+        `\u{1F4F2} Save our number to get the latest offers.\n\n` +
+        `Thank you for choosing us \u{1F64F}\nskmeilb.com`,
+
+      cancelled:
+        `\u0645\u0631\u062D\u0628\u0627\u064B ${firstName}! \u274C\n\n` +
+        `\u0646\u0623\u0633\u0641 \u0644\u0625\u0628\u0644\u0627\u063A\u0643 \u0623\u0646 \u0637\u0644\u0628\u0643 \u0631\u0642\u0645 ${orderNum} \u062A\u0645 \u0625\u0644\u063A\u0627\u0624\u0647.\n\n` +
+        `\u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u0627\u0644\u062A\u064A \u0643\u0627\u0646\u062A \u0641\u064A \u0637\u0644\u0628\u0643:\n\n${itemsAr}\n\n` +
+        `\u0625\u0630\u0627 \u0643\u0627\u0646 \u0644\u062F\u064A\u0643 \u0623\u064A \u0627\u0633\u062A\u0641\u0633\u0627\u0631 \u0623\u0648 \u062A\u0631\u064A\u062F \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0637\u0644\u0628\u060C \u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627.\n` +
+        `\u0646\u0639\u062A\u0630\u0631 \u0639\u0646 \u0623\u064A \u0625\u0632\u0639\u0627\u062C \u{1F64F}\nskmeilb.com` +
+        sep +
+        `Hello ${firstName}! \u274C\n\n` +
+        `We are sorry to inform you that your order ${orderNum} has been cancelled.\n\n` +
+        `Items that were in your order:\n\n${itemsEn}\n\n` +
+        `If you have any questions or wish to reorder, please contact us.\n` +
+        `We apologize for any inconvenience \u{1F64F}\nskmeilb.com`,
+    };
+
+    const text = messages[status];
+    if (!text) return null;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
   };
 
   const handleRowClick = (order: Order) => {
     setSelectedOrder(order);
     setUpdatingStatus(order.status);
+    setStatusSaved(false);
   };
 
   const columns: Column[] = [
@@ -271,7 +353,7 @@ export default function OrdersPage() {
                     <ReceiptIcon sx={{ color: '#DC2626', fontSize: 20 }} />
                   </Box>
                   <Box>
-                    <Typography sx={{ fontWeight: 800, fontSize: 18, color: '#0f0f0f', letterSpacing: 0.3 }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: 24, color: '#0f0f0f', letterSpacing: 0.3 }}>
                       {selectedOrder.orderNumber}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
@@ -301,7 +383,7 @@ export default function OrdersPage() {
                   <Box sx={{ p: 3, borderRight: { md: '1px solid #eee' } }}>
                     <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#999', textTransform: 'uppercase', letterSpacing: 1.2, mb: 2 }}>Customer</Typography>
                     <Stack spacing={1.5}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, borderLeft: '2px solid rgba(220,38,38,0.4)', pl: 1.5 }}>
                         <Box sx={{ width: 32, height: 32, bgcolor: '#f3f4f6', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <PersonIcon sx={{ fontSize: 16, color: '#6b7280' }} />
                         </Box>
@@ -315,7 +397,13 @@ export default function OrdersPage() {
                           <Typography sx={{ fontSize: 14, color: '#374151' }}>{selectedOrder.customer.phone}</Typography>
                           <Box
                             component="a"
-                            href={`https://wa.me/961${selectedOrder.customer.phone.replace(/^(\+961|00961|961)/, '').replace(/\s/g, '')}`}
+                            href={(() => {
+                              const phone = `961${selectedOrder.customer.phone.replace(/^(\+961|00961|961)/, '').replace(/\s/g, '')}`;
+                              const firstName = selectedOrder.customer.firstName;
+                              const orderNumber = selectedOrder.orderNumber;
+                              const msg = `مرحباً ${firstName}! 👋\n\nشكراً لطلبك من SKMEI.LB 🛍️\nرقم طلبك: #${orderNumber}\n\n✅ لقد استلمنا طلبك بنجاح!\nسنتواصل معك قريباً للتأكيد بعد التحقق من توفر المنتج.\n\n━━━━━━━━━━━━━━━\nHello ${firstName}! 👋\n\nThank you for your order from SKMEI.LB 🛍️\nOrder #: ${orderNumber}\n\n✅ We have received your order successfully!\nWe will contact you shortly to confirm once we verify product availability.\n\n— SKMEI.LB ⌚`;
+                              return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+                            })()}
                             target="_blank"
                             rel="noopener noreferrer"
                             sx={{
@@ -466,16 +554,43 @@ export default function OrdersPage() {
                 </Box>
               </DialogContent>
 
-              <DialogActions sx={{ px: 3, py: 2, bgcolor: '#fff', borderTop: '1px solid #f0f0f0' }}>
-                <Button onClick={() => setSelectedOrder(null)} sx={{ color: '#6b7280' }}>Cancel</Button>
-                <Button
-                  variant="contained"
-                  disabled={isSavingStatus || updatingStatus === selectedOrder.status}
-                  onClick={handleUpdateStatus}
-                  sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, borderRadius: 2, px: 3, fontWeight: 600 }}
-                >
-                  {isSavingStatus ? 'Saving…' : 'Save Status'}
-                </Button>
+              <DialogActions sx={{ px: 3, py: 2, bgcolor: '#fff', borderTop: '1px solid #f0f0f0', gap: 1 }}>
+                {statusSaved ? (
+                  <>
+                    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 20, height: 20, bgcolor: '#22c55e', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                      </Box>
+                      <Typography sx={{ fontSize: 13, color: '#22c55e', fontWeight: 600 }}>Status updated!</Typography>
+                    </Box>
+                    {buildWhatsAppLink(selectedOrder, updatingStatus) && (
+                      <Button
+                        variant="contained"
+                        onClick={() => {
+                          const link = buildWhatsAppLink(selectedOrder, updatingStatus);
+                          if (link) window.open(link, '_blank');
+                        }}
+                        sx={{ bgcolor: '#25d366', '&:hover': { bgcolor: '#1ebe5d' }, borderRadius: 2, px: 2.5, fontWeight: 600, gap: 1 }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        Notify Customer
+                      </Button>
+                    )}
+                    <Button onClick={() => { setSelectedOrder(null); setStatusSaved(false); }} sx={{ color: '#6b7280' }}>Done</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button onClick={() => setSelectedOrder(null)} sx={{ color: '#6b7280' }}>Cancel</Button>
+                    <Button
+                      variant="contained"
+                      disabled={isSavingStatus || updatingStatus === selectedOrder.status}
+                      onClick={handleUpdateStatus}
+                      sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, borderRadius: 2, px: 3, fontWeight: 600 }}
+                    >
+                      {isSavingStatus ? 'Saving…' : 'Save Status'}
+                    </Button>
+                  </>
+                )}
               </DialogActions>
             </>
           );

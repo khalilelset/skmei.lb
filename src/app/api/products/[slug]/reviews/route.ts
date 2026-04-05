@@ -61,11 +61,16 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Recalculate average rating on the product
-  const prevCount = product.review_count ?? 0;
-  const prevRating = product.rating ?? 0;
-  const newCount = prevCount + 1;
-  const newRating = Math.round(((prevRating * prevCount + rating) / newCount) * 10) / 10;
+  // Recompute rating from all actual reviews (avoids stale seeded values)
+  const { data: allReviews } = await supabaseServer
+    .from('reviews')
+    .select('rating')
+    .eq('product_id', product.id);
+
+  const newCount = allReviews?.length ?? 1;
+  const newRating = newCount > 0
+    ? Math.round(((allReviews ?? []).reduce((sum, r) => sum + r.rating, 0) / newCount) * 10) / 10
+    : rating;
 
   await supabaseServer
     .from('products')

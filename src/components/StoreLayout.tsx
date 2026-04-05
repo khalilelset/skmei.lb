@@ -25,7 +25,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <Header />
-      <main className="min-h-screen pt-28 pb-16 lg:pb-0">
+      <main className="min-h-screen pt-28 pb-16 lg:pb-0 bg-brand-black">
         {children}
       </main>
       <Footer />

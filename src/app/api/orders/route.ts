@@ -2,30 +2,61 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { sendOrderEmails } from '@/lib/email';
 
+const MAX_STRING = 200;
+const MAX_NOTE = 1000;
+const MAX_ITEMS = 50;
+
+function sanitize(val: unknown, maxLen = MAX_STRING): string {
+  return String(val ?? '').trim().slice(0, maxLen);
+}
+
+function safeNumber(val: unknown, fallback = 0): number {
+  const n = Number(val);
+  return isFinite(n) && n >= 0 ? n : fallback;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const {
-      customer_name,
-      customer_phone,
-      customer_email,
-      items,
-      subtotal,
-      shipping,
-      discount,
-      coupon_code,
-      total,
-      address,
-      notes,
-      status = 'pending',
-    } = body;
+    const customer_name  = sanitize(body.customer_name);
+    const customer_phone = sanitize(body.customer_phone, 20);
+    const customer_email = sanitize(body.customer_email);
+    const coupon_code    = sanitize(body.coupon_code, 50);
+    const notes          = sanitize(body.notes, MAX_NOTE);
+    const items          = body.items;
+    const address        = body.address ?? null;
+    const subtotal       = safeNumber(body.subtotal);
+    const shipping       = safeNumber(body.shipping);
+    const discount       = safeNumber(body.discount);
+    const total          = safeNumber(body.total);
+    const status         = 'pending'; // always start as pending — never trust client
 
-    if (!customer_name || !customer_phone || !items?.length) {
+    if (!customer_name || !customer_phone || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: 'Missing required fields: customer_name, customer_phone, items' },
         { status: 400 }
       );
+    }
+
+    if (items.length > MAX_ITEMS) {
+      return NextResponse.json({ error: 'Too many items in order' }, { status: 400 });
+    }
+
+    // Basic email format check (optional field)
+    if (customer_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer_email)) {
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
+    }
+
+    // Validate totals make sense (prevent price manipulation)
+    const itemsTotal = items.reduce((sum: number, i: Record<string, unknown>) => {
+      const price = safeNumber(i.price);
+      const qty   = Math.max(1, Math.min(Number(i.quantity ?? 1), 100));
+      return sum + price * qty;
+    }, 0);
+
+    if (itemsTotal === 0) {
+      return NextResponse.json({ error: 'Order total cannot be zero' }, { status: 400 });
     }
 
     // ── 1. Find or create customer by phone ──────────────────────────────
