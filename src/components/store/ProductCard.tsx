@@ -108,23 +108,6 @@ export default function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
 
-          {/* Color dots */}
-          {product.colors && product.colors.length > 0 && (
-            <div className="flex items-center gap-1.5 mb-2.5">
-              {product.colors.slice(0, 6).map((color, i) => (
-                <span
-                  key={i}
-                  title={color.name}
-                  className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-sm shrink-0"
-                  style={{ backgroundColor: color.hex }}
-                />
-              ))}
-              {product.colors.length > 6 && (
-                <span className="text-[9px] text-gray-400 font-medium">+{product.colors.length - 6}</span>
-              )}
-            </div>
-          )}
-
           {/* Price */}
           <div className="flex items-baseline gap-2">
             <span className="text-base sm:text-lg font-bold text-white">
