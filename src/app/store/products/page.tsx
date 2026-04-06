@@ -361,7 +361,7 @@ function ProductsContent() {
       {isMobileFilterOpen && (
         <>
           <div className="fixed inset-0 bg-black/70 z-50" onClick={() => setIsMobileFilterOpen(false)} />
-          <div className="fixed bottom-16 left-0 right-0 bg-[#111] z-55 rounded-t-3xl max-h-[calc(100vh-88px-4rem)] flex flex-col border-t border-white/10">
+          <div className="fixed bottom-16 top-[92px] left-0 right-0 bg-[#111] z-55 rounded-t-3xl flex flex-col border-t border-white/10">
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 bg-white/20 rounded-full" />

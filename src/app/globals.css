@@ -203,6 +203,17 @@ body {
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
+.skeleton-shimmer-dark {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.09) 40%,
+    rgba(255,255,255,0.04) 80%
+  );
+  background-size: 600px 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
 /* ── Page loader bar ──────────────────────────────────────────────────────── */
 @keyframes loader-bar {
   0%   { transform: translateX(-100%) scaleX(0.5); }

@@ -31,25 +31,25 @@ function SkeletonProductCardLight() {
 
 function SkeletonProductCardDark() {
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl shadow-black/30 overflow-hidden border border-white/8">
+    <div className="bg-[#111] rounded-xl sm:rounded-2xl overflow-hidden border border-white/8">
       <div className="relative aspect-square overflow-hidden bg-white/5">
-        <div className="absolute inset-0 animate-pulse bg-linear-to-r from-white/4 via-white/8 to-white/4 bg-size-[600px_100%]" />
+        <div className="skeleton-shimmer-dark absolute inset-0" />
       </div>
-      <div className="p-3 sm:p-4 space-y-2.5">
-        <div className="skeleton-shimmer h-3 w-14 rounded-full" />
-        <div className="space-y-1.5">
-          <div className="skeleton-shimmer h-4 w-full rounded" />
-          <div className="skeleton-shimmer h-4 w-3/4 rounded" />
+      <div className="p-3 sm:p-4">
+        <div className="skeleton-shimmer-dark h-3 w-14 rounded-full mb-2" />
+        <div className="space-y-1.5 mb-2">
+          <div className="skeleton-shimmer-dark h-4 w-full rounded" />
+          <div className="skeleton-shimmer-dark h-4 w-3/4 rounded" />
         </div>
-        <div className="flex items-center gap-1 pt-0.5">
-          {[...Array(5)].map((_, i) => <div key={i} className="skeleton-shimmer w-3 h-3 rounded-sm" />)}
-          <div className="skeleton-shimmer h-3 w-8 rounded ml-1" />
+        <div className="flex items-center gap-0.5 mb-2">
+          {[...Array(5)].map((_, i) => <div key={i} className="skeleton-shimmer-dark w-3 h-3 rounded-sm" />)}
+          <div className="skeleton-shimmer-dark h-3 w-8 rounded ml-1" />
         </div>
-        <div className="flex items-center gap-2 pt-1">
-          <div className="skeleton-shimmer h-5 w-20 rounded" />
-          <div className="skeleton-shimmer h-4 w-12 rounded" />
+        <div className="flex items-center gap-2">
+          <div className="skeleton-shimmer-dark h-5 w-20 rounded" />
+          <div className="skeleton-shimmer-dark h-4 w-12 rounded" />
         </div>
-        <div className="skeleton-shimmer h-9 w-full rounded-lg lg:hidden" />
+        <div className="skeleton-shimmer-dark h-9 w-full rounded-lg mt-2 lg:hidden" />
       </div>
     </div>
   );
