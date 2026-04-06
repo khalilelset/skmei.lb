@@ -87,9 +87,9 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-[#1a1a1a]/90 backdrop-blur-md shadow-2xl shadow-black/60 border-b border-white/6"
+      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
+        scrolled && !mobileMenuOpen
+          ? "bg-[#1a1a1a]/95 lg:backdrop-blur-md shadow-2xl shadow-black/60 border-b border-white/6"
           : "bg-brand-black"
       }`}
     >
@@ -137,7 +137,7 @@ export default function Header() {
 
       {/* Main Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
+        <div className="relative flex items-center justify-between h-16 sm:h-20">
 
           {/* Mobile Menu Button */}
           <button
@@ -148,8 +148,8 @@ export default function Header() {
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center flex-shrink-0">
+          {/* Logo — absolutely centered on mobile, normal flow on desktop */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center flex-shrink-0 lg:static lg:translate-x-0">
             <div className="relative w-36 h-10 sm:w-56 sm:h-14">
               <Image
                 src="/images/logo/black.png"
@@ -186,7 +186,7 @@ export default function Header() {
 
                 {/* Desktop Dropdown */}
                 {item.submenu && activeSubmenu === item.name && (
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-brand-black border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+                  <div className="absolute top-full left-0 mt-1 w-64 z-10 bg-brand-black border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
                     {/* Header */}
                     <div className="px-4 py-3 border-b border-white/10">
                       <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest">
@@ -302,11 +302,11 @@ export default function Header() {
 
       {/* Mobile Menu — slide from left */}
       <div
-        className={`lg:hidden fixed inset-0 top-[84px] bg-brand-black/98 backdrop-blur-md z-40 overflow-y-auto transition-transform duration-300 ease-in-out border-t border-white/6 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`lg:hidden fixed inset-0 top-[88px] bg-brand-black z-[55] overflow-y-auto transition-transform duration-300 ease-in-out border-t border-white/10 ${
+          mobileMenuOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'
         }`}
       >
-          <nav className="px-4 py-4">
+          <nav className="px-4 pt-4 pb-20">
             {navigation.map((item) => (
               <div key={item.name} className="border-b border-white/6 last:border-0">
                 <div className="flex items-center">
@@ -375,7 +375,7 @@ export default function Header() {
       {/* Mobile Menu Overlay — fade in/out */}
       <div
         onClick={() => closeMenu()}
-        className={`lg:hidden fixed inset-0 bg-black/50 z-30 top-[84px] transition-opacity duration-300 ${
+        className={`lg:hidden fixed inset-0 bg-black/60 z-[52] top-0 transition-opacity duration-300 ${
           mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         aria-hidden="true"

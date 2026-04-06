@@ -25,10 +25,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <Header />
-      <main className="min-h-screen pt-28 pb-16 lg:pb-0 bg-brand-black">
-        {children}
-      </main>
-      <Footer />
+      <div className="flex flex-col min-h-screen">
+        <main className="flex-1 pt-28 pb-16 lg:pb-0 bg-brand-black">
+          {children}
+        </main>
+        <Footer />
+        {/* Spacer so footer is not hidden behind the fixed BottomNav on mobile */}
+        <div className="h-16 bg-brand-black lg:hidden" />
+      </div>
       <CartDrawer />
       <FloatingWhatsApp />
       <BottomNav />

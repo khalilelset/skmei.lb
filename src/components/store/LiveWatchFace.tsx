@@ -36,6 +36,7 @@ export default function LiveWatchFace({ className = '' }: { className?: string }
   }, []);
 
   const D2R = Math.PI / 180;
+  const r = (n: number) => Math.round(n * 1000) / 1000;
 
   return (
     <svg viewBox="0 0 400 400" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -48,8 +49,8 @@ export default function LiveWatchFace({ className = '' }: { className?: string }
         const innerR = isQ ? 166 : 172;
         return (
           <line key={i}
-            x1={200 + Math.cos(rad) * outerR} y1={200 + Math.sin(rad) * outerR}
-            x2={200 + Math.cos(rad) * innerR} y2={200 + Math.sin(rad) * innerR}
+            x1={r(200 + Math.cos(rad) * outerR)} y1={r(200 + Math.sin(rad) * outerR)}
+            x2={r(200 + Math.cos(rad) * innerR)} y2={r(200 + Math.sin(rad) * innerR)}
             stroke="#DC2626"
             strokeWidth={isQ ? 4 : 2.5}
             strokeLinecap="round"
