@@ -183,7 +183,7 @@ export default function CartDrawer() {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-white/8 px-5 py-4 space-y-4 bg-[#0a0a0a]">
+              <div className="border-t border-white/8 px-5 pt-4 pb-20 lg:pb-4 space-y-4 bg-[#0a0a0a]">
 
                 {/* Free shipping progress */}
                 {(() => {
