@@ -16,7 +16,7 @@ import { motion, useInView } from "framer-motion";
 
 const features = [
   { icon: Shield,     title: "100% Authentic",       desc: "Every watch we sell is genuine SKMEI. We are an authorized dealer with direct sourcing from the manufacturer." },
-  { icon: Award,      title: "1-Year Warranty",       desc: "All our watches come with a full 1-year warranty. Your purchase is protected and we stand behind every product." },
+  { icon: Award,      title: "1-Year Warranty",       desc: "All our Skmei watches come with a full 1-year warranty. Your purchase is protected and we stand behind every product." },
   { icon: Truck,      title: "Free Shipping",         desc: "Enjoy free shipping on orders over $50. We deliver across Lebanon with fast and reliable service." },
   { icon: Clock,      title: "Fast Delivery",         desc: "Quick processing and delivery so you can enjoy your new watch as soon as possible." },
   { icon: ImagePlay,  title: "Real Photos & Videos",  desc: "We provide actual size information, real photos, and videos for any item — so you know exactly what you are getting before you buy." },
@@ -155,7 +155,7 @@ export default function AboutPage() {
                 From digital sports watches to elegant analog designs, smart watches to luxury collections, we offer a wide range of authentic SKMEI products backed by our 1-year warranty and dedicated customer support.
               </p>
               <p className="text-brand-gray leading-relaxed">
-                Our mission is simple: to provide genuine SKMEI watches at the best prices with exceptional service. Every watch we sell is 100% authentic and comes with a full manufacturer warranty.
+                Our mission is simple: to provide genuine SKMEI watches at the best prices with exceptional service. Every Skmei watch we sell is 100% authentic and comes with a full manufacturer warranty.
               </p>
             </FadeIn>
 

@@ -24,6 +24,13 @@ function ProductsContent() {
     search: searchParam || undefined,
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<ProductFilters>({ category: undefined, sortBy: "newest" });
+  const [isDirty, setIsDirty] = useState(false);
+
+  const updateDraft = (updater: (f: ProductFilters) => ProductFilters) => {
+    setDraftFilters(updater);
+    setIsDirty(true);
+  };
 
   useEffect(() => {
     fetch('/api/products')
@@ -143,7 +150,7 @@ function ProductsContent() {
         {/* Mobile toolbar */}
         <div className="lg:hidden flex gap-3 mb-6">
           <button
-            onClick={() => setIsMobileFilterOpen(true)}
+            onClick={() => { setDraftFilters({ ...filters }); setIsDirty(false); setIsMobileFilterOpen(true); }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-medium text-sm transition-all ${
               activeFilterCount > 0
                 ? "border-brand-red text-brand-red bg-brand-red/10"
@@ -354,7 +361,7 @@ function ProductsContent() {
       {isMobileFilterOpen && (
         <>
           <div className="fixed inset-0 bg-black/70 z-50" onClick={() => setIsMobileFilterOpen(false)} />
-          <div className="fixed bottom-0 left-0 right-0 bg-[#111] z-50 rounded-t-3xl max-h-[88vh] flex flex-col border-t border-white/10">
+          <div className="fixed bottom-16 left-0 right-0 bg-[#111] z-55 rounded-t-3xl max-h-[calc(100vh-88px-4rem)] flex flex-col border-t border-white/10">
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
@@ -375,7 +382,7 @@ function ProductsContent() {
             </div>
 
             {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 p-5 space-y-6">
+            <div className="overflow-y-auto flex-1 min-h-0 p-5 space-y-6">
               {/* Sort By */}
               <div>
                 <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-3">Sort By</p>
@@ -383,9 +390,9 @@ function ProductsContent() {
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => setFilters((f) => ({ ...f, sortBy: option.value as ProductFilters["sortBy"] }))}
+                      onClick={() => updateDraft((f) => ({ ...f, sortBy: option.value as ProductFilters["sortBy"] }))}
                       className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                        filters.sortBy === option.value
+                        draftFilters.sortBy === option.value
                           ? "bg-brand-red text-white shadow-md shadow-brand-red/25"
                           : "bg-white/6 text-white/50 border border-white/10 hover:border-brand-red hover:text-brand-red"
                       }`}
@@ -401,9 +408,9 @@ function ProductsContent() {
                 <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-3">Category</p>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setFilters((f) => ({ ...f, category: undefined }))}
+                    onClick={() => updateDraft((f) => ({ ...f, category: undefined }))}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      !filters.category
+                      !draftFilters.category
                         ? "bg-brand-red text-white shadow-md shadow-brand-red/25"
                         : "bg-white/6 text-white/50 border border-white/10 hover:border-brand-red hover:text-brand-red"
                     }`}
@@ -413,9 +420,9 @@ function ProductsContent() {
                   {categories.map((category) => (
                     <button
                       key={category.id}
-                      onClick={() => setFilters((f) => ({ ...f, category: category.slug }))}
+                      onClick={() => updateDraft((f) => ({ ...f, category: category.slug }))}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        filters.category === category.slug
+                        draftFilters.category === category.slug
                           ? "bg-brand-red text-white shadow-md shadow-brand-red/25"
                           : "bg-white/6 text-white/50 border border-white/10 hover:border-brand-red hover:text-brand-red"
                       }`}
@@ -438,9 +445,9 @@ function ProductsContent() {
                   ] as { value: 'men' | 'women' | 'unisex' | undefined; label: string }[]).map((g) => (
                     <button
                       key={g.label}
-                      onClick={() => setFilters((f) => ({ ...f, gender: g.value }))}
+                      onClick={() => updateDraft((f) => ({ ...f, gender: g.value }))}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        filters.gender === g.value
+                        draftFilters.gender === g.value
                           ? 'bg-brand-red text-white shadow-md shadow-brand-red/25'
                           : 'bg-white/6 text-white/50 border border-white/10 hover:border-brand-red hover:text-brand-red'
                       }`}
@@ -460,8 +467,8 @@ function ProductsContent() {
                     <input
                       type="number"
                       placeholder="Min"
-                      value={filters.minPrice || ""}
-                      onChange={(e) => setFilters((f) => ({ ...f, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                      value={draftFilters.minPrice ?? ''}
+                      onChange={(e) => updateDraft((f) => ({ ...f, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
                       className="w-full pl-7 pr-3 py-3 bg-white/6 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-brand-red transition-colors"
                     />
                   </div>
@@ -471,8 +478,8 @@ function ProductsContent() {
                     <input
                       type="number"
                       placeholder="Max"
-                      value={filters.maxPrice || ""}
-                      onChange={(e) => setFilters((f) => ({ ...f, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                      value={draftFilters.maxPrice ?? ''}
+                      onChange={(e) => updateDraft((f) => ({ ...f, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
                       className="w-full pl-7 pr-3 py-3 bg-white/6 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-brand-red transition-colors"
                     />
                   </div>
@@ -485,17 +492,24 @@ function ProductsContent() {
             {/* Action buttons */}
             <div className="shrink-0 border-t border-white/10 p-4 pb-safe flex gap-3 bg-[#111]">
               <button
-                onClick={() => setFilters({ category: undefined, gender: undefined, sortBy: "newest" })}
+                onClick={() => {
+                  const reset: ProductFilters = { category: undefined, gender: undefined, sortBy: "newest" };
+                  setFilters(reset);
+                  setDraftFilters(reset);
+                  setIsDirty(false);
+                }}
                 className="flex-1 py-3 border-2 border-white/15 rounded-xl text-sm font-semibold text-white/50 hover:border-brand-red hover:text-brand-red transition-colors"
               >
                 Clear All
               </button>
-              <button
-                onClick={() => setIsMobileFilterOpen(false)}
-                className="flex-1 py-3 bg-brand-red text-white rounded-xl text-sm font-semibold hover:bg-brand-red-dark transition-colors shadow-lg shadow-brand-red/20"
-              >
-                Show {isLoading ? "..." : filteredProducts.length} Results
-              </button>
+              {isDirty && (
+                <button
+                  onClick={() => { setFilters({ ...draftFilters }); setIsDirty(false); setIsMobileFilterOpen(false); }}
+                  className="flex-1 py-3 bg-brand-red text-white rounded-xl text-sm font-semibold hover:bg-brand-red-dark transition-colors shadow-lg shadow-brand-red/20"
+                >
+                  Apply Changes
+                </button>
+              )}
             </div>
           </div>
         </>

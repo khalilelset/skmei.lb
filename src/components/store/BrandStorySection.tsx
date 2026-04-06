@@ -25,7 +25,7 @@ const items = [
   },
   {
     title: 'Official Warranty',
-    desc: '1-year manufacturer warranty included with every watch',
+    desc: '1-year manufacturer warranty included with every Skmei watch',
   },
 ];
 

@@ -26,7 +26,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     <>
       <Header />
       <div className="flex flex-col min-h-screen">
-        <main className="flex-1 pt-28 pb-16 lg:pb-0 bg-brand-black">
+        <main className="flex-1 pt-[88px] sm:pt-[104px] pb-16 lg:pb-0 bg-brand-black">
           {children}
         </main>
         <Footer />

@@ -35,7 +35,7 @@ export default function BottomNav() {
             className="lg:hidden fixed inset-0 z-[60] bg-black/50"
             onClick={() => setSearchOpen(false)}
           />
-          <div className="lg:hidden fixed top-0 left-0 right-0 z-61 bg-[#0f0f0f] shadow-lg border-b border-white/10">
+          <div className="lg:hidden fixed top-0 left-0 right-0 z-110 bg-[#0f0f0f] shadow-lg border-b border-white/10">
             <form onSubmit={handleSearch} className="flex items-center gap-2 px-3 py-3">
               <button
                 type="button"
