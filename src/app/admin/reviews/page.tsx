@@ -27,6 +27,7 @@ import { formatDate } from '@/lib/utils';
 interface Review {
   id: string;
   customer_name: string;
+  customer_email: string | null;
   rating: number;
   comment: string | null;
   created_at: string;
@@ -107,6 +108,15 @@ export default function ReviewsPage() {
           </Avatar>
           <Typography variant="body2" fontWeight={500}>{r.customer_name}</Typography>
         </Box>
+      ),
+    },
+    {
+      id: 'customer_email',
+      label: 'Email',
+      format: (_v, r: Review) => (
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>
+          {r.customer_email ?? <span style={{ fontStyle: 'italic', color: '#9ca3af' }}>—</span>}
+        </Typography>
       ),
     },
     {
@@ -206,7 +216,7 @@ export default function ReviewsPage() {
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       {loading ? (
-        <TableSkeleton rows={8} columns={6} />
+        <TableSkeleton rows={8} columns={7} />
       ) : (
         <DataTable
           columns={columns}

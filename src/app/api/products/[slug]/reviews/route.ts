@@ -32,10 +32,13 @@ export async function POST(
 ) {
   const { slug } = await params;
   const body = await req.json();
-  const { customerName, rating, comment } = body;
+  const { customerName, customerEmail, rating, comment } = body;
 
   if (!customerName?.trim() || !rating || rating < 1 || rating > 5) {
     return NextResponse.json({ error: 'Name and a rating (1–5) are required.' }, { status: 400 });
+  }
+  if (!customerEmail?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+    return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
   }
 
   // Resolve product
@@ -53,13 +56,20 @@ export async function POST(
     .insert({
       product_id: product.id,
       customer_name: customerName.trim(),
+      customer_email: customerEmail.trim(),
       rating,
       comment: comment?.trim() || null,
     })
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    // Unique constraint violation — same email already reviewed this product
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'You have already reviewed this product.' }, { status: 409 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   // Recompute rating from all actual reviews (avoids stale seeded values)
   const { data: allReviews } = await supabaseServer

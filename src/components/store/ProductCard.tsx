@@ -69,17 +69,28 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
+          {/* Out of stock overlay */}
+          {product.stock === 0 && (
+            <div className="absolute inset-0 z-20 bg-black/50 flex items-center justify-center">
+              <span className="bg-black/70 text-white/60 text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full border border-white/15">
+                Out of Stock
+              </span>
+            </div>
+          )}
+
           {/* Quick Add — desktop hover */}
-          <div className="hidden lg:block absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-            <button
-              onClick={handleAddToCart}
-              className="w-full bg-brand-red text-white py-2.5 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
-              aria-label={`Add ${product.name} to cart`}
-            >
-              <ShoppingCart className="w-4 h-4" />
-              Add to Cart
-            </button>
-          </div>
+          {product.stock > 0 && (
+            <div className="hidden lg:block absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+              <button
+                onClick={handleAddToCart}
+                className="w-full bg-brand-red text-white py-2.5 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
+                aria-label={`Add ${product.name} to cart`}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Add to Cart
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -109,33 +120,55 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
 
           {/* Price */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-base sm:text-lg font-bold text-white">
-              {formatPrice(product.price)}
-            </span>
-            {product.originalPrice && (
-              <span className="text-xs sm:text-sm text-gray-400 line-through">
-                {formatPrice(product.originalPrice)}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-base sm:text-lg font-bold text-white">
+                {formatPrice(product.price)}
               </span>
+              {product.originalPrice && (
+                <span className="text-xs sm:text-sm text-gray-400 line-through">
+                  {formatPrice(product.originalPrice)}
+                </span>
+              )}
+            </div>
+
+            {/* Color dots */}
+            {product.colors && product.colors.length > 0 && (
+              <div className="flex items-center gap-1 shrink-0">
+                {product.colors.slice(0, 4).map((c, i) => (
+                  <span
+                    key={i}
+                    title={c.name}
+                    className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                ))}
+                {product.colors.length > 4 && (
+                  <span className="text-[10px] text-white/35 font-medium">+{product.colors.length - 4}</span>
+                )}
+              </div>
             )}
           </div>
 
           {/* Add to Cart — mobile */}
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            className="lg:hidden w-full mt-3 bg-brand-red text-white py-2 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={`Add ${product.name} to cart`}
-          >
-            <ShoppingCart className="w-4 h-4" />
-            Add to Cart
-          </button>
-
-          {product.stock < 10 && product.stock > 0 && (
-            <p className="text-[10px] sm:text-xs text-brand-red font-medium mt-2">Only {product.stock} left!</p>
-          )}
-          {product.stock === 0 && (
-            <p className="text-[10px] sm:text-xs text-gray-400 font-medium mt-2">Out of Stock</p>
+          {product.stock > 0 ? (
+            <>
+              <button
+                onClick={handleAddToCart}
+                className="lg:hidden w-full mt-3 bg-brand-red text-white py-2 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm text-sm"
+                aria-label={`Add ${product.name} to cart`}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Add to Cart
+              </button>
+              {product.stock < 10 && (
+                <p className="text-[10px] sm:text-xs text-orange-400 font-medium mt-2">Only {product.stock} left!</p>
+              )}
+            </>
+          ) : (
+            <div className="lg:hidden w-full mt-3 bg-white/6 border border-white/10 text-white/40 py-2 rounded-lg text-sm font-medium flex items-center justify-center cursor-not-allowed">
+              Out of Stock
+            </div>
           )}
         </div>
       </div>

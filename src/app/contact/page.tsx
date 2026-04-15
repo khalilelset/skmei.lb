@@ -14,11 +14,11 @@ const WA_SVG = (
 );
 
 const FAQS = [
-  { q: "How long does delivery take?", a: "We deliver across all of Lebanon, typically within 1–3 business days depending on your location." },
-  { q: "Do you offer a warranty?", a: "Yes — every SKMEI watch we sell comes with a full 1-year manufacturer warranty, covering defects in materials and workmanship." },
-  { q: "Are all your watches authentic?", a: "Absolutely. We are Lebanon's official authorized SKMEI dealer, sourcing directly from the manufacturer." },
-  { q: "What payment methods do you accept?", a: "We accept Cash on Delivery (COD) across Lebanon. No online payment is required." },
-  { q: "Can I exchange or return a watch?", a: "Yes — contact us within 7 days of receiving your order and we will arrange an exchange or return." },
+  { q: "How long does delivery take?", a: "We deliver across all of Lebanon, typically within 2–4 business days depending on your location." },
+  { q: "Do you offer a warranty?", a: "Yes — every SKMEI watch comes with a full 1-year manufacturer warranty covering defects in materials and workmanship. Other brands we carry include a 1-month warranty." },
+  { q: "Are all your watches authentic?", a: "All SKMEI watches are 100% authentic — we are Lebanon's official authorized SKMEI dealer, sourcing directly from the manufacturer." },
+  { q: "What payment methods do you accept?", a: "We accept Cash on Delivery (COD) and Whish payment across Lebanon." },
+  { q: "Can I exchange or return a watch?", a: "Yes — exchanges are available. We take full responsibility for any defect or issue with your order. Contact us and we will make it right." },
 ];
 
 function FAQItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
@@ -53,14 +53,14 @@ function FAQItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', subject: '', message: '',
+    name: '', email: '', subject: '', message: '',
   });
   const [submitted, setSubmitted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const text = `New Contact Form Message:\n\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nSubject: ${formData.subject}\n\nMessage:\n${formData.message}`;
+    const text = `New Contact Form Message:\n\nName: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\n\nMessage:\n${formData.message}`;
     window.open(`https://wa.me/96179170387?text=${encodeURIComponent(text)}`, '_blank');
     setSubmitted(true);
   };
@@ -303,7 +303,7 @@ export default function ContactPage() {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.5, ease }}
-                        onClick={() => { setSubmitted(false); setFormData({ name: '', email: '', phone: '', subject: '', message: '' }); }}
+                        onClick={() => { setSubmitted(false); setFormData({ name: '', email: '', subject: '', message: '' }); }}
                         className="inline-flex items-center gap-2 px-7 py-3.5 bg-brand-black text-white rounded-xl font-bold hover:bg-brand-red transition-colors active:scale-95 text-sm"
                       >
                         <MessageCircle className="w-4 h-4" />
@@ -343,33 +343,23 @@ export default function ContactPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div>
-                          <label htmlFor="phone" className={labelClass}>Phone Number</label>
-                          <input
-                            type="tel" id="phone" name="phone"
-                            value={formData.phone} onChange={handleChange}
-                            className={inputClass} placeholder="+961 XX XXX XXX"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="subject" className={labelClass}>
-                            Subject <span className="text-brand-red">*</span>
-                          </label>
-                          <select
-                            id="subject" name="subject"
-                            value={formData.subject} onChange={handleChange} required
-                            className={inputClass}
-                          >
-                            <option value="">Select a topic</option>
-                            <option value="Order Inquiry">Order Inquiry</option>
-                            <option value="Product Question">Product Question</option>
-                            <option value="Shipping & Delivery">Shipping &amp; Delivery</option>
-                            <option value="Returns & Exchanges">Returns &amp; Exchanges</option>
-                            <option value="Warranty">Warranty</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
+                      <div>
+                        <label htmlFor="subject" className={labelClass}>
+                          Subject <span className="text-brand-red">*</span>
+                        </label>
+                        <select
+                          id="subject" name="subject"
+                          value={formData.subject} onChange={handleChange} required
+                          className={inputClass}
+                        >
+                          <option value="">Select a topic</option>
+                          <option value="Order Inquiry">Order Inquiry</option>
+                          <option value="Product Question">Product Question</option>
+                          <option value="Shipping & Delivery">Shipping &amp; Delivery</option>
+                          <option value="Returns & Exchanges">Returns &amp; Exchanges</option>
+                          <option value="Warranty">Warranty</option>
+                          <option value="Other">Other</option>
+                        </select>
                       </div>
 
                       <div>

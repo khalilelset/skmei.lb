@@ -155,4 +155,5 @@ export interface ProductFilters {
   gender?: 'men' | 'women' | 'unisex';
   sortBy?: "price-asc" | "price-desc" | "newest" | "popular";
   search?: string;
+  brands?: string[];
 }

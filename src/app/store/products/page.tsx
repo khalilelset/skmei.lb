@@ -17,6 +17,7 @@ function ProductsContent() {
   const searchParam = searchParams.get("search");
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [availableBrands, setAvailableBrands] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<ProductFilters>({
     category: categoryParam || undefined,
@@ -24,8 +25,9 @@ function ProductsContent() {
     search: searchParam || undefined,
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [draftFilters, setDraftFilters] = useState<ProductFilters>({ category: undefined, sortBy: "newest" });
+  const [draftFilters, setDraftFilters] = useState<ProductFilters>({ category: undefined, sortBy: "newest", brands: [] });
   const [isDirty, setIsDirty] = useState(false);
+
 
   const updateDraft = (updater: (f: ProductFilters) => ProductFilters) => {
     setDraftFilters(updater);
@@ -33,11 +35,16 @@ function ProductsContent() {
   };
 
   useEffect(() => {
-    fetch('/api/products')
-      .then((r) => r.json())
-      .then((data) => {
-        const list = Array.isArray(data) && data.length > 0 ? data : staticProducts;
+    Promise.all([
+      fetch('/api/products').then((r) => r.json()),
+      fetch('/api/brands').then((r) => r.json()),
+    ])
+      .then(([productsData, brandsData]) => {
+        const list = Array.isArray(productsData) && productsData.length > 0 ? productsData : staticProducts;
         setAllProducts(list);
+        if (Array.isArray(brandsData) && brandsData.length > 0) {
+          setAvailableBrands(brandsData.map((b: { name: string }) => b.name));
+        }
         setIsLoading(false);
       })
       .catch(() => { setAllProducts(staticProducts); setIsLoading(false); });
@@ -64,6 +71,7 @@ function ProductsContent() {
     if (filterParam === "new") result = result.filter((p) => p.isNew);
     if (filterParam === "sale") result = result.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price));
     if (filterParam === "bestselling" || featuredParam === "true") result = result.filter((p) => p.isBestseller);
+    if (filters.brands && filters.brands.length > 0) result = result.filter((p) => filters.brands!.includes(p.brand));
     if (filters.gender) result = result.filter((p) => p.gender === filters.gender);
     if (filters.minPrice !== undefined) result = result.filter((p) => p.price >= filters.minPrice!);
     if (filters.maxPrice !== undefined) result = result.filter((p) => p.price <= filters.maxPrice!);
@@ -92,7 +100,7 @@ function ProductsContent() {
     return "All Watches";
   };
 
-  const activeFilterCount = [filters.category, filters.gender, filters.minPrice, filters.maxPrice].filter(Boolean).length;
+  const activeFilterCount = [filters.category, filters.gender, filters.minPrice, filters.maxPrice].filter(Boolean).length + (filters.brands?.length ?? 0);
 
   const sortOptions = [
     { value: "newest", label: "Newest First" },
@@ -190,7 +198,7 @@ function ProductsContent() {
                   Filters & Sort
                 </h3>
                 <button
-                  onClick={() => setFilters({ category: undefined, gender: undefined, sortBy: "newest" })}
+                  onClick={() => setFilters({ category: undefined, gender: undefined, brands: [], sortBy: "newest" })}
                   className="text-xs text-brand-red font-semibold hover:underline transition-colors"
                 >
                   Clear all
@@ -248,6 +256,35 @@ function ProductsContent() {
                     ))}
                   </div>
                 </div>
+
+                <div className="border-t border-white/8" />
+
+                {/* Brand */}
+                {availableBrands.length > 1 && (
+                  <div>
+                    <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-2">Brand</p>
+                    <div className="space-y-0.5">
+                      {availableBrands.map((brand) => {
+                        const selected = filters.brands?.includes(brand) ?? false;
+                        return (
+                          <button
+                            key={brand}
+                            onClick={() => setFilters((f) => {
+                              const curr = f.brands ?? [];
+                              return { ...f, brands: selected ? curr.filter((b) => b !== brand) : [...curr, brand] };
+                            })}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
+                              selected ? 'bg-brand-red/15 text-brand-red font-semibold' : 'text-white/50 hover:bg-white/6 hover:text-white'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selected ? 'bg-brand-red' : 'bg-transparent'}`} />
+                            {brand}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="border-t border-white/8" />
 
@@ -345,7 +382,7 @@ function ProductsContent() {
                 <h3 className="text-xl font-black text-white mb-2">No products found</h3>
                 <p className="text-white/40 mb-6 text-sm">Try adjusting your filters or search terms</p>
                 <button
-                  onClick={() => setFilters({ category: undefined, gender: undefined, sortBy: "newest" })}
+                  onClick={() => setFilters({ category: undefined, gender: undefined, brands: [], sortBy: "newest" })}
                   className="group relative inline-flex items-center gap-2 overflow-hidden bg-brand-red text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-brand-red-dark transition-colors"
                 >
                   <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
@@ -433,6 +470,34 @@ function ProductsContent() {
                 </div>
               </div>
 
+              {/* Brand */}
+              {availableBrands.length > 1 && (
+                <div>
+                  <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-3">Brand</p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableBrands.map((brand) => {
+                      const selected = draftFilters.brands?.includes(brand) ?? false;
+                      return (
+                        <button
+                          key={brand}
+                          onClick={() => updateDraft((f) => {
+                            const curr = f.brands ?? [];
+                            return { ...f, brands: selected ? curr.filter((b) => b !== brand) : [...curr, brand] };
+                          })}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            selected
+                              ? 'bg-brand-red text-white shadow-md shadow-brand-red/25'
+                              : 'bg-white/6 text-white/50 border border-white/10 hover:border-brand-red hover:text-brand-red'
+                          }`}
+                        >
+                          {brand}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Gender */}
               <div>
                 <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-3">Gender</p>
@@ -493,7 +558,7 @@ function ProductsContent() {
             <div className="shrink-0 border-t border-white/10 p-4 pb-safe flex gap-3 bg-[#111]">
               <button
                 onClick={() => {
-                  const reset: ProductFilters = { category: undefined, gender: undefined, sortBy: "newest" };
+                  const reset: ProductFilters = { category: undefined, gender: undefined, brands: [], sortBy: "newest" };
                   setFilters(reset);
                   setDraftFilters(reset);
                   setIsDirty(false);

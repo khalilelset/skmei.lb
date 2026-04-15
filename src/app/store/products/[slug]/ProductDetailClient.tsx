@@ -324,8 +324,15 @@ export default function ProductDetailClient({ slug }: Props) {
 
       {/* ── Main Dark Section: Breadcrumb + Product ── */}
       <div className="relative overflow-hidden">
-        {/* Radial glow behind image */}
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-brand-red/5 blur-3xl pointer-events-none" />
+        {/* Radial glow — gold for SKMEI, red for others */}
+        {product.brand?.toUpperCase() === 'SKMEI' ? (
+          <>
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-brand-red/5 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-brand-red/3 blur-3xl pointer-events-none" />
+          </>
+        ) : (
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-brand-red/5 blur-3xl pointer-events-none" />
+        )}
         {/* Diagonal stripe texture */}
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
           style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '18px 18px' }} />
@@ -355,7 +362,11 @@ export default function ProductDetailClient({ slug }: Props) {
 
               {/* Images Carousel */}
               <div className="flex flex-col gap-3">
-                <div className="relative rounded-2xl overflow-hidden bg-[#0d0d0d] border border-white/8 shadow-2xl shadow-black/60">
+                <div className={`relative rounded-2xl overflow-hidden bg-[#0d0d0d] shadow-2xl ${
+                  product.brand?.toUpperCase() === 'SKMEI'
+                    ? 'border border-brand-red/20 shadow-brand-red/10'
+                    : 'border border-white/8 shadow-black/60'
+                }`}>
                   <div
                     ref={carouselRef}
                     onScroll={handleCarouselScroll}
@@ -389,6 +400,7 @@ export default function ProductDetailClient({ slug }: Props) {
                       <span className="bg-brand-red text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">-{discount}% OFF</span>
                     )}
                   </div>
+
 
                   {/* Dot Indicators */}
                   {product.images.length > 1 && (
@@ -428,15 +440,24 @@ export default function ProductDetailClient({ slug }: Props) {
 
               {/* Product Info */}
               <div>
-                {/* Category */}
-                <Link
-                  href={`/store/products?category=${product.category}`}
-                  className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red hover:text-brand-red-dark transition-colors"
-                >
-                  {product.category}
-                </Link>
+                {/* Category + Brand */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Link
+                    href={`/store/products?category=${product.category}`}
+                    className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red hover:text-brand-red-dark transition-colors"
+                  >
+                    {product.category}
+                  </Link>
+                  {product.brand && (
+                    <Link
+                      href={`/store/products?brands=${encodeURIComponent(product.brand)}`}
+                      className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/35 hover:text-white/60 transition-colors"
+                    >
+                      {product.brand}
+                    </Link>
+                  )}
+                </div>
 
-                {/* Red rule */}
                 <div className="h-px w-8 bg-brand-red mt-2 mb-3" />
 
                 {/* Name */}
@@ -460,35 +481,29 @@ export default function ProductDetailClient({ slug }: Props) {
                   )}
                 </div>
 
-                {/* Color Selector */}
+                {/* Color Combination Display */}
                 {product.colors && product.colors.length > 0 && (
                   <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Color</span>
-                      {selectedColor !== null && (
-                        <span className="text-sm font-semibold text-white">
-                          — {product.colors[selectedColor].name}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2.5">
-                      {product.colors.map((color, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedColor(selectedColor === i ? null : i)}
-                          title={color.name}
-                          className="relative w-9 h-9 rounded-full transition-all duration-200 active:scale-90 focus:outline-none"
-                          style={{
-                            backgroundColor: color.hex,
-                            boxShadow: selectedColor === i
-                              ? `0 0 0 3px #0d0d0d, 0 0 0 5px ${color.hex}, 0 4px 12px ${color.hex}60`
-                              : '0 2px 6px rgba(0,0,0,0.4)',
-                            transform: selectedColor === i ? 'scale(1.15)' : 'scale(1)',
-                          }}
-                          aria-pressed={selectedColor === i}
-                          aria-label={color.name}
-                        />
-                      ))}
+                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50 block mb-3">Color</span>
+                    <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-full pl-1 pr-4 py-1">
+                      {/* Split swatch */}
+                      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-md flex">
+                        {product.colors.length === 1 ? (
+                          <div className="w-full h-full" style={{ backgroundColor: product.colors[0].hex }} />
+                        ) : (
+                          product.colors.slice(0, 3).map((c, i, arr) => (
+                            <div
+                              key={i}
+                              className="h-full"
+                              style={{ backgroundColor: c.hex, width: `${100 / arr.length}%` }}
+                            />
+                          ))
+                        )}
+                      </div>
+                      {/* Combined label */}
+                      <span className="text-sm font-semibold text-white/80">
+                        {product.colors.map((c) => c.name).join(' / ')}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -528,12 +543,30 @@ export default function ProductDetailClient({ slug }: Props) {
                 </div>
 
                 {/* Stock Status */}
-                <div className="flex items-center gap-2 mb-5">
-                  <span className={`${stockStatus.color} font-medium text-sm`}>{stockStatus.label}</span>
-                  {product.stock > 0 && product.stock < 50 && (
-                    <span className="text-white/35 text-sm">— Only {product.stock} left</span>
-                  )}
-                </div>
+                {(() => {
+                  const maxStock = product.brand?.toUpperCase() === 'SKMEI' ? 10 : 20;
+                  const pct = product.stock === 0 ? 0 : Math.round((Math.min(product.stock, maxStock) / maxStock) * 100);
+                  const isOut = product.stock === 0;
+                  const isLow = !isOut && product.stock < 10;
+                  const fillColor = isOut ? 'bg-white/15' : isLow ? 'bg-orange-500' : 'bg-green-500';
+                  const labelColor = isOut ? 'text-white/35' : isLow ? 'text-orange-400' : 'text-white/70';
+                  return (
+                    <div className="relative inline-flex items-center justify-center h-10 rounded-full border border-white/10 bg-white/5 overflow-hidden mb-5 px-8 min-w-[160px]">
+                      {/* fill bar — slides from left */}
+                      <div
+                        className={`absolute left-0 top-0 h-full transition-all duration-700 ${fillColor}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                      {/* label always centered on top */}
+                      <span
+                        className={`relative z-10 text-sm font-bold tracking-widest whitespace-nowrap ${isOut ? 'text-white/35' : 'text-white'}`}
+                        style={{ textShadow: isOut ? 'none' : '0 1px 4px rgba(0,0,0,0.4)' }}
+                      >
+                        {isOut ? 'OUT OF STOCK' : 'IN STOCK'}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Description */}
                 <p className="text-white/55 mb-6 leading-relaxed text-sm sm:text-base">{product.description}</p>
@@ -595,33 +628,39 @@ export default function ProductDetailClient({ slug }: Props) {
                     {
                       icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
                       title: isSKMEI ? "100% Authentic SKMEI" : `${product.brand} Product`,
-                      desc: isSKMEI ? "Official authorized dealer · 1-year manufacturer warranty" : "2-week seller warranty included",
+                      desc: isSKMEI ? "Authorized dealer · 1-year manufacturer warranty" : "1-month seller warranty included",
+                      highlight: isSKMEI,
                     },
                     {
                       icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
                       title: "Secure Checkout",
-                      desc: "Cash on delivery — pay when you receive",
+                      desc: "Cash on delivery · Whish payment accepted",
+                      highlight: false,
                     },
                     {
                       icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
                       title: "Every Order Inspected",
                       desc: "Quality checked and verified before it reaches you",
+                      highlight: false,
                     },
                     {
                       icon: "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
                       title: "Check Before You Accept",
                       desc: "Open & inspect your order in front of delivery — refuse if not satisfied",
+                      highlight: false,
                     },
                   ];
                   return (
                     <div className="rounded-2xl border border-white/8 overflow-hidden bg-white/3">
                       {badges.map((badge, i) => (
-                        <div key={i} className={`flex items-center gap-3 px-4 py-3.5 border-l-2 border-brand-red/40 ml-4 ${i < badges.length - 1 ? 'border-b border-white/6' : ''}`}>
-                          <svg className="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div key={i} className={`flex items-center gap-3 px-4 py-3.5 ml-4 border-l-2 ${
+                          badge.highlight ? 'border-amber-400/60' : 'border-brand-red/40'
+                        } ${i < badges.length - 1 ? 'border-b border-white/6' : ''}`}>
+                          <svg className={`w-5 h-5 shrink-0 ${badge.highlight ? 'text-amber-400' : 'text-brand-red'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={badge.icon} />
                           </svg>
                           <div>
-                            <p className="text-sm font-bold text-white">{badge.title}</p>
+                            <p className={`text-sm font-bold ${badge.highlight ? 'text-amber-300' : 'text-white'}`}>{badge.title}</p>
                             <p className="text-xs text-white/45">{badge.desc}</p>
                           </div>
                         </div>
@@ -737,7 +776,7 @@ export default function ProductDetailClient({ slug }: Props) {
 
                 {/* Watermark line */}
                 <p className="text-white/15 text-xs tracking-[0.4em] uppercase mt-10 font-semibold">
-                  Official SKMEI · Lebanon
+                  SKMEI · Lebanon
                 </p>
               </motion.div>
 
@@ -769,7 +808,7 @@ export default function ProductDetailClient({ slug }: Props) {
                   <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 pb-8 bg-linear-to-b from-black/80 to-transparent flex items-center justify-between pointer-events-none">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse" />
-                      <span className="text-[9px] font-bold text-white/40 tracking-[0.3em] uppercase">Official Video</span>
+                      <span className="text-[9px] font-bold text-white/40 tracking-[0.3em] uppercase">Product Video</span>
                     </div>
                     <button
                       className="pointer-events-auto w-8 h-8 rounded-full bg-black/40 border border-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition"

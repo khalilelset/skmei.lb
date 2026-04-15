@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Star, Send, User, CheckCircle, X, Pencil } from 'lucide-react';
 
 interface Review {
   id: string;
   customer_name: string;
+  customer_email?: string | null;
   rating: number;
   comment: string | null;
   created_at: string;
@@ -72,11 +73,14 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
   const [showAll, setShowAll] = useState(false);
 
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [countdown, setCountdown] = useState(4);
   const [error, setError] = useState('');
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     fetch(`/api/products/${slug}/reviews`)
@@ -112,6 +116,7 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
     e.preventDefault();
     setError('');
     if (!name.trim()) return setError('Please enter your name.');
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('Please enter a valid email address.');
     if (rating === 0) return setError('Please select a star rating.');
 
     setSubmitting(true);
@@ -119,7 +124,7 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
       const res = await fetch(`/api/products/${slug}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName: name, rating, comment }),
+        body: JSON.stringify({ customerName: name, customerEmail: email, rating, comment }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return; }
@@ -129,13 +134,36 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
       setAvgRating(Math.round(((avgRating * totalCount + rating) / newCount) * 10) / 10);
       setTotalCount(newCount);
       setSubmitted(true);
-      setName(''); setRating(0); setComment('');
+      setName(''); setEmail(''); setRating(0); setComment('');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const closeModal = () => { setShowModal(false); setSubmitted(false); setError(''); };
+  const closeModal = () => {
+    setShowModal(false);
+    setSubmitted(false);
+    setCountdown(4);
+    setError('');
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  };
+
+  useEffect(() => {
+    if (!submitted) return;
+    setCountdown(4);
+    countdownRef.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(countdownRef.current!);
+          closeModal();
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted]);
 
   return (
     <section className="py-14 bg-brand-black relative overflow-hidden">
@@ -243,9 +271,10 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
 
       {/* Write a Review Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-md" onClick={closeModal}>
+        <div className="fixed inset-0 z-200 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-md" onClick={closeModal}>
           <div
-            className="bg-[#111] border border-white/10 rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            className="bg-[#111] border border-white/10 rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[85vh] overflow-y-auto"
+            style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Handle bar (mobile) */}
@@ -263,20 +292,34 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
             </div>
 
             {submitted ? (
-              <div className="flex flex-col items-center gap-3 py-8 text-center">
-                <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-green-400" />
+              <div className="flex flex-col items-center gap-4 py-10 text-center">
+                {/* Animated check */}
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-green-500/10 border border-green-500/20 animate-ping opacity-30" />
+                  <div className="w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center">
+                    <CheckCircle className="w-10 h-10 text-green-400" strokeWidth={1.5} />
+                  </div>
                 </div>
-                <p className="font-black text-white text-xl mt-2">Thank you!</p>
-                <p className="text-sm text-white/40">Your review has been submitted.</p>
-                <div className="flex gap-4 mt-3">
-                  <button onClick={() => setSubmitted(false)} className="text-sm text-brand-red font-semibold hover:underline">
-                    Write another
-                  </button>
-                  <button onClick={closeModal} className="text-sm text-white/40 hover:underline">
-                    Close
-                  </button>
+
+                <div className="mt-1">
+                  <p className="font-black text-white text-2xl tracking-tight">Thank you!</p>
+                  <p className="text-sm text-white/45 mt-1.5">Your review has been published.</p>
                 </div>
+
+                {/* Countdown progress bar */}
+                <div className="w-full mt-3">
+                  <div className="h-1 w-full bg-white/8 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 rounded-full transition-none"
+                      style={{
+                        width: `${(countdown / 4) * 100}%`,
+                        transition: 'width 1s linear',
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-white/25 mt-2">Closing in {countdown}s…</p>
+                </div>
+
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -298,6 +341,20 @@ export default function ReviewSection({ slug, initialRating, initialCount }: Pro
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Ahmad"
+                    className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-brand-red focus:ring-2 focus:ring-brand-red/15 transition"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2 block">
+                    Email <span className="text-brand-red">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. ahmad@example.com"
                     className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-brand-red focus:ring-2 focus:ring-brand-red/15 transition"
                   />
                 </div>
