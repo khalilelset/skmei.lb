@@ -3,9 +3,11 @@
 import { useEffect, useRef } from 'react';
 
 export default function LiveWatchFace({ className = '' }: { className?: string }) {
-  const hrRef  = useRef<SVGGElement>(null);
-  const minRef = useRef<SVGGElement>(null);
-  const secRef = useRef<SVGGElement>(null);
+  const hrRef   = useRef<SVGGElement>(null);
+  const minRef  = useRef<SVGGElement>(null);
+  const secRef  = useRef<SVGGElement>(null);
+  const dayRef  = useRef<SVGTextElement>(null);
+  const dateRef = useRef<SVGTextElement>(null);
 
   useEffect(() => {
     let raf: number;
@@ -16,10 +18,13 @@ export default function LiveWatchFace({ className = '' }: { className?: string }
       second: 'numeric',
       hour12: false,
     });
+
+    let lastDate = '';
+
     const tick = () => {
-      const now = new Date();
+      const now   = new Date();
       const parts = beirutFmt.formatToParts(now);
-      const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value ?? '0', 10);
+      const get   = (type: string) => parseInt(parts.find(p => p.type === type)?.value ?? '0', 10);
       const h  = get('hour') % 12;
       const m  = get('minute');
       const s  = get('second');
@@ -29,6 +34,15 @@ export default function LiveWatchFace({ className = '' }: { className?: string }
       minRef.current?.setAttribute('transform', `rotate(${(m + s / 60) * 6},   200, 200)`);
       secRef.current?.setAttribute('transform', `rotate(${(s + ms / 1000) * 6}, 200, 200)`);
 
+      const beirut  = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Beirut' }));
+      const newDate = String(beirut.getDate()).padStart(2, '0');
+      if (newDate !== lastDate) {
+        lastDate = newDate;
+        const newDay = beirut.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+        if (dayRef.current)  dayRef.current.textContent  = newDay;
+        if (dateRef.current) dateRef.current.textContent = newDate;
+      }
+
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -36,15 +50,19 @@ export default function LiveWatchFace({ className = '' }: { className?: string }
   }, []);
 
   const D2R = Math.PI / 180;
-  const r = (n: number) => Math.round(n * 1000) / 1000;
+  const r   = (n: number) => Math.round(n * 1000) / 1000;
+
+  const beirutNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Beirut' }));
+  const initDay   = beirutNow.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const initDate  = String(beirutNow.getDate()).padStart(2, '0');
 
   return (
     <svg viewBox="0 0 400 400" className={className} xmlns="http://www.w3.org/2000/svg">
 
       {/* ── 12 HOUR MARKERS (bright red) ── */}
       {Array.from({ length: 12 }, (_, i) => {
-        const rad  = (i * 30 - 90) * D2R;
-        const isQ  = i % 3 === 0;
+        const rad    = (i * 30 - 90) * D2R;
+        const isQ    = i % 3 === 0;
         const outerR = 188;
         const innerR = isQ ? 166 : 172;
         return (
@@ -57,6 +75,48 @@ export default function LiveWatchFace({ className = '' }: { className?: string }
           />
         );
       })}
+
+      {/* ══════════════════════════════════════════
+          DAY · DATE WINDOW — SKMEI 9288 style
+          Single white rectangle, 3 o'clock
+          Left: DAY (WED)  |  Right: DATE (24)
+          ══════════════════════════════════════════ */}
+
+      {/* White window background */}
+      <rect x="255" y="190" width="56" height="21" rx="2"
+        fill="#f0ede8" opacity="0.7" />
+
+      {/* Vertical divider between day and date */}
+      <line x1="283" y1="192" x2="283" y2="209"
+        stroke="rgba(0,0,0,0.15)" strokeWidth="0.6" />
+
+      {/* Outer hairline border */}
+      <rect x="255" y="190" width="56" height="21" rx="2"
+        fill="none" stroke="rgba(0,0,0,0.20)" strokeWidth="0.5" />
+
+      {/* DAY — left cell */}
+      <text
+        ref={dayRef}
+        x="269" y="204.5"
+        textAnchor="middle"
+        fill="#1a1a1a"
+        fontSize="9.5"
+        fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        fontWeight="500"
+        letterSpacing="0.3"
+      >{initDay}</text>
+
+      {/* DATE — right cell */}
+      <text
+        ref={dateRef}
+        x="297" y="204.5"
+        textAnchor="middle"
+        fill="#1a1a1a"
+        fontSize="10.5"
+        fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        fontWeight="600"
+        letterSpacing="0.5"
+      >{initDate}</text>
 
       {/* ── HOUR HAND ── */}
       <g ref={hrRef} transform="rotate(0, 200, 200)">
@@ -74,15 +134,11 @@ export default function LiveWatchFace({ className = '' }: { className?: string }
 
       {/* ── SECOND HAND — luxury needle ── */}
       <g ref={secRef} transform="rotate(0, 200, 200)" style={{ filter: 'drop-shadow(0 0 5px #DC2626)' }}>
-        {/* Ultra-thin shaft: tip → center */}
         <line x1="200" y1="50" x2="200" y2="200"
           stroke="#DC2626" strokeWidth="0.75" strokeLinecap="round" />
-        {/* Lozenge accent — classic luxury pip at ~1/3 from tip */}
         <path d="M 200 96 L 202.8 112 L 200 128 L 197.2 112 Z" fill="#DC2626" />
-        {/* Counterweight tail — slightly thicker */}
         <line x1="200" y1="200" x2="200" y2="238"
           stroke="#DC2626" strokeWidth="2" strokeLinecap="round" />
-        {/* Tail pip */}
         <circle cx="200" cy="235" r="3" fill="#DC2626" />
       </g>
 
