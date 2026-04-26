@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
     const shipping       = safeNumber(body.shipping);
     const discount       = safeNumber(body.discount);
     const total          = safeNumber(body.total);
+    const source         = body.source === 'whatsapp' ? 'whatsapp' : 'website';
     const status         = 'pending'; // always start as pending — never trust client
 
     if (!customer_name || !customer_phone || !Array.isArray(items) || items.length === 0) {
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
         address,
         notes:      notes || null,
         status,
+        source,
       })
       .select('id, order_number')
       .single();
@@ -137,7 +139,25 @@ export async function POST(req: NextRequest) {
 
     await supabaseServer.from('order_items').insert(orderItems);
 
-    // ── 4. Send emails (non-blocking — failures don't affect the response) ──
+    // ── 4. Decrement stock immediately for WhatsApp orders ──────────────────
+    if (source === 'whatsapp') {
+      for (const item of items as Record<string, unknown>[]) {
+        const pid = (item.id as string) || null;
+        const qty = Number(item.quantity ?? 1);
+        if (!pid) continue;
+        const { data: product } = await supabaseServer
+          .from('products').select('stock').eq('id', pid).single();
+        if (product) {
+          await supabaseServer
+            .from('products')
+            .update({ stock: Math.max(0, (product.stock ?? 0) - qty) })
+            .eq('id', pid);
+        }
+      }
+    }
+
+    // ── 5. Send emails — only for website orders ─────────────────────────
+    if (source === 'website') {
     sendOrderEmails({
       orderId:       order.id,
       orderNumber:   order.order_number,
@@ -158,6 +178,7 @@ export async function POST(req: NextRequest) {
       address:   address ?? null,
       notes:     notes || null,
     }).catch((err) => console.error('[email] sendOrderEmails threw:', err));
+    } // end website-only email
 
     return NextResponse.json(
       { success: true, orderId: order.id, orderNumber: order.order_number },

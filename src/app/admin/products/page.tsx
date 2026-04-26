@@ -64,8 +64,14 @@ const emptyForm = {
   specifications: { ...emptySpecs },
 };
 
+interface BrandOption {
+  id: string;
+  name: string;
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<BrandOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -94,6 +100,13 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
+
+  useEffect(() => {
+    fetch('/api/admin/brands')
+      .then((r) => r.json())
+      .then((data) => setBrands(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -437,12 +450,17 @@ export default function ProductsPage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
-                fullWidth size="small" label="Brand"
+                fullWidth size="small" select label="Brand"
                 value={form.brand}
                 onChange={(e) => setForm(f => ({ ...f, brand: e.target.value }))}
-                helperText={form.brand.toUpperCase() !== 'SKMEI' ? '2-week warranty · No stainless/water guarantee' : '1-year warranty · Official SKMEI dealer'}
-                FormHelperTextProps={{ sx: { color: form.brand.toUpperCase() !== 'SKMEI' ? '#FB923C' : '#22C55E', fontSize: 10 } }}
-              />
+              >
+                {brands.map((b) => (
+                  <MenuItem key={b.id} value={b.name}>{b.name}</MenuItem>
+                ))}
+                {brands.length === 0 && (
+                  <MenuItem disabled value="">No brands — add one in Brands page</MenuItem>
+                )}
+              </TextField>
             </Grid>
 
             {/* Image Upload Section */}

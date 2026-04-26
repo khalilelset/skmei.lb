@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { sendStatusChangeEmail } from '@/lib/email';
 
-const EMAIL_STATUSES = ['confirmed', 'shipped', 'cancelled'] as const;
-type EmailStatus = typeof EMAIL_STATUSES[number];
+const WEBSITE_EMAIL_STATUSES = ['confirmed', 'shipped', 'cancelled'] as const;
+const WHATSAPP_EMAIL_STATUSES = ['cancelled'] as const;
+type EmailStatus = 'confirmed' | 'shipped' | 'cancelled';
 
 export async function PATCH(
   req: NextRequest,
@@ -17,10 +18,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
   }
 
-  // Fetch current order status + items before updating (needed for stock logic)
+  // Fetch current order status + items + source before updating
   const { data: currentOrder, error: fetchErr } = await supabaseServer
     .from('orders')
-    .select('status, items')
+    .select('status, items, source')
     .eq('id', id)
     .single();
 
@@ -37,11 +38,16 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Stock management: shipped → decrement stock; cancelled (from non-cancelled) → restore stock
+  // Stock management (source-aware)
   const prevStatus = currentOrder.status as string;
+  const orderSource = (currentOrder.source as string) ?? 'website';
   const items = (currentOrder.items ?? []) as { productId?: string; product_id?: string; quantity?: number }[];
-  const shouldDecrease = status === 'shipped' && prevStatus !== 'shipped';
-  const shouldRestore = status === 'cancelled' && prevStatus !== 'cancelled' && prevStatus === 'shipped';
+
+  // website: decrease on shipped; whatsapp: already decreased at creation, never decrease again
+  const shouldDecrease = orderSource === 'website' && status === 'shipped' && prevStatus !== 'shipped';
+  // website: restore only if cancelling a shipped order; whatsapp: restore on any cancellation
+  const shouldRestore = status === 'cancelled' && prevStatus !== 'cancelled' &&
+    (orderSource === 'whatsapp' || prevStatus === 'shipped');
   if (shouldDecrease || shouldRestore) {
     for (const item of items) {
       const pid = item.productId ?? item.product_id;
@@ -61,8 +67,9 @@ export async function PATCH(
     }
   }
 
-  // Send status email for confirmed / shipped / cancelled
-  if (EMAIL_STATUSES.includes(status as EmailStatus)) {
+  // Send status email — website: confirmed/shipped/cancelled; whatsapp: cancelled only
+  const emailStatuses = orderSource === 'whatsapp' ? WHATSAPP_EMAIL_STATUSES : WEBSITE_EMAIL_STATUSES;
+  if (emailStatuses.includes(status as EmailStatus)) {
     const { data: order, error: orderFetchError } = await supabaseServer
       .from('orders')
       .select('id, order_number, customer_name, customer_email, customer_phone, items, total, address')

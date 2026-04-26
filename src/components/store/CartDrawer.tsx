@@ -80,7 +80,7 @@ export default function CartDrawer() {
             <div className="h-0.5 bg-linear-to-r from-brand-red via-brand-red/50 to-transparent" />
 
             {/* Cart Items */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+            <div className="flex-1 overflow-y-auto px-4 pb-4 pt-5 sm:px-5 sm:pb-5 sm:pt-6 lg:pt-10">
               {items.length === 0 ? (
                 /* Empty state */
                 <div className="flex flex-col items-center justify-center h-full text-center px-4">
@@ -116,7 +116,7 @@ export default function CartDrawer() {
                         animate={{ opacity: 1, height: "auto", y: 0 }}
                         exit={{ opacity: 0, x: 40, height: 0 }}
                         transition={{ duration: 0.28, ease }}
-                        className="flex gap-3 bg-white/5 border border-white/8 rounded-xl p-3 hover:border-brand-red/30 hover:bg-white/7 transition-colors overflow-hidden"
+                        className="flex gap-3 bg-white/5 border border-white/8 rounded-xl p-3 hover:border-brand-red/30 hover:bg-white/7 transition-colors"
                       >
                         {/* Product Image */}
                         <div className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border border-white/12 shadow-sm">

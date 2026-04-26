@@ -12,7 +12,11 @@ export async function PATCH(
   }
   const { data, error } = await supabaseServer
     .from('brands')
-    .update({ name: body.name.trim() })
+    .update({
+      name: body.name.trim(),
+      warranty_value: body.warranty_value ?? null,
+      warranty_unit: body.warranty_unit ?? null,
+    })
     .eq('id', id)
     .select()
     .single();

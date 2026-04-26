@@ -47,6 +47,7 @@ function mapOrder(row: Record<string, unknown>) {
       isDefault: true,
     },
     paymentMethod: 'Cash on Delivery',
+    source: (row.source as string) === 'whatsapp' ? 'whatsapp' : 'website',
     notes: row.notes ?? '',
     createdAt: row.created_at,
     updatedAt: row.created_at,

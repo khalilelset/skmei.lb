@@ -13,6 +13,8 @@ import {
   TextField,
   IconButton,
   Tooltip,
+  MenuItem,
+  Stack,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,8 +28,17 @@ import TableSkeleton from '@/components/admin/TableSkeleton';
 interface Brand {
   id: string;
   name: string;
+  warranty_value: number | null;
+  warranty_unit: string | null;
   created_at: string;
 }
+
+const WARRANTY_UNITS = [
+  { value: 'days',   label: 'Days' },
+  { value: 'weeks',  label: 'Weeks' },
+  { value: 'months', label: 'Months' },
+  { value: 'years',  label: 'Years' },
+];
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -35,6 +46,8 @@ export default function BrandsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [warrantyValue, setWarrantyValue] = useState<string>('');
+  const [warrantyUnit, setWarrantyUnit] = useState<string>('months');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -53,6 +66,8 @@ export default function BrandsPage() {
   const openCreate = () => {
     setEditId(null);
     setName('');
+    setWarrantyValue('');
+    setWarrantyUnit('months');
     setError('');
     setDialogOpen(true);
   };
@@ -60,6 +75,8 @@ export default function BrandsPage() {
   const openEdit = (brand: Brand) => {
     setEditId(brand.id);
     setName(brand.name);
+    setWarrantyValue(brand.warranty_value != null ? String(brand.warranty_value) : '');
+    setWarrantyUnit(brand.warranty_unit ?? 'months');
     setError('');
     setDialogOpen(true);
   };
@@ -69,10 +86,15 @@ export default function BrandsPage() {
     setIsSaving(true);
     setError('');
     const url = editId ? `/api/admin/brands/${editId}` : '/api/admin/brands';
+    const parsed = warrantyValue.trim() ? parseInt(warrantyValue) : null;
     const res = await fetch(url, {
       method: editId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({
+        name,
+        warranty_value: parsed,
+        warranty_unit: parsed != null ? warrantyUnit : null,
+      }),
     });
     const data = await res.json();
     setIsSaving(false);
@@ -96,6 +118,17 @@ export default function BrandsPage() {
       label: 'Brand Name',
       format: (value) => (
         <Typography sx={{ fontWeight: 700, color: '#DC2626' }}>{value}</Typography>
+      ),
+    },
+    {
+      id: 'warranty_value',
+      label: 'Warranty',
+      format: (_value, row: Brand) => (
+        <Typography variant="body2" color="text.secondary">
+          {row.warranty_value != null && row.warranty_unit
+            ? `${row.warranty_value} ${row.warranty_unit}`
+            : '—'}
+        </Typography>
       ),
     },
     {
@@ -164,18 +197,49 @@ export default function BrandsPage() {
           <IconButton onClick={() => setDialogOpen(false)} size="small"><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent dividers>
-          <TextField
-            fullWidth
-            size="small"
-            label="Brand Name *"
-            placeholder="e.g. SKMEI"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            error={!!error}
-            helperText={error}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
-            autoFocus
-          />
+          <Stack spacing={2}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Brand Name *"
+              placeholder="e.g. SKMEI"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              error={!!error}
+              helperText={error}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+              autoFocus
+            />
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, display: 'block' }}>
+                Warranty (optional)
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Duration"
+                  placeholder="e.g. 12"
+                  value={warrantyValue}
+                  onChange={(e) => setWarrantyValue(e.target.value)}
+                  inputProps={{ min: 0 }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  select
+                  label="Unit"
+                  value={warrantyUnit}
+                  onChange={(e) => setWarrantyUnit(e.target.value)}
+                  sx={{ width: 120 }}
+                >
+                  {WARRANTY_UNITS.map((u) => (
+                    <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+            </Box>
+          </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>

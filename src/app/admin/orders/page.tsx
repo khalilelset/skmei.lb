@@ -68,6 +68,7 @@ export default function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedSource, setSelectedSource] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState('');
   const [isSavingStatus, setIsSavingStatus] = useState(false);
@@ -90,9 +91,10 @@ export default function OrdersPage() {
         order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         customerName.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
-      return matchesSearch && matchesStatus;
+      const matchesSource = selectedSource === 'all' || (order.source ?? 'website') === selectedSource;
+      return matchesSearch && matchesStatus && matchesSource;
     });
-  }, [orders, searchQuery, selectedStatus]);
+  }, [orders, searchQuery, selectedStatus, selectedSource]);
 
   const handleInlineStatusChange = async (orderId: string, newStatus: string) => {
     setInlineUpdating((prev) => ({ ...prev, [orderId]: true }));
@@ -247,6 +249,29 @@ export default function OrdersPage() {
       ),
     },
     {
+      id: 'source',
+      label: 'Via',
+      minWidth: 110,
+      align: 'center',
+      sortable: false,
+      format: (value) => {
+        const isWhatsApp = value === 'whatsapp';
+        return (
+          <Chip
+            label={isWhatsApp ? 'WhatsApp' : 'Website'}
+            size="small"
+            sx={{
+              bgcolor: isWhatsApp ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+              color: isWhatsApp ? '#16A34A' : '#3B82F6',
+              fontWeight: 700,
+              fontSize: 10,
+              border: `1px solid ${isWhatsApp ? 'rgba(34,197,94,0.3)' : 'rgba(59,130,246,0.3)'}`,
+            }}
+          />
+        );
+      },
+    },
+    {
       id: 'status',
       label: 'Status',
       minWidth: 140,
@@ -304,7 +329,7 @@ export default function OrdersPage() {
           }}
           sx={{ mb: 3 }}
         />
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
           {statusOptions.map((status) => (
             <Chip
               key={status.value}
@@ -315,9 +340,27 @@ export default function OrdersPage() {
                 bgcolor: selectedStatus === status.value ? '#DC2626' : 'transparent',
                 color: selectedStatus === status.value ? 'white' : 'text.primary',
                 borderColor: selectedStatus === status.value ? '#DC2626' : 'rgba(0,0,0,0.23)',
-                '&:hover': {
-                  bgcolor: selectedStatus === status.value ? '#B91C1C' : 'rgba(220,38,38,0.04)',
-                },
+                '&:hover': { bgcolor: selectedStatus === status.value ? '#B91C1C' : 'rgba(220,38,38,0.04)' },
+              }}
+            />
+          ))}
+        </Stack>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {[
+            { value: 'all',       label: 'All Sources' },
+            { value: 'website',   label: 'Website' },
+            { value: 'whatsapp',  label: 'WhatsApp' },
+          ].map((src) => (
+            <Chip
+              key={src.value}
+              label={src.label}
+              onClick={() => setSelectedSource(src.value)}
+              variant={selectedSource === src.value ? 'filled' : 'outlined'}
+              sx={{
+                bgcolor: selectedSource === src.value ? '#16A34A' : 'transparent',
+                color: selectedSource === src.value ? 'white' : 'text.primary',
+                borderColor: selectedSource === src.value ? '#16A34A' : 'rgba(0,0,0,0.23)',
+                '&:hover': { bgcolor: selectedSource === src.value ? '#15803D' : 'rgba(22,163,74,0.04)' },
               }}
             />
           ))}
@@ -356,11 +399,22 @@ export default function OrdersPage() {
                     <Typography sx={{ fontWeight: 800, fontSize: 24, color: '#0f0f0f', letterSpacing: 0.3 }}>
                       {selectedOrder.orderNumber}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
                       <CalendarIcon sx={{ fontSize: 11, color: '#9ca3af' }} />
                       <Typography sx={{ fontSize: 11, color: '#9ca3af' }}>
                         {formatDate(selectedOrder.createdAt)}
                       </Typography>
+                      <Chip
+                        label={selectedOrder.source === 'whatsapp' ? 'WhatsApp' : 'Website'}
+                        size="small"
+                        sx={{
+                          height: 16, fontSize: 9, fontWeight: 700,
+                          bgcolor: selectedOrder.source === 'whatsapp' ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+                          color: selectedOrder.source === 'whatsapp' ? '#16A34A' : '#3B82F6',
+                          border: `1px solid ${selectedOrder.source === 'whatsapp' ? 'rgba(34,197,94,0.3)' : 'rgba(59,130,246,0.3)'}`,
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
                     </Box>
                   </Box>
                 </Box>

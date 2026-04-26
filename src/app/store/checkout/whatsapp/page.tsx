@@ -85,8 +85,34 @@ export default function WhatsAppCheckoutPage() {
     if (!validateForm()) return;
     setIsSubmitting(true);
 
+    // Open WhatsApp immediately (must be in the click handler to avoid popup blockers)
     const encodedMessage = encodeURIComponent(buildMessage());
     window.open(`https://wa.me/96179170387?text=${encodedMessage}`, '_blank');
+
+    // Save order to database in background (non-blocking)
+    const orderItems = items.map((item) => ({
+      id: item.product.id,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      image: item.product.images[0] ?? null,
+    }));
+
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_name: formData.name,
+        customer_phone: formData.phone,
+        items: orderItems,
+        subtotal,
+        shipping,
+        discount: 0,
+        total,
+        address: { full: formData.address },
+        source: 'whatsapp',
+      }),
+    }).catch(() => {});
 
     clearCart();
     router.push('/store/products');

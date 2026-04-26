@@ -19,7 +19,11 @@ export async function POST(req: NextRequest) {
     }
     const { data, error } = await supabaseServer
       .from('brands')
-      .insert({ name: body.name.trim() })
+      .insert({
+        name: body.name.trim(),
+        warranty_value: body.warranty_value ?? null,
+        warranty_unit: body.warranty_unit ?? null,
+      })
       .select()
       .single();
 

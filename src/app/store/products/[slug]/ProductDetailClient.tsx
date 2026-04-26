@@ -29,6 +29,7 @@ interface Props {
 export default function ProductDetailClient({ slug }: Props) {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [brandWarranty, setBrandWarranty] = useState<{ value: number; unit: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -74,6 +75,7 @@ export default function ProductDetailClient({ slug }: Props) {
         if (data.product) {
           setProduct(data.product);
           setRelatedProducts(data.related ?? []);
+          setBrandWarranty(data.brandWarranty ?? null);
         }
         setIsLoading(false);
       })
@@ -624,11 +626,16 @@ export default function ProductDetailClient({ slug }: Props) {
                 {/* Trust Badges — brand-aware */}
                 {(() => {
                   const isSKMEI = product.brand?.toUpperCase() === 'SKMEI';
+                  const warrantyLabel = brandWarranty
+                    ? `${brandWarranty.value} ${brandWarranty.unit} warranty included`
+                    : isSKMEI
+                      ? "Authorized dealer · 1-year manufacturer warranty"
+                      : "Seller warranty included";
                   const badges = [
                     {
                       icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
                       title: isSKMEI ? "100% Authentic SKMEI" : `${product.brand} Product`,
-                      desc: isSKMEI ? "Authorized dealer · 1-year manufacturer warranty" : "1-month seller warranty included",
+                      desc: warrantyLabel,
                       highlight: isSKMEI,
                     },
                     {
@@ -669,8 +676,18 @@ export default function ProductDetailClient({ slug }: Props) {
                   );
                 })()}
 
+                {/* Warranty badge */}
+                {brandWarranty && (
+                  <div className="flex items-center gap-2 mt-4 text-sm text-emerald-400">
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span className="font-semibold">{brandWarranty.value} {brandWarranty.unit} warranty</span>
+                  </div>
+                )}
+
                 {/* SKU */}
-                <p className="text-sm text-white/30 mt-4">
+                <p className="text-sm text-white/30 mt-3">
                   SKU: <span className="text-white/60 font-medium">{product.sku}</span>
                 </p>
               </div>
@@ -966,7 +983,7 @@ export default function ProductDetailClient({ slug }: Props) {
             <div className="mb-8">
               <SectionHeader label="You May Also Like" title="Related Products" align="left" light />
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
               {relatedProducts.map((p, i) => (
                 <motion.div
                   key={p.id}
@@ -974,7 +991,6 @@ export default function ProductDetailClient({ slug }: Props) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="shrink-0 w-64 snap-start"
                 >
                   <ProductCard product={p} />
                 </motion.div>

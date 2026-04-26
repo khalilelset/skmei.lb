@@ -79,6 +79,7 @@ export interface Order {
   total: number;
   shippingAddress: Address;
   paymentMethod: string;
+  source?: 'website' | 'whatsapp';
   notes?: string;
   createdAt: string;
   updatedAt: string;
