@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { sendStatusChangeEmail } from '@/lib/email';
 
-const WEBSITE_EMAIL_STATUSES = ['confirmed', 'shipped', 'cancelled'] as const;
-const WHATSAPP_EMAIL_STATUSES = ['cancelled'] as const;
+const WEBSITE_EMAIL_STATUSES: readonly string[] = ['confirmed', 'shipped', 'cancelled'];
+const WHATSAPP_EMAIL_STATUSES: readonly string[] = ['cancelled'];
 type EmailStatus = 'confirmed' | 'shipped' | 'cancelled';
 
 export async function PATCH(
