@@ -78,19 +78,6 @@ export default function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
 
-          {/* Quick Add — desktop hover */}
-          {product.stock > 0 && (
-            <div className="hidden lg:block absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-              <button
-                onClick={handleAddToCart}
-                className="w-full bg-brand-red text-white py-2.5 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
-                aria-label={`Add ${product.name} to cart`}
-              >
-                <ShoppingCart className="w-4 h-4" />
-                Add to Cart
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Content */}
@@ -150,12 +137,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Add to Cart — mobile */}
+          {/* Add to Cart */}
           {product.stock > 0 ? (
             <>
               <button
                 onClick={handleAddToCart}
-                className="lg:hidden w-full mt-3 bg-brand-red text-white py-2 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm text-sm"
+                className="w-full mt-3 bg-brand-red text-white py-2 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm text-sm"
                 aria-label={`Add ${product.name} to cart`}
               >
                 <ShoppingCart className="w-4 h-4" />
@@ -166,7 +153,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               )}
             </>
           ) : (
-            <div className="lg:hidden w-full mt-3 bg-white/6 border border-white/10 text-white/40 py-2 rounded-lg text-sm font-medium flex items-center justify-center cursor-not-allowed">
+            <div className="w-full mt-3 bg-white/6 border border-white/10 text-white/40 py-2 rounded-lg text-sm font-medium flex items-center justify-center cursor-not-allowed">
               Out of Stock
             </div>
           )}

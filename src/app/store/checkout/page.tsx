@@ -24,6 +24,7 @@ import {
   Clock,
   Calendar,
   Lock,
+  Wallet,
 } from 'lucide-react';
 
 interface PlacedOrder {
@@ -256,6 +257,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [whishError, setWhishError] = useState('');
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [couponInput, setCouponInput] = useState('');
@@ -468,6 +470,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setWhishError('');
 
     const orderItems = items.map((item) => ({
       id: item.product.id,
@@ -477,47 +480,67 @@ export default function CheckoutPage() {
       image: item.product.images[0] ?? null,
     }));
 
+    const orderPayload = {
+      customer_name:  `${formData.firstName} ${formData.lastName}`.trim(),
+      customer_phone: formData.phone,
+      customer_email: formData.email || null,
+      items:          orderItems,
+      subtotal,
+      shipping,
+      discount:       discountAmount,
+      coupon_code:    appliedCoupon?.code ?? null,
+      total,
+      address:        { street: formData.street, area: formData.area, city: formData.city },
+      notes:          formData.notes || null,
+    };
+
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_name: `${formData.firstName} ${formData.lastName}`.trim(),
-          customer_phone: formData.phone,
-          customer_email: formData.email || null,
-          items: orderItems,
+      if (paymentMethod === 'whish') {
+        const res  = await fetch('/api/whish/initiate', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(orderPayload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.collectUrl) {
+          setWhishError(data.error ?? 'Payment initiation failed. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+        clearCart();
+        window.location.href = data.collectUrl;
+      } else {
+        const res  = await fetch('/api/orders', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ ...orderPayload, status: 'pending' }),
+        });
+        const data = await res.json();
+        clearCart();
+        setPlacedOrder({
+          orderId:       data.orderId ?? 'unknown',
+          orderNumber:   data.orderNumber ?? null,
+          customerName:  `${formData.firstName} ${formData.lastName}`.trim(),
+          phone:         formData.phone,
+          email:         formData.email,
+          street:        formData.street,
+          area:          formData.area,
+          city:          formData.city,
+          notes:         formData.notes,
+          items:         orderItems,
           subtotal,
           shipping,
-          discount: discountAmount,
-          coupon_code: appliedCoupon?.code ?? null,
+          discountAmount,
+          couponCode:    appliedCoupon?.code ?? null,
           total,
-          address: { street: formData.street, area: formData.area, city: formData.city },
-          notes: formData.notes || null,
-          status: 'pending',
-        }),
-      });
-      const data = await res.json();
-      clearCart();
-      setPlacedOrder({
-        orderId: data.orderId ?? 'unknown',
-        orderNumber: data.orderNumber ?? null,
-        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
-        phone: formData.phone,
-        email: formData.email,
-        street: formData.street,
-        area: formData.area,
-        city: formData.city,
-        notes: formData.notes,
-        items: orderItems,
-        subtotal,
-        shipping,
-        discountAmount,
-        couponCode: appliedCoupon?.code ?? null,
-        total,
-        placedAt: new Date().toISOString(),
-      });
+          placedAt:      new Date().toISOString(),
+        });
+      }
     } catch (err) {
       console.error('Failed to save order:', err);
+      if (paymentMethod === 'whish') {
+        setWhishError('An unexpected error occurred. Please try again.');
+      }
       setIsSubmitting(false);
     }
   };
@@ -704,12 +727,22 @@ export default function CheckoutPage() {
                   <div className="space-y-4">
                     <h3 className="text-lg font-bold text-white mb-4">Payment Method</h3>
                     <div className="space-y-3">
-                      <label className="flex items-center gap-4 p-4 border-2 border-brand-red rounded-xl cursor-pointer bg-brand-red/8">
-                        <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 text-brand-red accent-brand-red" />
-                        <Banknote className="w-6 h-6 text-brand-red" />
+                      {/* Cash on Delivery */}
+                      <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-brand-red bg-brand-red/8' : 'border-white/10 hover:border-white/25'}`}>
+                        <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 accent-brand-red" />
+                        <Banknote className={`w-6 h-6 shrink-0 ${paymentMethod === 'cod' ? 'text-brand-red' : 'text-white/40'}`} />
                         <div className="flex-1">
                           <p className="font-semibold text-white">Cash on Delivery</p>
                           <p className="text-sm text-white/45">Pay when you receive your order</p>
+                        </div>
+                      </label>
+                      {/* Whish Money */}
+                      <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-colors ${paymentMethod === 'whish' ? 'border-brand-red bg-brand-red/8' : 'border-white/10 hover:border-white/25'}`}>
+                        <input type="radio" name="payment" value="whish" checked={paymentMethod === 'whish'} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 accent-brand-red" />
+                        <Wallet className={`w-6 h-6 shrink-0 ${paymentMethod === 'whish' ? 'text-brand-red' : 'text-white/40'}`} />
+                        <div className="flex-1">
+                          <p className="font-semibold text-white">Whish Money</p>
+                          <p className="text-sm text-white/45">Pay instantly with your Whish wallet</p>
                         </div>
                       </label>
                     </div>
@@ -724,8 +757,8 @@ export default function CheckoutPage() {
                     <div className="flex items-center justify-center gap-6 py-4 border-t border-white/10 mt-4">
                       {[
                         { icon: ShieldCheck, label: 'Authentic' },
-                        { icon: Clock, label: 'Warranty' },
-                        { icon: Banknote, label: 'Cash on Delivery' },
+                        { icon: Clock,       label: 'Warranty' },
+                        { icon: paymentMethod === 'whish' ? Wallet : Banknote, label: paymentMethod === 'whish' ? 'Whish Money' : 'Cash on Delivery' },
                       ].map(({ icon: Icon, label }) => (
                         <div key={label} className="flex items-center gap-1.5 text-white/40">
                           <Icon className="w-3.5 h-3.5 text-brand-red" />
@@ -734,11 +767,19 @@ export default function CheckoutPage() {
                       ))}
                     </div>
 
+                    {whishError && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
+                        {whishError}
+                      </div>
+                    )}
+
                     {/* Submit button — shimmer */}
                     <button type="submit" disabled={isSubmitting}
                       className="group relative w-full overflow-hidden bg-brand-red text-white px-6 py-5 rounded-xl font-black text-lg hover:bg-brand-red-dark transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-brand-red/30">
                       <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
-                      {isSubmitting ? 'Processing...' : `Place Order →`}
+                      {isSubmitting
+                        ? (paymentMethod === 'whish' ? 'Redirecting to Whish...' : 'Processing...')
+                        : (paymentMethod === 'whish' ? 'Pay with Whish →' : 'Place Order →')}
                     </button>
                     <button type="button" onClick={() => setCurrentStep(2)} className="w-full border border-white/12 text-white/40 px-6 py-3 rounded-xl font-semibold hover:bg-white/5 hover:text-white/60 transition-colors">
                       Back to Shipping

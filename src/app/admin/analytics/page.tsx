@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Grid, Paper, CircularProgress,
   Table, TableHead, TableBody, TableRow, TableCell,
-  Chip, Divider, LinearProgress,
+  Chip, Divider, LinearProgress, Select, MenuItem, TextField,
 } from '@mui/material';
 import {
   TrendingUp, TrendingDown, AttachMoney, LocalShipping,
@@ -47,18 +47,39 @@ const STATUS_COLOR: Record<string,string> = {
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface ChartPoint    { label: string; revenue: number; orders: number }
+interface ChartPoint    { label: string; revenue: number; orders: number; grossProfit?: number }
 interface CategoryPoint { category: string; count: number; revenue: number }
 interface StatusPoint   { status: string; count: number }
 interface ProductPoint  { name: string; fullName: string; quantity: number; revenue: number; category: string }
 interface RegionPoint   { region: string; count: number; revenue: number }
+interface UnitProfitPoint {
+  name: string; fullName: string; salePrice: number; costPrice: number;
+  unitProfit: number; margin: number; category: string;
+}
+interface OrderProfitPoint {
+  name: string; fullName: string; quantity: number; grossProfit: number; revenue: number; category: string;
+}
 
 interface KPIs {
-  totalRevenue: number; avgOrderValue: number; topCategory: string;
-  deliveryRate: number; totalOrders: number;
-  thisMonthRevenue: number; thisMonthOrders: number;
-  lastMonthRevenue: number; lastMonthOrders: number;
-  revenueChange: number | null; ordersChange: number | null;
+  totalRevenue: number; totalOrders: number; totalGrossProfit: number;
+  grossMargin: number; avgOrderValue: number; deliveryRate: number; topCategory: string;
+  // week
+  thisWeekRevenue: number; lastWeekRevenue: number; weekRevenueChange: number | null;
+  thisWeekOrders: number;  lastWeekOrders: number;  weekOrdersChange: number | null;
+  thisWeekGrossProfit: number; lastWeekGrossProfit: number; weekGPChange: number | null;
+  // month
+  thisMonthRevenue: number; lastMonthRevenue: number; revenueChange: number | null;
+  thisMonthOrders: number;  lastMonthOrders: number;  ordersChange: number | null;
+  thisMonthGrossProfit: number; lastMonthGrossProfit: number; monthGPChange: number | null;
+  // year
+  thisYearRevenue: number; lastYearRevenue: number; yearRevenueChange: number | null;
+  thisYearOrders: number;  lastYearOrders: number;  yearOrdersChange: number | null;
+  thisYearGrossProfit: number; lastYearGrossProfit: number; yearGPChange: number | null;
+}
+
+interface CustomRangeKpis {
+  totalRevenue: number; totalOrders: number; totalGrossProfit: number;
+  grossMargin: number; avgOrderValue: number; deliveryRate: number;
 }
 
 interface AnalyticsData {
@@ -66,6 +87,9 @@ interface AnalyticsData {
   weeklyRevenue: ChartPoint[];  dailyRevenue: ChartPoint[];
   categoryBreakdown: CategoryPoint[]; topProducts: ProductPoint[];
   statusBreakdown: StatusPoint[];     regionBreakdown: RegionPoint[];
+  productUnitProfit: UnitProfitPoint[];
+  productOrderProfit: OrderProfitPoint[];
+  productWebsiteProfit: OrderProfitPoint[];
   kpis: KPIs;
 }
 
@@ -85,7 +109,7 @@ function Card({ children, sx = {} }: { children: React.ReactNode; sx?: object })
 // ─── Section header ───────────────────────────────────────────────────────────
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <Box sx={{ px: 3, pt: 2.5, pb: 2, borderBottom: `1px solid ${T.border}` }}>
+    <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2, pb: 1.5, borderBottom: `1px solid ${T.border}` }}>
       <Typography fontWeight={600} fontSize={14} letterSpacing={0.1}>{title}</Typography>
       {sub && <Typography variant="caption" color="text.secondary">{sub}</Typography>}
     </Box>
@@ -116,19 +140,19 @@ function KpiCard({ icon, label, value, sub, change, accent = T.red }:
   { icon: React.ReactNode; label: string; value: string; sub?: string; change?: number | null; accent?: string }) {
   return (
     <Card sx={{ height: '100%', borderLeft: `3px solid ${accent}` }}>
-      <Box sx={{ p: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ p: 1, borderRadius: T.radiusSm, bgcolor: `${accent}18`, color: accent, display: 'flex', lineHeight: 0 }}>
+      <Box sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: { xs: 1, sm: 2 } }}>
+          <Box sx={{ p: 0.75, borderRadius: T.radiusSm, bgcolor: `${accent}18`, color: accent, display: 'flex', lineHeight: 0 }}>
             {icon}
           </Box>
           {change !== undefined && <TrendBadge value={change ?? null} />}
         </Box>
-        <Typography fontWeight={800} fontSize={26} lineHeight={1} sx={{ fontVariantNumeric: 'tabular-nums', mb: 0.5 }}>
+        <Typography fontWeight={800} fontSize={{ xs: 18, sm: 24 }} lineHeight={1} sx={{ fontVariantNumeric: 'tabular-nums', mb: 0.5 }}>
           {value}
         </Typography>
-        <Typography variant="caption" color="text.secondary" fontWeight={500}>{label}</Typography>
+        <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ fontSize: { xs: 10, sm: 12 } }}>{label}</Typography>
         {sub && (
-          <Typography variant="caption" display="block" color="text.disabled" sx={{ mt: 0.5, fontSize: 11 }}>{sub}</Typography>
+          <Typography variant="caption" display="block" color="text.disabled" sx={{ mt: 0.5, fontSize: 10, display: { xs: 'none', sm: 'block' } }}>{sub}</Typography>
         )}
       </Box>
     </Card>
@@ -254,6 +278,12 @@ export default function AnalyticsPage() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const [chartView, setChartView] = useState<ChartView>('monthly');
+  const [gpView, setGpView] = useState<'total' | 'week' | 'month' | 'year' | 'custom'>('total');
+  const [profitView, setProfitView] = useState<'unit' | 'all' | 'website'>('unit');
+  const [customFrom, setCustomFrom]   = useState('');
+  const [customTo,   setCustomTo]     = useState('');
+  const [customKpis, setCustomKpis]   = useState<CustomRangeKpis | null>(null);
+  const [customLoading, setCustomLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/analytics')
@@ -262,19 +292,32 @@ export default function AnalyticsPage() {
       .catch(() => { setError('Failed to load analytics'); setLoading(false); });
   }, []);
 
+  useEffect(() => {
+    if (gpView !== 'custom' || !customFrom || !customTo || customFrom > customTo) return;
+    setCustomLoading(true);
+    setCustomKpis(null);
+    fetch(`/api/admin/analytics/range?from=${customFrom}&to=${customTo}`)
+      .then((r) => r.json())
+      .then((d) => { setCustomKpis(d); setCustomLoading(false); })
+      .catch(() => setCustomLoading(false));
+  }, [gpView, customFrom, customTo]);
+
   // ── Loading skeleton layout ─────────────────────────────────────────────────
   if (loading) {
     return (
       <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400 }}>
-        <Box sx={{ mb: 1 }}><Skeleton h={28} /></Box>
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          {[0,1,2,3].map((i) => <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}><Skeleton h={120} /></Grid>)}
-        </Grid>
-        <Skeleton h={320} />
+        <Box sx={{ mb: 2 }}><Skeleton h={24} /></Box>
+        <Skeleton h={100} />
+        <Box sx={{ mt: 2 }}>
+          <Grid container spacing={1.5} sx={{ mb: 2 }}>
+            {[0,1,2,3].map((i) => <Grid key={i} size={{ xs: 6, md: 3 }}><Skeleton h={90} /></Grid>)}
+          </Grid>
+        </Box>
+        <Skeleton h={220} />
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}><Skeleton h={260} /></Grid>
-            <Grid size={{ xs: 12, md: 6 }}><Skeleton h={260} /></Grid>
+            <Grid size={{ xs: 12, md: 6 }}><Skeleton h={220} /></Grid>
+            <Grid size={{ xs: 12, md: 6 }}><Skeleton h={220} /></Grid>
           </Grid>
         </Box>
       </Box>
@@ -290,11 +333,16 @@ export default function AnalyticsPage() {
   }
 
   const { kpis, annualRevenue, monthlyRevenue, weeklyRevenue, dailyRevenue,
-          categoryBreakdown, statusBreakdown, topProducts, regionBreakdown } = data;
+          categoryBreakdown, statusBreakdown, topProducts, regionBreakdown,
+          productUnitProfit, productOrderProfit, productWebsiteProfit } = data;
 
   const catTotal    = categoryBreakdown.reduce((s, c) => s + c.count, 0);
   const statusTotal = statusBreakdown.reduce((s, c) => s + c.count, 0);
   const maxProductQty = Math.max(...topProducts.map((p) => p.quantity), 1);
+
+  const weekMargin  = kpis.thisWeekRevenue  > 0 ? Math.round(kpis.thisWeekGrossProfit  / kpis.thisWeekRevenue  * 1000) / 10 : 0;
+  const monthMargin = kpis.thisMonthRevenue > 0 ? Math.round(kpis.thisMonthGrossProfit / kpis.thisMonthRevenue * 1000) / 10 : 0;
+  const yearMargin  = kpis.thisYearRevenue  > 0 ? Math.round(kpis.thisYearGrossProfit  / kpis.thisYearRevenue  * 1000) / 10 : 0;
 
   const chartData: ChartPoint[] =
     chartView === 'annual'  ? annualRevenue  :
@@ -321,65 +369,267 @@ export default function AnalyticsPage() {
         </Typography>
       </Box>
 
-      {/* ── KPI Cards ───────────────────────────────────────────────────────── */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard
-            icon={<AttachMoney fontSize="small" />}
-            accent={T.red}
-            label="This Month Revenue"
-            value={fmtUSD(kpis.thisMonthRevenue)}
-            sub={`Last month: ${fmtUSD(kpis.lastMonthRevenue)}`}
-            change={kpis.revenueChange}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard
-            icon={<ShoppingCart fontSize="small" />}
-            accent={T.blue}
-            label="This Month Orders"
-            value={String(kpis.thisMonthOrders)}
-            sub={`Last month: ${kpis.lastMonthOrders} orders`}
-            change={kpis.ordersChange}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard
-            icon={<TrendingUp fontSize="small" />}
-            accent={T.green}
-            label="Avg Order Value"
-            value={fmtUSD(kpis.avgOrderValue)}
-            sub={`${kpis.totalOrders} total orders all-time`}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard
-            icon={<LocalShipping fontSize="small" />}
-            accent={T.amber}
-            label="Delivery Rate"
-            value={`${kpis.deliveryRate}%`}
-            sub={`Top category: ${kpis.topCategory}`}
-          />
-        </Grid>
-      </Grid>
+      {/* ── KPI Section (all periods) ─────────────────────────────────────── */}
+      <Card sx={{ mb: 3 }}>
+        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2, pb: 1.5, borderBottom: `1px solid ${T.border}`,
+          display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          justifyContent: 'space-between', gap: 1.5 }}>
+          <Box>
+            <Typography fontWeight={600} fontSize={14}>Performance Overview</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {gpView === 'total'  ? 'All-time totals' :
+               gpView === 'week'   ? 'This week vs last week' :
+               gpView === 'month'  ? 'This month vs last month' :
+               gpView === 'year'   ? `${new Date().getFullYear()} vs ${new Date().getFullYear() - 1}` :
+               customFrom && customTo && customFrom <= customTo
+                 ? `${customFrom} – ${customTo}`
+                 : 'Select a date range'}
+            </Typography>
+          </Box>
+          <Select
+            value={gpView}
+            size="small"
+            onChange={(e) => setGpView(e.target.value as typeof gpView)}
+            sx={{ fontSize: 13, minWidth: { xs: '100%', sm: 170 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: T.border } }}
+          >
+            <MenuItem value="total">Total (All-time)</MenuItem>
+            <MenuItem value="week">This Week</MenuItem>
+            <MenuItem value="month">This Month</MenuItem>
+            <MenuItem value="year">This Year</MenuItem>
+            <MenuItem value="custom">Custom Range</MenuItem>
+          </Select>
+        </Box>
+        <Box sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+            {gpView === 'total' && (<>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<AttachMoney fontSize="small" />} accent={T.red}
+                  label="Total Revenue" value={fmtUSD(kpis.totalRevenue)}
+                  sub={`${kpis.totalOrders} orders all-time`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<ShoppingCart fontSize="small" />} accent={T.blue}
+                  label="Total Orders" value={String(kpis.totalOrders)}
+                  sub="All orders ever placed" />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.green}
+                  label="Total Gross Profit" value={fmtUSD(kpis.totalGrossProfit)}
+                  sub={`${kpis.grossMargin}% margin`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<Inventory2 fontSize="small" />} accent={T.purple}
+                  label="Gross Margin" value={`${kpis.grossMargin}%`}
+                  sub={`Avg order: ${fmtUSD(kpis.avgOrderValue)}`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.amber}
+                  label="Avg Order Value" value={fmtUSD(kpis.avgOrderValue)}
+                  sub={`${kpis.totalOrders} total orders`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<LocalShipping fontSize="small" />} accent={T.cyan}
+                  label="Delivery Rate" value={`${kpis.deliveryRate}%`}
+                  sub={`Top category: ${kpis.topCategory}`} />
+              </Grid>
+            </>)}
+
+            {gpView === 'week' && (<>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<AttachMoney fontSize="small" />} accent={T.red}
+                  label="This Week Revenue" value={fmtUSD(kpis.thisWeekRevenue)}
+                  sub={`Last week: ${fmtUSD(kpis.lastWeekRevenue)}`} change={kpis.weekRevenueChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<ShoppingCart fontSize="small" />} accent={T.blue}
+                  label="This Week Orders" value={String(kpis.thisWeekOrders)}
+                  sub={`Last week: ${kpis.lastWeekOrders} orders`} change={kpis.weekOrdersChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.green}
+                  label="This Week Gross Profit" value={fmtUSD(kpis.thisWeekGrossProfit)}
+                  sub={`Last week: ${fmtUSD(kpis.lastWeekGrossProfit)}`} change={kpis.weekGPChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<Inventory2 fontSize="small" />} accent={T.purple}
+                  label="Gross Margin" value={`${weekMargin}%`}
+                  sub={`Revenue: ${fmtUSD(kpis.thisWeekRevenue)}`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.amber}
+                  label="Avg Order Value" value={fmtUSD(kpis.thisWeekOrders > 0 ? kpis.thisWeekRevenue / kpis.thisWeekOrders : 0)}
+                  sub={`${kpis.thisWeekOrders} orders this week`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<LocalShipping fontSize="small" />} accent={T.cyan}
+                  label="Delivery Rate" value={`${kpis.deliveryRate}%`}
+                  sub={`Top category: ${kpis.topCategory}`} />
+              </Grid>
+            </>)}
+
+            {gpView === 'month' && (<>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<AttachMoney fontSize="small" />} accent={T.red}
+                  label="This Month Revenue" value={fmtUSD(kpis.thisMonthRevenue)}
+                  sub={`Last month: ${fmtUSD(kpis.lastMonthRevenue)}`} change={kpis.revenueChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<ShoppingCart fontSize="small" />} accent={T.blue}
+                  label="This Month Orders" value={String(kpis.thisMonthOrders)}
+                  sub={`Last month: ${kpis.lastMonthOrders} orders`} change={kpis.ordersChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.green}
+                  label="This Month Gross Profit" value={fmtUSD(kpis.thisMonthGrossProfit)}
+                  sub={`Last month: ${fmtUSD(kpis.lastMonthGrossProfit)}`} change={kpis.monthGPChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<Inventory2 fontSize="small" />} accent={T.purple}
+                  label="Gross Margin" value={`${monthMargin}%`}
+                  sub={`Revenue: ${fmtUSD(kpis.thisMonthRevenue)}`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.amber}
+                  label="Avg Order Value" value={fmtUSD(kpis.thisMonthOrders > 0 ? kpis.thisMonthRevenue / kpis.thisMonthOrders : 0)}
+                  sub={`${kpis.thisMonthOrders} orders this month`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<LocalShipping fontSize="small" />} accent={T.cyan}
+                  label="Delivery Rate" value={`${kpis.deliveryRate}%`}
+                  sub={`Top category: ${kpis.topCategory}`} />
+              </Grid>
+            </>)}
+
+            {gpView === 'year' && (<>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<AttachMoney fontSize="small" />} accent={T.red}
+                  label={`${new Date().getFullYear()} Revenue`} value={fmtUSD(kpis.thisYearRevenue)}
+                  sub={`Last year: ${fmtUSD(kpis.lastYearRevenue)}`} change={kpis.yearRevenueChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<ShoppingCart fontSize="small" />} accent={T.blue}
+                  label={`${new Date().getFullYear()} Orders`} value={String(kpis.thisYearOrders)}
+                  sub={`Last year: ${kpis.lastYearOrders} orders`} change={kpis.yearOrdersChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.green}
+                  label={`${new Date().getFullYear()} Gross Profit`} value={fmtUSD(kpis.thisYearGrossProfit)}
+                  sub={`Last year: ${fmtUSD(kpis.lastYearGrossProfit)}`} change={kpis.yearGPChange} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<Inventory2 fontSize="small" />} accent={T.purple}
+                  label="Gross Margin" value={`${yearMargin}%`}
+                  sub={`Revenue: ${fmtUSD(kpis.thisYearRevenue)}`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.amber}
+                  label="Avg Order Value" value={fmtUSD(kpis.thisYearOrders > 0 ? kpis.thisYearRevenue / kpis.thisYearOrders : 0)}
+                  sub={`${kpis.thisYearOrders} orders this year`} />
+              </Grid>
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <KpiCard icon={<LocalShipping fontSize="small" />} accent={T.cyan}
+                  label="Delivery Rate" value={`${kpis.deliveryRate}%`}
+                  sub={`Top category: ${kpis.topCategory}`} />
+              </Grid>
+            </>)}
+
+            {gpView === 'custom' && (
+              <>
+                <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
+                  <TextField
+                    type="date" label="From" size="small" value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 140, flex: { xs: 1, sm: 'none' } }}
+                  />
+                  <TextField
+                    type="date" label="To" size="small" value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 140, flex: { xs: 1, sm: 'none' } }}
+                    inputProps={{ min: customFrom || undefined }}
+                  />
+                </Box>
+                {customLoading && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                    <CircularProgress size={28} sx={{ color: T.red }} />
+                  </Box>
+                )}
+                {!customLoading && !customKpis && (
+                  <Typography variant="caption" color="text.disabled"
+                    sx={{ display: 'block', textAlign: 'center', py: 3 }}>
+                    {!customFrom || !customTo
+                      ? 'Pick a start and end date above.'
+                      : customFrom > customTo
+                      ? 'End date must be on or after start date.'
+                      : 'Loading…'}
+                  </Typography>
+                )}
+                {!customLoading && customKpis && (
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                      <KpiCard icon={<AttachMoney fontSize="small" />} accent={T.red}
+                        label="Revenue" value={fmtUSD(customKpis.totalRevenue)}
+                        sub={`${customKpis.totalOrders} orders in range`} />
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                      <KpiCard icon={<ShoppingCart fontSize="small" />} accent={T.blue}
+                        label="Orders" value={String(customKpis.totalOrders)}
+                        sub={`${customFrom} – ${customTo}`} />
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                      <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.green}
+                        label="Gross Profit" value={fmtUSD(customKpis.totalGrossProfit)}
+                        sub={`${customKpis.grossMargin}% margin`} />
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                      <KpiCard icon={<Inventory2 fontSize="small" />} accent={T.purple}
+                        label="Gross Margin" value={`${customKpis.grossMargin}%`}
+                        sub={`Revenue: ${fmtUSD(customKpis.totalRevenue)}`} />
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                      <KpiCard icon={<TrendingUp fontSize="small" />} accent={T.amber}
+                        label="Avg Order Value" value={fmtUSD(customKpis.avgOrderValue)}
+                        sub={`${customKpis.totalOrders} orders`} />
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                      <KpiCard icon={<LocalShipping fontSize="small" />} accent={T.cyan}
+                        label="Delivery Rate" value={`${customKpis.deliveryRate}%`}
+                        sub="Delivered vs total" />
+                    </Grid>
+                  </Grid>
+                )}
+              </>
+            )}
+          </Grid>
+        </Box>
+      </Card>
 
       {/* ── Revenue & Orders Chart ──────────────────────────────────────────── */}
       <Card sx={{ mb: 3 }}>
-        <Box sx={{ px: 3, pt: 2.5, pb: 2, borderBottom: `1px solid ${T.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2, pb: 1.5, borderBottom: `1px solid ${T.border}`,
+          display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          justifyContent: 'space-between', gap: 1.5 }}>
           <Box>
             <Typography fontWeight={600} fontSize={14}>Revenue &amp; Orders</Typography>
             <Typography variant="caption" color="text.secondary">{chartSub}</Typography>
           </Box>
           <ViewTabs value={chartView} onChange={setChartView} />
         </Box>
-        <Box sx={{ px: 2, pt: 2.5, pb: 1.5 }}>
-          <ResponsiveContainer width="100%" height={300}>
+        <Box sx={{ px: { xs: 0.5, sm: 2 }, pt: 2, pb: 1 }}>
+          <Box sx={{ height: { xs: 200, sm: 300 } }}>
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: isDense ? 16 : 4 }}>
               <defs>
                 <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor={T.red} stopOpacity={0.15} />
                   <stop offset="95%" stopColor={T.red} stopOpacity={0}    />
+                </linearGradient>
+                <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor={T.green} stopOpacity={0.12} />
+                  <stop offset="95%" stopColor={T.green} stopOpacity={0}    />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="0" stroke={T.grid} vertical={false} />
@@ -396,10 +646,13 @@ export default function AnalyticsPage() {
                 formatter={(v) => <span style={{ color: '#555', fontWeight: 500 }}>{v}</span>} />
               <Area yAxisId="rev" type="monotone" dataKey="revenue" name="Revenue"
                 fill="url(#revenueGrad)" stroke={T.red} strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: T.red }} />
+              <Area yAxisId="rev" type="monotone" dataKey="grossProfit" name="Gross Profit"
+                fill="url(#profitGrad)" stroke={T.green} strokeWidth={2} dot={false} strokeDasharray="4 2" activeDot={{ r: 4, fill: T.green }} />
               <Bar yAxisId="ord" dataKey="orders" name="Orders"
                 fill={T.blue} fillOpacity={0.65} radius={[3, 3, 0, 0]} barSize={14} />
             </ComposedChart>
           </ResponsiveContainer>
+          </Box>
         </Box>
       </Card>
 
@@ -410,12 +663,13 @@ export default function AnalyticsPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <SectionHeader title="Sales by Category" sub={`${catTotal} units total`} />
-            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+            <Box sx={{ p: { xs: 2, sm: 3 }, display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'center', sm: 'flex-start' }, gap: 2 }}>
               <Box sx={{ flexShrink: 0 }}>
-                <ResponsiveContainer width={160} height={160}>
+                <ResponsiveContainer width={148} height={148}>
                   <PieChart>
                     <Pie data={categoryBreakdown} dataKey="count" nameKey="category"
-                      innerRadius={48} outerRadius={76} paddingAngle={3} startAngle={90} endAngle={-270}>
+                      innerRadius={44} outerRadius={70} paddingAngle={3} startAngle={90} endAngle={-270}>
                       {categoryBreakdown.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />
                       ))}
@@ -425,7 +679,7 @@ export default function AnalyticsPage() {
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
-              <Box sx={{ flex: 1, minWidth: 160 }}>
+              <Box sx={{ flex: 1, width: '100%', minWidth: 0 }}>
                 {categoryBreakdown.map((c, i) => (
                   <LegendRow key={c.category} label={c.category} value={c.count}
                     total={catTotal} color={PIE_COLORS[i % PIE_COLORS.length]}
@@ -440,12 +694,13 @@ export default function AnalyticsPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <SectionHeader title="Order Status" sub={`${statusTotal} orders total`} />
-            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+            <Box sx={{ p: { xs: 2, sm: 3 }, display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'center', sm: 'flex-start' }, gap: 2 }}>
               <Box sx={{ flexShrink: 0 }}>
-                <ResponsiveContainer width={160} height={160}>
+                <ResponsiveContainer width={148} height={148}>
                   <PieChart>
                     <Pie data={statusBreakdown} dataKey="count" nameKey="status"
-                      innerRadius={48} outerRadius={76} paddingAngle={3} startAngle={90} endAngle={-270}>
+                      innerRadius={44} outerRadius={70} paddingAngle={3} startAngle={90} endAngle={-270}>
                       {statusBreakdown.map((s, i) => (
                         <Cell key={i} fill={STATUS_COLOR[s.status] ?? PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />
                       ))}
@@ -455,7 +710,7 @@ export default function AnalyticsPage() {
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
-              <Box sx={{ flex: 1, minWidth: 160 }}>
+              <Box sx={{ flex: 1, width: '100%', minWidth: 0 }}>
                 {statusBreakdown.map((s, i) => (
                   <LegendRow key={s.status} label={s.status} value={s.count}
                     total={statusTotal} color={STATUS_COLOR[s.status] ?? PIE_COLORS[i % PIE_COLORS.length]} />
@@ -469,30 +724,29 @@ export default function AnalyticsPage() {
       {/* ── Top Products ─────────────────────────────────────────────────────── */}
       <Card sx={{ mb: 3 }}>
         <SectionHeader title="Top 10 Products" sub="Ranked by units sold" />
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 2, sm: 3 } }}>
           {topProducts.map((p, i) => (
-            <Box key={p.name} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: i < topProducts.length - 1 ? 2 : 0 }}>
-              {/* Rank */}
-              <Typography sx={{ minWidth: 22, fontSize: 12, fontWeight: 700, color: i < 3 ? T.red : 'text.disabled',
-                fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+            <Box key={p.name} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: i < topProducts.length - 1 ? 1.5 : 0 }}>
+              <Typography sx={{ minWidth: 20, fontSize: 11, fontWeight: 700, color: i < 3 ? T.red : 'text.disabled',
+                fontVariantNumeric: 'tabular-nums', textAlign: 'right', flexShrink: 0 }}>
                 #{i + 1}
               </Typography>
-              {/* Name + bar */}
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="caption" fontWeight={500} noWrap sx={{ maxWidth: '70%' }}
+                  <Typography variant="caption" fontWeight={500} noWrap sx={{ maxWidth: '65%', fontSize: { xs: 11, sm: 12 } }}
                     title={p.fullName}>{p.name}</Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                    <Typography variant="caption" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, flexShrink: 0 }}>
+                    <Typography variant="caption" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums', fontSize: { xs: 11, sm: 12 } }}>
                       {p.quantity} units
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <Typography variant="caption" color="text.secondary"
+                      sx={{ fontVariantNumeric: 'tabular-nums', display: { xs: 'none', sm: 'block' } }}>
                       {fmtUSD(p.revenue)}
                     </Typography>
                   </Box>
                 </Box>
                 <LinearProgress variant="determinate" value={(p.quantity / maxProductQty) * 100}
-                  sx={{ height: 6, borderRadius: 3, bgcolor: `${T.red}12`,
+                  sx={{ height: 5, borderRadius: 3, bgcolor: `${T.red}12`,
                     '& .MuiLinearProgress-bar': { bgcolor: i < 3 ? T.red : T.blue, borderRadius: 3 } }} />
               </Box>
             </Box>
@@ -500,11 +754,137 @@ export default function AnalyticsPage() {
         </Box>
       </Card>
 
+      {/* ── Product Profitability ────────────────────────────────────────────── */}
+      <Card sx={{ mb: 3 }}>
+        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2, pb: 1.5, borderBottom: `1px solid ${T.border}`,
+          display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          justifyContent: 'space-between', gap: 1.5 }}>
+          <Box>
+            <Typography fontWeight={600} fontSize={14}>Product Profitability</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {profitView === 'unit'    ? 'Gross profit per unit sold — current prices' :
+               profitView === 'all'    ? 'Total gross profit generated across all orders' :
+                                         'Total gross profit from website orders only'}
+            </Typography>
+          </Box>
+          <Select value={profitView} size="small"
+            onChange={(e) => setProfitView(e.target.value as typeof profitView)}
+            sx={{ fontSize: 13, minWidth: { xs: '100%', sm: 210 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: T.border } }}>
+            <MenuItem value="unit">Per Unit Profit</MenuItem>
+            <MenuItem value="all">Total — All Orders</MenuItem>
+            <MenuItem value="website">Total — Website Orders</MenuItem>
+          </Select>
+        </Box>
+        <Box sx={{ overflowX: 'auto' }}>
+          {profitView === 'unit' ? (
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
+                  {['#', 'Product', 'My Cost', 'Sale Price', 'Profit / Unit', 'Margin'].map((h, i) => (
+                    <TableCell key={h} align={i === 0 ? 'center' : i > 1 ? 'right' : 'left'}
+                      sx={{ fontWeight: 700, fontSize: 11, letterSpacing: 0.5, color: 'text.secondary',
+                        textTransform: 'uppercase', py: 1.5, borderColor: T.border, whiteSpace: 'nowrap' }}>
+                      {h}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {productUnitProfit.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center"
+                      sx={{ py: 4, color: 'text.disabled', fontSize: 13, borderColor: T.border }}>
+                      No products with cost price set. Add cost prices to your products to see profitability.
+                    </TableCell>
+                  </TableRow>
+                ) : productUnitProfit.map((p, i) => (
+                  <TableRow key={p.fullName} hover sx={{ '&:last-child td': { border: 0 } }}>
+                    <TableCell align="center"
+                      sx={{ fontSize: 12, fontWeight: 700, color: i < 3 ? T.red : 'text.disabled', borderColor: T.border, width: 40 }}>
+                      {i + 1}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 13, borderColor: T.border, maxWidth: 220 }}>
+                      <Typography variant="caption" fontWeight={500} noWrap title={p.fullName}>{p.name}</Typography>
+                      <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10, textTransform: 'capitalize' }}>{p.category}</Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontSize: 13, color: 'text.secondary', fontVariantNumeric: 'tabular-nums', borderColor: T.border }}>
+                      {fmtUSD(p.costPrice)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', borderColor: T.border }}>
+                      {fmtUSD(p.salePrice)}
+                    </TableCell>
+                    <TableCell align="right"
+                      sx={{ fontSize: 13, fontWeight: 700, color: T.green, fontVariantNumeric: 'tabular-nums', borderColor: T.border }}>
+                      +{fmtUSD(p.unitProfit)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ borderColor: T.border }}>
+                      <Chip label={`${p.margin}%`} size="small"
+                        sx={{ bgcolor: `${T.green}18`, color: T.green, fontWeight: 700, fontSize: 11, height: 20 }} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
+                  {['#', 'Product', 'Units Sold', 'Revenue', 'Gross Profit'].map((h, i) => (
+                    <TableCell key={h} align={i === 0 ? 'center' : i > 1 ? 'right' : 'left'}
+                      sx={{ fontWeight: 700, fontSize: 11, letterSpacing: 0.5, color: 'text.secondary',
+                        textTransform: 'uppercase', py: 1.5, borderColor: T.border, whiteSpace: 'nowrap' }}>
+                      {h}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(() => {
+                  const rows = profitView === 'all' ? productOrderProfit : productWebsiteProfit;
+                  if (rows.length === 0) return (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center"
+                        sx={{ py: 4, color: 'text.disabled', fontSize: 13, borderColor: T.border }}>
+                        No gross profit data yet. Make sure products have cost prices set.
+                      </TableCell>
+                    </TableRow>
+                  );
+                  return rows.map((p, i) => (
+                    <TableRow key={p.fullName} hover sx={{ '&:last-child td': { border: 0 } }}>
+                      <TableCell align="center"
+                        sx={{ fontSize: 12, fontWeight: 700, color: i < 3 ? T.red : 'text.disabled', borderColor: T.border, width: 40 }}>
+                        {i + 1}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13, borderColor: T.border, maxWidth: 220 }}>
+                        <Typography variant="caption" fontWeight={500} noWrap title={p.fullName}>{p.name}</Typography>
+                        <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10, textTransform: 'capitalize' }}>{p.category}</Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', borderColor: T.border }}>
+                        {p.quantity}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: 'text.secondary', borderColor: T.border }}>
+                        {fmtUSD(p.revenue)}
+                      </TableCell>
+                      <TableCell align="right"
+                        sx={{ fontSize: 13, fontWeight: 700, color: T.green, fontVariantNumeric: 'tabular-nums', borderColor: T.border }}>
+                        {fmtUSD(p.grossProfit)}
+                      </TableCell>
+                    </TableRow>
+                  ));
+                })()}
+              </TableBody>
+            </Table>
+          )}
+        </Box>
+      </Card>
+
       {/* ── Region chart ─────────────────────────────────────────────────────── */}
       <Card sx={{ mb: 3 }}>
         <SectionHeader title="Orders by Region" sub="Top 10 delivery areas" />
-        <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-          <ResponsiveContainer width="100%" height={240}>
+        <Box sx={{ px: { xs: 0.5, sm: 2 }, pt: 2, pb: 1 }}>
+          <Box sx={{ height: { xs: 180, sm: 240 } }}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={regionBreakdown} margin={{ top: 4, right: 16, left: 0, bottom: 28 }}>
               <defs>
                 <linearGradient id="regionGrad" x1="0" y1="0" x2="0" y2="1">
@@ -526,6 +906,7 @@ export default function AnalyticsPage() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </Box>
         </Box>
       </Card>
 
@@ -539,7 +920,8 @@ export default function AnalyticsPage() {
                 {['Month','Revenue','Orders','Avg / Order'].map((h, i) => (
                   <TableCell key={h} align={i > 0 ? 'right' : 'left'}
                     sx={{ fontWeight: 700, fontSize: 11, letterSpacing: 0.5, color: 'text.secondary',
-                      textTransform: 'uppercase', py: 1.5, borderColor: T.border }}>
+                      textTransform: 'uppercase', py: { xs: 1, sm: 1.5 }, px: { xs: 1.5, sm: 2 }, borderColor: T.border,
+                      display: h === 'Avg / Order' ? { xs: 'none', sm: 'table-cell' } : undefined }}>
                     {h}
                   </TableCell>
                 ))}
@@ -552,21 +934,26 @@ export default function AnalyticsPage() {
                   <TableRow key={row.label} hover
                     sx={{ bgcolor: isCurrentMonth ? `${T.red}06` : undefined,
                       '&:last-child td': { border: 0 } }}>
-                    <TableCell sx={{ fontSize: 13, fontWeight: isCurrentMonth ? 700 : 400,
-                      borderColor: T.border, color: isCurrentMonth ? T.red : undefined }}>
+                    <TableCell sx={{ fontSize: { xs: 12, sm: 13 }, fontWeight: isCurrentMonth ? 700 : 400,
+                      borderColor: T.border, color: isCurrentMonth ? T.red : undefined,
+                      px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.25 } }}>
                       {row.label}
                       {isCurrentMonth && (
-                        <Chip label="current" size="small"
+                        <Chip label="now" size="small"
                           sx={{ ml: 1, height: 16, fontSize: 10, bgcolor: T.redSoft, color: T.red }} />
                       )}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', borderColor: T.border }}>
+                    <TableCell align="right" sx={{ fontSize: { xs: 12, sm: 13 }, fontWeight: 600,
+                      fontVariantNumeric: 'tabular-nums', borderColor: T.border, px: { xs: 1.5, sm: 2 } }}>
                       {fmtUSD(row.revenue)}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', borderColor: T.border }}>
+                    <TableCell align="right" sx={{ fontSize: { xs: 12, sm: 13 },
+                      fontVariantNumeric: 'tabular-nums', borderColor: T.border, px: { xs: 1.5, sm: 2 } }}>
                       {row.orders}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: 'text.secondary', borderColor: T.border }}>
+                    <TableCell align="right" sx={{ fontSize: { xs: 12, sm: 13 },
+                      fontVariantNumeric: 'tabular-nums', color: 'text.secondary', borderColor: T.border,
+                      px: { xs: 1.5, sm: 2 }, display: { xs: 'none', sm: 'table-cell' } }}>
                       {row.orders > 0 ? fmtUSD(row.revenue / row.orders) : '—'}
                     </TableCell>
                   </TableRow>

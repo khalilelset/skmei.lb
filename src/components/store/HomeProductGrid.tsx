@@ -7,8 +7,18 @@ import { products as staticProducts } from '@/data/products';
 import type { Product } from '@/types';
 
 interface Props {
-  type: 'featured' | 'sale';
+  type: 'featured' | 'sale' | 'newest';
   count?: number;
+}
+
+function filterProducts(all: Product[], type: Props['type'], count: number): Product[] {
+  if (type === 'newest') {
+    return all.filter((p) => p.isNew).slice(0, count);
+  }
+  if (type === 'featured') {
+    return all.filter((p) => p.isBestseller || p.isNew).slice(0, count);
+  }
+  return all.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price));
 }
 
 export default function HomeProductGrid({ type, count = 8 }: Props) {
@@ -20,20 +30,11 @@ export default function HomeProductGrid({ type, count = 8 }: Props) {
       .then((r) => r.json())
       .then((data) => {
         const all: Product[] = Array.isArray(data) && data.length > 0 ? data : staticProducts;
-        const result =
-          type === 'featured'
-            ? all.filter((p) => p.isBestseller || p.isNew).slice(0, count)
-            : all.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price));
-        setProducts(result);
+        setProducts(filterProducts(all, type, count));
         setLoading(false);
       })
       .catch(() => {
-        const fallback = staticProducts;
-        setProducts(
-          type === 'featured'
-            ? fallback.filter((p) => p.isBestseller || p.isNew).slice(0, count)
-            : fallback.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price))
-        );
+        setProducts(filterProducts(staticProducts, type, count));
         setLoading(false);
       });
   }, [type, count]);

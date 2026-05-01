@@ -3,17 +3,43 @@ import { supabaseServer } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    const [ordersResult, itemsResult] = await Promise.all([
+    const [ordersResult, itemsResult, productsResult] = await Promise.all([
       supabaseServer
         .from('orders')
-        .select('id, total, status, address, created_at'),
+        .select('id, total, subtotal, discount, status, address, created_at, source'),
       supabaseServer
         .from('order_items')
-        .select('order_id, product_name, quantity, price, products:product_id(name, category)'),
+        .select('order_id, product_name, quantity, price, products:product_id(name, category, cost_price)'),
+      supabaseServer
+        .from('products')
+        .select('id, name, price, cost_price, category')
+        .not('cost_price', 'is', null),
     ]);
 
     const orders = ordersResult.data ?? [];
     const orderItems = itemsResult.data ?? [];
+    const productsData = productsResult.data ?? [];
+
+    // Discount ratio per order: (subtotal - discount) / subtotal — distributes coupon proportionally
+    const orderRatio: Record<string, number> = {};
+    orders.forEach((o) => {
+      const sub  = Number((o as Record<string, unknown>).subtotal ?? 0);
+      const disc = Number((o as Record<string, unknown>).discount ?? 0);
+      orderRatio[o.id as string] = sub > 0 && disc > 0 ? (sub - disc) / sub : 1;
+    });
+
+    // Pre-compute gross profit per order (sum over items, discount-adjusted)
+    const orderGrossProfit: Record<string, number> = {};
+    orderItems.forEach((item) => {
+      const prod = item.products as { cost_price?: number | null } | null;
+      const costPrice = prod?.cost_price != null ? Number(prod.cost_price) : null;
+      const qty = Number(item.quantity ?? 1);
+      const ratio = orderRatio[item.order_id as string] ?? 1;
+      const salePrice = Number(item.price ?? 0) * ratio;
+      const profit = costPrice != null ? (salePrice - costPrice) * qty : 0;
+      const oid = item.order_id as string;
+      orderGrossProfit[oid] = (orderGrossProfit[oid] ?? 0) + profit;
+    });
 
     const now = new Date();
 
@@ -23,28 +49,30 @@ export async function GET() {
     // Always include current year
     yearSet.add(now.getFullYear());
     const years = Array.from(yearSet).sort();
-    const annualMap: Record<number, { revenue: number; orders: number }> = {};
-    years.forEach((y) => { annualMap[y] = { revenue: 0, orders: 0 }; });
+    const annualMap: Record<number, { revenue: number; orders: number; grossProfit: number }> = {};
+    years.forEach((y) => { annualMap[y] = { revenue: 0, orders: 0, grossProfit: 0 }; });
     orders.forEach((o) => {
       const y = new Date(o.created_at).getFullYear();
       if (annualMap[y]) {
         annualMap[y].revenue += Number(o.total ?? 0);
         annualMap[y].orders  += 1;
+        annualMap[y].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
     });
     const annualRevenue = years.map((y) => ({
       label: String(y),
       revenue: round(annualMap[y].revenue),
       orders:  annualMap[y].orders,
+      grossProfit: round(annualMap[y].grossProfit),
     }));
 
     // ── Monthly Revenue & Orders — all months of current year (Jan–Dec) ──
     const currentYear = now.getFullYear();
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const monthlyMap: Record<string, { revenue: number; orders: number }> = {};
+    const monthlyMap: Record<string, { revenue: number; orders: number; grossProfit: number }> = {};
     MONTHS.forEach((_, i) => {
       const key = `${currentYear}-${String(i + 1).padStart(2, '0')}`;
-      monthlyMap[key] = { revenue: 0, orders: 0 };
+      monthlyMap[key] = { revenue: 0, orders: 0, grossProfit: 0 };
     });
     orders.forEach((o) => {
       const d = new Date(o.created_at);
@@ -53,11 +81,12 @@ export async function GET() {
       if (monthlyMap[key]) {
         monthlyMap[key].revenue += Number(o.total ?? 0);
         monthlyMap[key].orders  += 1;
+        monthlyMap[key].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
     });
     const monthlyRevenue = MONTHS.map((m, i) => {
       const key = `${currentYear}-${String(i + 1).padStart(2, '0')}`;
-      return { label: m, revenue: round(monthlyMap[key].revenue), orders: monthlyMap[key].orders };
+      return { label: m, revenue: round(monthlyMap[key].revenue), orders: monthlyMap[key].orders, grossProfit: round(monthlyMap[key].grossProfit) };
     });
 
     // ── Weekly Revenue & Orders — last 12 weeks ────────────────────────
@@ -87,19 +116,21 @@ export async function GET() {
         weekLabels.push(weekLabel(d));
       }
     }
-    const weeklyMap: Record<string, { revenue: number; orders: number }> = {};
-    weekKeys.forEach((k) => { weeklyMap[k] = { revenue: 0, orders: 0 }; });
+    const weeklyMap: Record<string, { revenue: number; orders: number; grossProfit: number }> = {};
+    weekKeys.forEach((k) => { weeklyMap[k] = { revenue: 0, orders: 0, grossProfit: 0 }; });
     orders.forEach((o) => {
       const k = isoWeek(new Date(o.created_at));
       if (weeklyMap[k]) {
         weeklyMap[k].revenue += Number(o.total ?? 0);
         weeklyMap[k].orders  += 1;
+        weeklyMap[k].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
     });
     const weeklyRevenue = weekKeys.map((k, i) => ({
       label: weekLabels[i],
       revenue: round(weeklyMap[k].revenue),
       orders:  weeklyMap[k].orders,
+      grossProfit: round(weeklyMap[k].grossProfit),
     }));
 
     // ── Daily Revenue & Orders — day 1 to today of current month ──────
@@ -111,20 +142,22 @@ export async function GET() {
       dayKeys.push(key);
       dayLabels.push(String(d)); // just the day number: 1, 2, 3 …
     }
-    const dailyMap: Record<string, { revenue: number; orders: number }> = {};
-    dayKeys.forEach((k) => { dailyMap[k] = { revenue: 0, orders: 0 }; });
+    const dailyMap: Record<string, { revenue: number; orders: number; grossProfit: number }> = {};
+    dayKeys.forEach((k) => { dailyMap[k] = { revenue: 0, orders: 0, grossProfit: 0 }; });
     orders.forEach((o) => {
       const d = new Date(o.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (dailyMap[key]) {
         dailyMap[key].revenue += Number(o.total ?? 0);
         dailyMap[key].orders  += 1;
+        dailyMap[key].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
     });
     const dailyRevenue = dayKeys.map((k, i) => ({
       label: dayLabels[i],
       revenue: round(dailyMap[k].revenue),
       orders:  dailyMap[k].orders,
+      grossProfit: round(dailyMap[k].grossProfit),
     }));
 
     // KPI month map still uses current year months for this/last month comparison
@@ -196,14 +229,16 @@ export async function GET() {
 
     // ── KPIs ───────────────────────────────────────────────────────────
     const totalRevenue = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+    const totalGrossProfit = Object.values(orderGrossProfit).reduce((s, v) => s + v, 0);
+    const grossMargin = totalRevenue > 0 ? (totalGrossProfit / totalRevenue) * 100 : 0;
     const totalOrders = orders.length;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     const deliveredCount = orders.filter((o) => o.status === 'delivered').length;
     const deliveryRate = totalOrders > 0 ? (deliveredCount / totalOrders) * 100 : 0;
     const topCategory = categoryBreakdown[0]?.category ?? '-';
 
-    const thisMonth = monthlyMap[nowMonthKey]  ?? { revenue: 0, orders: 0 };
-    const lastMonth = monthlyMap[prevMonthKey] ?? { revenue: 0, orders: 0 };
+    const thisMonth = monthlyMap[nowMonthKey]  ?? { revenue: 0, orders: 0, grossProfit: 0 };
+    const lastMonth = monthlyMap[prevMonthKey] ?? { revenue: 0, orders: 0, grossProfit: 0 };
 
     const revenueChange =
       lastMonth.revenue > 0
@@ -214,6 +249,107 @@ export async function GET() {
         ? round(((thisMonth.orders - lastMonth.orders) / lastMonth.orders) * 100)
         : null;
 
+    // ── Period breakdown (week / month / year) ────────────────────────
+    const thisWeekKey = weekKeys[weekKeys.length - 1] ?? '';
+    const lastWeekKey = weekKeys[weekKeys.length - 2] ?? '';
+
+    const thisWeekRevenue = round(weeklyMap[thisWeekKey]?.revenue ?? 0);
+    const lastWeekRevenue = round(weeklyMap[lastWeekKey]?.revenue ?? 0);
+    const thisWeekOrders  = weeklyMap[thisWeekKey]?.orders ?? 0;
+    const lastWeekOrders  = weeklyMap[lastWeekKey]?.orders ?? 0;
+    const thisWeekGP      = weeklyMap[thisWeekKey]?.grossProfit ?? 0;
+    const lastWeekGP      = weeklyMap[lastWeekKey]?.grossProfit ?? 0;
+    const weekRevenueChange = lastWeekRevenue > 0 ? round(((thisWeekRevenue - lastWeekRevenue) / lastWeekRevenue) * 100) : null;
+    const weekOrdersChange  = lastWeekOrders  > 0 ? round(((thisWeekOrders  - lastWeekOrders)  / lastWeekOrders)  * 100) : null;
+    const weekGPChange      = lastWeekGP      > 0 ? round(((thisWeekGP      - lastWeekGP)      / lastWeekGP)      * 100) : null;
+
+    const thisMonthGP   = thisMonth.grossProfit ?? 0;
+    const lastMonthGP   = lastMonth.grossProfit ?? 0;
+    const monthGPChange = lastMonthGP > 0 ? round(((thisMonthGP - lastMonthGP) / lastMonthGP) * 100) : null;
+
+    const prevYear      = currentYear - 1;
+    const thisYearRevenue = round(annualMap[currentYear]?.revenue ?? 0);
+    const lastYearRevenue = round(annualMap[prevYear]?.revenue ?? 0);
+    const thisYearOrders  = annualMap[currentYear]?.orders ?? 0;
+    const lastYearOrders  = annualMap[prevYear]?.orders ?? 0;
+    const thisYearGP    = annualMap[currentYear]?.grossProfit ?? 0;
+    const lastYearGP    = annualMap[prevYear]?.grossProfit ?? 0;
+    const yearRevenueChange = lastYearRevenue > 0 ? round(((thisYearRevenue - lastYearRevenue) / lastYearRevenue) * 100) : null;
+    const yearOrdersChange  = lastYearOrders  > 0 ? round(((thisYearOrders  - lastYearOrders)  / lastYearOrders)  * 100) : null;
+    const yearGPChange      = lastYearGP      > 0 ? round(((thisYearGP      - lastYearGP)      / lastYearGP)      * 100) : null;
+
+    // ── Per-Unit Profit from Products Table ───────────────────────────────
+    const productUnitProfit = productsData
+      .map((p) => {
+        const sp = Number(p.price ?? 0);
+        const cp = Number(p.cost_price ?? 0);
+        const nm = p.name as string;
+        return {
+          name: nm.length > 28 ? nm.slice(0, 26) + '…' : nm,
+          fullName: nm,
+          salePrice: sp,
+          costPrice: cp,
+          unitProfit: round(sp - cp),
+          margin: sp > 0 ? Math.round(((sp - cp) / sp) * 1000) / 10 : 0,
+          category: (p.category as string) ?? 'other',
+        };
+      })
+      .filter((p) => p.unitProfit > 0)
+      .sort((a, b) => b.unitProfit - a.unitProfit)
+      .slice(0, 15);
+
+    // ── Per-Product Profit from Orders ────────────────────────────────────
+    const websiteOrderIds = new Set(
+      orders
+        .filter((o) => ((o as Record<string, unknown>).source as string | null ?? 'website') === 'website')
+        .map((o) => o.id as string)
+    );
+
+    const prodAllMap: Record<string, { name: string; qty: number; gp: number; rev: number; cat: string }> = {};
+    const prodWebMap: Record<string, { name: string; qty: number; gp: number; rev: number; cat: string }> = {};
+
+    orderItems.forEach((item) => {
+      const prod  = item.products as { cost_price?: number | null; category?: string } | null;
+      const cp    = prod?.cost_price != null ? Number(prod.cost_price) : null;
+      const qty   = Number(item.quantity ?? 1);
+      const oid   = item.order_id as string;
+      const ratio = orderRatio[oid] ?? 1;
+      const sp    = Number(item.price ?? 0) * ratio;
+      const gp    = cp != null ? (sp - cp) * qty : 0;
+      const rev   = sp * qty;
+      const nm    = (item.product_name as string) ?? 'Unknown';
+      const cat   = prod?.category ?? 'other';
+
+      if (!prodAllMap[nm]) prodAllMap[nm] = { name: nm, qty: 0, gp: 0, rev: 0, cat };
+      prodAllMap[nm].qty += qty;
+      prodAllMap[nm].gp  += gp;
+      prodAllMap[nm].rev += rev;
+
+      if (websiteOrderIds.has(oid)) {
+        if (!prodWebMap[nm]) prodWebMap[nm] = { name: nm, qty: 0, gp: 0, rev: 0, cat };
+        prodWebMap[nm].qty += qty;
+        prodWebMap[nm].gp  += gp;
+        prodWebMap[nm].rev += rev;
+      }
+    });
+
+    const toOrderProfitArr = (map: typeof prodAllMap) =>
+      Object.values(map)
+        .filter((p) => p.gp > 0)
+        .sort((a, b) => b.gp - a.gp)
+        .slice(0, 15)
+        .map((p) => ({
+          name: p.name.length > 28 ? p.name.slice(0, 26) + '…' : p.name,
+          fullName: p.name,
+          quantity: p.qty,
+          grossProfit: round(p.gp),
+          revenue: round(p.rev),
+          category: p.cat,
+        }));
+
+    const productOrderProfit   = toOrderProfitArr(prodAllMap);
+    const productWebsiteProfit = toOrderProfitArr(prodWebMap);
+
     return NextResponse.json({
       annualRevenue,
       monthlyRevenue,
@@ -223,8 +359,23 @@ export async function GET() {
       topProducts,
       statusBreakdown,
       regionBreakdown,
+      productUnitProfit,
+      productOrderProfit,
+      productWebsiteProfit,
       kpis: {
         totalRevenue: round(totalRevenue),
+        totalGrossProfit: round(totalGrossProfit),
+        grossMargin: Math.round(grossMargin * 10) / 10,
+        // week
+        thisWeekRevenue, lastWeekRevenue, weekRevenueChange,
+        thisWeekOrders,  lastWeekOrders,  weekOrdersChange,
+        thisWeekGrossProfit: round(thisWeekGP), lastWeekGrossProfit: round(lastWeekGP), weekGPChange,
+        // month
+        thisMonthGrossProfit: round(thisMonthGP), lastMonthGrossProfit: round(lastMonthGP), monthGPChange,
+        // year
+        thisYearRevenue, lastYearRevenue, yearRevenueChange,
+        thisYearOrders,  lastYearOrders,  yearOrdersChange,
+        thisYearGrossProfit: round(thisYearGP), lastYearGrossProfit: round(lastYearGP), yearGPChange,
         avgOrderValue: round(avgOrderValue),
         topCategory,
         deliveryRate: Math.round(deliveryRate * 10) / 10,

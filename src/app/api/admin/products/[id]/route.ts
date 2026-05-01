@@ -16,6 +16,7 @@ export async function PATCH(
     if (body.slug !== undefined) update.slug = body.slug;
     if (body.description !== undefined) update.description = body.description;
     if (body.price !== undefined) update.price = Number(body.price);
+    if (body.costPrice !== undefined) update.cost_price = body.costPrice != null && body.costPrice !== '' ? Number(body.costPrice) : null;
     if (body.originalPrice !== undefined) update.original_price = body.originalPrice ? Number(body.originalPrice) : null;
     if (body.images !== undefined) update.images = body.images;
     if (body.category !== undefined) update.category = body.category;

@@ -36,6 +36,7 @@ interface RecentOrder {
 
 interface StatsData {
   totalRevenue: number;
+  totalGrossProfit: number;
   totalOrders: number;
   totalCustomers: number;
   totalProducts: number;
@@ -127,6 +128,15 @@ export default function AdminDashboard() {
             </Grid>
             <Grid size={{ xs: 6, lg: 3 }}>
               <StatsCard
+                title="Total Gross Profit"
+                value={formatPrice(stats.totalGrossProfit)}
+                icon={<TrendingUp sx={{ fontSize: 28 }} />}
+                iconBgColor="rgba(16, 185, 129, 0.1)"
+                iconColor="#10B981"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, lg: 3 }}>
+              <StatsCard
                 title="Total Orders"
                 value={stats.totalOrders}
                 icon={<OrdersIcon sx={{ fontSize: 28 }} />}
@@ -155,7 +165,7 @@ export default function AdminDashboard() {
           </>
         ) : (
           <>
-            {[0, 1, 2, 3].map((i) => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <Grid key={i} size={{ xs: 6, lg: 3 }}>
                 <StatsCardSkeleton />
               </Grid>

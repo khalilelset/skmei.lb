@@ -386,7 +386,8 @@ export default function ProductDetailClient({ slug }: Props) {
                           src={image}
                           alt={`${product.name} ${index + 1}`}
                           fill
-                          className="object-cover"
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          className="object-contain"
                           priority={index === 0}
                         />
                       </motion.div>

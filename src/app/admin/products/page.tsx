@@ -54,7 +54,7 @@ const emptySpecs = {
 };
 
 const emptyForm = {
-  name: '', slug: '', description: '', price: '', originalPrice: '',
+  name: '', slug: '', description: '', price: '', costPrice: '', originalPrice: '',
   category: 'digital', stock: '', images: [] as string[],
   features: [] as string[],
   videoUrl: '',
@@ -131,6 +131,7 @@ export default function ProductsPage() {
       slug: product.slug,
       description: product.description ?? '',
       price: String(product.price),
+      costPrice: product.costPrice ? String(product.costPrice) : '',
       originalPrice: product.originalPrice ? String(product.originalPrice) : '',
       category: product.category,
       stock: String(product.stock),
@@ -218,6 +219,7 @@ export default function ProductsPage() {
       slug: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'),
       description: form.description,
       price: parseFloat(form.price) || 0,
+      costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
       originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : undefined,
       category: form.category,
       sku: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'),
@@ -417,7 +419,8 @@ export default function ProductsPage() {
             {[
               { label: 'Product Name *', key: 'name' },
               { label: 'Slug (auto-generated if empty)', key: 'slug' },
-              { label: 'Price ($) *', key: 'price', type: 'number' },
+              { label: 'Sale Price ($) *', key: 'price', type: 'number' },
+              { label: 'My Cost Price ($)', key: 'costPrice', type: 'number' },
               { label: 'Original Price ($)', key: 'originalPrice', type: 'number' },
               { label: 'Stock *', key: 'stock', type: 'number' },
             ].map(({ label, key, type }) => (
@@ -429,6 +432,36 @@ export default function ProductsPage() {
                 />
               </Grid>
             ))}
+            {/* Live gross profit hint */}
+            {form.price && form.costPrice && parseFloat(form.price) > 0 && parseFloat(form.costPrice) > 0 && (() => {
+              const sale = parseFloat(form.price);
+              const cost = parseFloat(form.costPrice);
+              const profit = sale - cost;
+              const margin = (profit / sale) * 100;
+              const isGood = margin >= 0;
+              return (
+                <Grid size={12}>
+                  <Box sx={{
+                    display: 'flex', gap: 3, p: 1.5, borderRadius: 2,
+                    bgcolor: isGood ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+                    border: `1px solid ${isGood ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                  }}>
+                    <Box>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Gross Profit</Typography>
+                      <Typography sx={{ fontWeight: 700, color: isGood ? '#10B981' : '#EF4444', fontSize: 15 }}>
+                        ${profit.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Margin</Typography>
+                      <Typography sx={{ fontWeight: 700, color: isGood ? '#10B981' : '#EF4444', fontSize: 15 }}>
+                        {margin.toFixed(1)}%
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              );
+            })()}
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth size="small" select label="Category" value={form.category}

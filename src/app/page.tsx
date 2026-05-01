@@ -235,15 +235,15 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 sm:mb-12">
             <SectionHeader
-              label="Curated Selection"
-              title="Featured Watches"
-              subtitle="Handpicked selections from our best-selling collection"
+              label="Just Arrived"
+              title="New Arrivals"
+              subtitle="The latest additions to our collection — fresh styles just in"
               align="left"
               light
             />
           </div>
 
-          <HomeProductGrid type="featured" count={8} />
+          <HomeProductGrid type="newest" count={8} />
 
           <div className="mt-10 flex justify-center">
             <Link

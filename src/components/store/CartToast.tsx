@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { ShoppingCart, X, Check } from 'lucide-react';
 import { useToastStore, CartToastData } from '@/store/toastStore';
+import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 
 const DURATION = 3500;
@@ -12,6 +12,7 @@ const DURATION = 3500;
 function ToastItem({ toast, onDismiss }: { toast: CartToastData; onDismiss: () => void }) {
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(100);
+  const { openCart } = useCartStore();
 
   useEffect(() => {
     // Trigger enter animation
@@ -99,14 +100,13 @@ function ToastItem({ toast, onDismiss }: { toast: CartToastData; onDismiss: () =
         </div>
 
         {/* View Cart CTA */}
-        <Link
-          href="/store/cart"
-          onClick={handleDismiss}
+        <button
+          onClick={() => { handleDismiss(); openCart(); }}
           className="flex items-center justify-center gap-2 w-full bg-brand-red hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95"
         >
           <ShoppingCart className="w-4 h-4" />
           View Cart
-        </Link>
+        </button>
       </div>
 
       {/* Progress bar */}
