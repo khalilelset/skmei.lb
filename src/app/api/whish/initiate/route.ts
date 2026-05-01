@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { sendOrderEmails } from '@/lib/email';
 
-const WHISH_BASE    = 'https://api.whish.money/itel-service/api';
-const WHISH_CHANNEL = process.env.WHISH_CHANNEL!;
+const CODNLOC_URL   = 'https://pay.codnloc.com/api.php';
 const WHISH_SECRET  = process.env.WHISH_SECRET!;
 const WHISH_WEBSITE = process.env.WHISH_WEBSITE_URL!;
 const SITE_URL      = process.env.NEXT_PUBLIC_SITE_URL!;
@@ -128,24 +127,22 @@ export async function POST(req: NextRequest) {
     }));
     await supabaseServer.from('order_items').insert(orderItems);
 
-    // ── 4. Build Whish payload ───────────────────────────────────────────
-    const externalId = Date.now();
+    // ── 4. Build codnloc/Whish payload ──────────────────────────────────
     const callbackBase = `${SITE_URL}/api/whish/callback?orderId=${order.id}`;
 
-    const whishPayload = {
-      amount:             total,
-      currency:           'USD',
-      invoice:            order.id,
-      externalId,
-      successCallbackUrl: `${callbackBase}&type=success`,
-      failureCallbackUrl: `${callbackBase}&type=failure`,
-      successRedirectUrl: `${SITE_URL}/store/checkout/payment/success?orderId=${order.id}`,
-      failureRedirectUrl: `${SITE_URL}/store/checkout/payment/failed?orderId=${order.id}`,
-    };
+    const formBody = new URLSearchParams({
+      website:             WHISH_WEBSITE,
+      secret:              WHISH_SECRET,
+      order_id:            String(order.id),
+      amount:              String(total),
+      currency:            'USD',
+      success_url:         `${SITE_URL}/store/checkout/payment/success?orderId=${order.id}`,
+      failure_url:         `${SITE_URL}/store/checkout/payment/failed?orderId=${order.id}`,
+      success_callback:    `${callbackBase}&type=success`,
+      failure_callback:    `${callbackBase}&type=failure`,
+    });
 
-    // ── 5. Call Whish API ────────────────────────────────────────────────
-    // Auth is header-based (no separate login endpoint).
-    // Only works in production where websiteUrl matches the registered merchant domain.
+    // ── 5. Call codnloc proxy API ────────────────────────────────────────
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 12_000);
 
@@ -153,27 +150,20 @@ export async function POST(req: NextRequest) {
     let whishErrorDetail = '';
 
     try {
-      const whishRes = await fetch(`${WHISH_BASE}/payment/whish`, {
+      const whishRes = await fetch(CODNLOC_URL, {
         method: 'POST',
         signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'channel':      WHISH_CHANNEL,
-          'secret':       WHISH_SECRET,
-          'websiteUrl':   WHISH_WEBSITE,
-          'User-Agent':   'Whish/1.0 (https://whish.money; support@whish.money)',
-        },
-        body: JSON.stringify(whishPayload),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody.toString(),
       });
       clearTimeout(timeoutId);
 
       const rawBody = await whishRes.text();
-      console.log('[whish/payment] status:', whishRes.status, 'body:', rawBody);
+      console.log('[codnloc/payment] status:', whishRes.status, 'body:', rawBody);
 
       const parsed = JSON.parse(rawBody) as Record<string, unknown>;
-      if (parsed?.status === true) {
-        const data = parsed?.data as Record<string, unknown> | undefined;
-        collectUrl = (data?.collectUrl as string) ?? null;
+      if (parsed?.success === true && typeof parsed?.message === 'string') {
+        collectUrl = parsed.message;
       }
       if (!collectUrl) {
         whishErrorDetail = rawBody.slice(0, 300);
