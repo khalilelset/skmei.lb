@@ -39,6 +39,7 @@ export default function ProductDetailClient({ slug }: Props) {
   const [availableBoxes, setAvailableBoxes] = useState<Box[]>([]);
   const [selectedBox, setSelectedBox] = useState<Box | undefined>(undefined);
   const [boxImageLightbox, setBoxImageLightbox] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   const [stickyVisible, setStickyVisible] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -396,21 +397,31 @@ export default function ProductDetailClient({ slug }: Props) {
                     className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth aspect-square"
                     style={{ scrollbarWidth: "none" }}
                   >
-                    {product.images.map((image, index) => (
+                    {product.images.filter(Boolean).map((image, index) => (
                       <motion.div
                         key={index}
                         layoutId={`product-img-${index}`}
                         className="relative shrink-0 w-full aspect-square cursor-zoom-in"
                         onClick={() => { setSelectedImage(index); setLightboxOpen(true); }}
                       >
-                        <Image
-                          src={image}
-                          alt={`${product.name} ${index + 1}`}
-                          fill
-                          sizes="(max-width: 1024px) 100vw, 50vw"
-                          className="object-contain"
-                          priority={index === 0}
-                        />
+                        {failedImages.has(index) ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-white/20">
+                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-xs tracking-wide">Image unavailable</span>
+                          </div>
+                        ) : (
+                          <Image
+                            src={image}
+                            alt={`${product.name} ${index + 1}`}
+                            fill
+                            sizes="(max-width: 1024px) 100vw, 50vw"
+                            className="object-contain"
+                            priority={index === 0}
+                            onError={() => setFailedImages((prev) => new Set(prev).add(index))}
+                          />
+                        )}
                       </motion.div>
                     ))}
                   </div>
@@ -450,7 +461,7 @@ export default function ProductDetailClient({ slug }: Props) {
                 {/* Thumbnails */}
                 {product.images.length > 1 && (
                   <div className="flex gap-2.5 overflow-x-auto py-1">
-                    {product.images.map((image, index) => (
+                    {product.images.filter(Boolean).map((image, index) => (
                       <button
                         key={index}
                         onClick={() => scrollToImage(index)}
@@ -460,7 +471,21 @@ export default function ProductDetailClient({ slug }: Props) {
                             : "border-white/15 hover:border-brand-red/50 hover:scale-105"
                         }`}
                       >
-                        <Image src={image} alt={`${product.name} ${index + 1}`} fill className="object-cover" />
+                        {failedImages.has(index) ? (
+                          <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <Image
+                            src={image}
+                            alt={`${product.name} ${index + 1}`}
+                            fill
+                            className="object-cover"
+                            onError={() => setFailedImages((prev) => new Set(prev).add(index))}
+                          />
+                        )}
                       </button>
                     ))}
                   </div>
@@ -602,11 +627,9 @@ export default function ProductDetailClient({ slug }: Props) {
                   <div className="mb-3">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Box Option</span>
-                      {selectedBox && selectedBox.price > 0 && (
-                        <span className="text-[10px] font-bold text-brand-red bg-brand-red/10 border border-brand-red/20 px-2 py-0.5 rounded-full">
-                          +{formatPrice(selectedBox.price)} added
-                        </span>
-                      )}
+                      <span className={`text-[10px] font-bold text-brand-red bg-brand-red/10 border border-brand-red/20 px-2 py-0.5 rounded-full transition-opacity ${selectedBox && selectedBox.price > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                        +{formatPrice(selectedBox?.price ?? 0)} added
+                      </span>
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       {availableBoxes.map((box) => (
@@ -626,14 +649,14 @@ export default function ProductDetailClient({ slug }: Props) {
                               <>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={box.image} alt={box.code} className="w-full h-full object-cover" />
-                                {/* Fullscreen trigger */}
+                                {/* Fullscreen trigger — corner icon */}
                                 <div
                                   role="button"
                                   aria-label="View full screen"
                                   onClick={(e) => { e.stopPropagation(); setBoxImageLightbox(box.image); }}
-                                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 cursor-pointer"
+                                  className="absolute bottom-1 right-1 w-6 h-6 rounded-md bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/80"
                                 >
-                                  <svg className="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                   </svg>
                                 </div>

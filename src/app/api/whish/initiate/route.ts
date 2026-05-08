@@ -192,10 +192,8 @@ export async function POST(req: NextRequest) {
 
     if (!collectUrl) {
       console.error('[whish/initiate] aborting. detail:', whishErrorDetail);
-      await supabaseServer
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', order.id);
+      await supabaseServer.from('order_items').delete().eq('order_id', order.id);
+      await supabaseServer.from('orders').delete().eq('id', order.id);
       return NextResponse.json(
         { error: `Payment gateway error: ${whishErrorDetail || 'unknown'}` },
         { status: 502 }

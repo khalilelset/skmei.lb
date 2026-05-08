@@ -38,15 +38,23 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-white/5">
-          {!imgLoaded && <div className="skeleton-shimmer absolute inset-0 z-10" />}
-          <Image
-            src={product.images[0]}
-            alt={product.name}
-            fill
-            className={`object-cover group-hover:scale-110 transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            onLoad={() => setImgLoaded(true)}
-          />
+          {product.images[0] ? (
+            <>
+              {!imgLoaded && <div className="skeleton-shimmer absolute inset-0 z-10" />}
+              <Image
+                src={product.images[0]}
+                alt={product.name}
+                fill
+                className={`object-cover group-hover:scale-110 transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                onLoad={() => setImgLoaded(true)}
+              />
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ShoppingCart className="w-10 h-10 text-white/10" />
+            </div>
+          )}
 
           {/* Badges */}
           <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5 sm:gap-2 z-20">

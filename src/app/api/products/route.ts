@@ -9,7 +9,9 @@ function mapProduct(row: Record<string, unknown>) {
     description: row.description,
     price: Number(row.price),
     originalPrice: row.original_price ? Number(row.original_price) : undefined,
-    images: row.images,
+    images: Array.isArray(row.images)
+      ? (row.images as unknown[]).filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+      : [],
     category: row.category,
     brand: row.brand,
     sku: row.sku,

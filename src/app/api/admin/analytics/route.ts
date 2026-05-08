@@ -6,7 +6,8 @@ export async function GET() {
     const [ordersResult, itemsResult, productsResult] = await Promise.all([
       supabaseServer
         .from('orders')
-        .select('id, total, subtotal, discount, status, address, created_at, source'),
+        .select('id, total, subtotal, shipping, discount, status, address, created_at, source')
+        .not('status', 'in', '("pending_payment","cancelled")'),
       supabaseServer
         .from('order_items')
         .select('order_id, product_name, quantity, price, products:product_id(name, category, cost_price)'),
@@ -19,6 +20,12 @@ export async function GET() {
     const orders = ordersResult.data ?? [];
     const orderItems = itemsResult.data ?? [];
     const productsData = productsResult.data ?? [];
+
+    // Revenue per order = total minus shipping (exclude delivery cost)
+    const orderRevenue: Record<string, number> = {};
+    orders.forEach((o) => {
+      orderRevenue[o.id as string] = Number(o.total ?? 0) - Number((o as Record<string, unknown>).shipping ?? 0);
+    });
 
     // Discount ratio per order: (subtotal - discount) / subtotal — distributes coupon proportionally
     const orderRatio: Record<string, number> = {};
@@ -54,7 +61,7 @@ export async function GET() {
     orders.forEach((o) => {
       const y = new Date(o.created_at).getFullYear();
       if (annualMap[y]) {
-        annualMap[y].revenue += Number(o.total ?? 0);
+        annualMap[y].revenue += orderRevenue[o.id as string] ?? 0;
         annualMap[y].orders  += 1;
         annualMap[y].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
@@ -79,7 +86,7 @@ export async function GET() {
       if (d.getFullYear() !== currentYear) return;
       const key = `${currentYear}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (monthlyMap[key]) {
-        monthlyMap[key].revenue += Number(o.total ?? 0);
+        monthlyMap[key].revenue += orderRevenue[o.id as string] ?? 0;
         monthlyMap[key].orders  += 1;
         monthlyMap[key].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
@@ -121,7 +128,7 @@ export async function GET() {
     orders.forEach((o) => {
       const k = isoWeek(new Date(o.created_at));
       if (weeklyMap[k]) {
-        weeklyMap[k].revenue += Number(o.total ?? 0);
+        weeklyMap[k].revenue += orderRevenue[o.id as string] ?? 0;
         weeklyMap[k].orders  += 1;
         weeklyMap[k].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
@@ -148,7 +155,7 @@ export async function GET() {
       const d = new Date(o.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (dailyMap[key]) {
-        dailyMap[key].revenue += Number(o.total ?? 0);
+        dailyMap[key].revenue += orderRevenue[o.id as string] ?? 0;
         dailyMap[key].orders  += 1;
         dailyMap[key].grossProfit += orderGrossProfit[o.id as string] ?? 0;
       }
@@ -220,7 +227,7 @@ export async function GET() {
         'Unknown';
       if (!regionMap[region]) regionMap[region] = { count: 0, revenue: 0 };
       regionMap[region].count += 1;
-      regionMap[region].revenue += Number(o.total ?? 0);
+      regionMap[region].revenue += orderRevenue[o.id as string] ?? 0;
     });
     const regionBreakdown = Object.entries(regionMap)
       .map(([region, d]) => ({ region, count: d.count, revenue: round(d.revenue) }))
@@ -228,7 +235,7 @@ export async function GET() {
       .slice(0, 10);
 
     // ── KPIs ───────────────────────────────────────────────────────────
-    const totalRevenue = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+    const totalRevenue = orders.reduce((s, o) => s + (orderRevenue[o.id as string] ?? 0), 0);
     const totalGrossProfit = Object.values(orderGrossProfit).reduce((s, v) => s + v, 0);
     const grossMargin = totalRevenue > 0 ? (totalGrossProfit / totalRevenue) * 100 : 0;
     const totalOrders = orders.length;

@@ -13,9 +13,10 @@ export async function GET(req: NextRequest) {
   try {
     const { data: orders } = await supabaseServer
       .from('orders')
-      .select('id, total, subtotal, discount, status')
+      .select('id, total, subtotal, shipping, discount, status')
       .gte('created_at', `${from}T00:00:00.000Z`)
-      .lte('created_at', `${to}T23:59:59.999Z`);
+      .lte('created_at', `${to}T23:59:59.999Z`)
+      .not('status', 'in', '("pending_payment","cancelled")');
 
     const safeOrders = orders ?? [];
     const orderIds   = safeOrders.map((o) => o.id as string);
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
     let deliveredCount   = 0;
 
     for (const o of safeOrders) {
-      totalRevenue += Number(o.total ?? 0);
+      totalRevenue += Number(o.total ?? 0) - Number((o as Record<string,unknown>).shipping ?? 0);
       if (o.status === 'delivered') deliveredCount++;
     }
 

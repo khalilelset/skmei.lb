@@ -12,13 +12,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid orderId' }, { status: 400 });
   }
 
-  const newStatus = type === 'success' ? 'confirmed' : 'cancelled';
-
-  await supabaseServer
-    .from('orders')
-    .update({ status: newStatus })
-    .eq('id', orderId)
-    .eq('status', 'pending_payment'); // idempotent: only act on orders still pending
+  if (type === 'success') {
+    await supabaseServer
+      .from('orders')
+      .update({ status: 'confirmed' })
+      .eq('id', orderId)
+      .eq('status', 'pending_payment');
+  } else {
+    // Payment failed — remove the order entirely so no trace is left
+    await supabaseServer.from('order_items').delete().eq('order_id', orderId);
+    await supabaseServer
+      .from('orders')
+      .delete()
+      .eq('id', orderId)
+      .eq('status', 'pending_payment'); // only delete if still pending, never touch confirmed orders
+  }
 
   return NextResponse.json({ ok: true });
 }

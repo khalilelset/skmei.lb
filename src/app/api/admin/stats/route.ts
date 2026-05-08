@@ -3,14 +3,15 @@ import { supabaseServer } from '@/lib/supabase/server';
 
 export async function GET() {
   const [ordersResult, productsResult, orderItemsResult] = await Promise.all([
-    supabaseServer.from('orders').select('id, total, subtotal, discount, customer_phone, created_at'),
+    supabaseServer.from('orders').select('id, total, subtotal, shipping, discount, customer_phone, created_at')
+      .not('status', 'in', '("pending_payment","cancelled")'),
     supabaseServer.from('products').select('id', { count: 'exact', head: true }),
     supabaseServer.from('order_items').select('order_id, price, quantity, products:product_id(cost_price)'),
   ]);
 
   const orders = ordersResult.data ?? [];
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
+  const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total) - Number((o as Record<string,unknown>).shipping ?? 0), 0);
   const totalProducts = productsResult.count ?? 0;
 
   // Discount ratio per order: (subtotal - discount) / subtotal
