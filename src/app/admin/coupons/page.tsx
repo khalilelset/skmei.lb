@@ -190,7 +190,7 @@ export default function CouponsPage() {
       {/* Create Coupon Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>New Coupon</Typography>
+          <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>New Coupon</Typography>
           <Button onClick={() => setDialogOpen(false)} sx={{ minWidth: 'auto', color: 'text.secondary' }}>
             <CloseIcon />
           </Button>

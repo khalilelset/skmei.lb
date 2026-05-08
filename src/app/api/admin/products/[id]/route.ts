@@ -29,6 +29,7 @@ export async function PATCH(
     if (body.isNew !== undefined) update.is_new = body.isNew;
     if (body.onSale !== undefined) update.on_sale = body.onSale;
     if (body.isBestseller !== undefined) update.is_bestseller = body.isBestseller;
+    if (body.isCouple !== undefined) update.is_couple = body.isCouple;
     if (body.gender !== undefined) update.gender = body.gender ?? null;
     if (body.colors !== undefined) update.colors = body.colors ?? [];
     if (body.rating !== undefined) update.rating = Number(body.rating);

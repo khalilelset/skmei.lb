@@ -68,8 +68,13 @@ export default function WhatsAppCheckoutPage() {
     msg += `📱 Phone: ${formData.phone}\n\n\n`;
     msg += `*Order Items:*\n\n\n`;
     items.forEach((item, index) => {
+      const itemPrice = item.product.price + (item.selectedBox?.price ?? 0);
       msg += `${index + 1}. ${item.product.name}\n`;
-      msg += `   • Qty: ${item.quantity} × ${formatPrice(item.product.price)} = ${formatPrice(item.product.price * item.quantity)}\n\n\n`;
+      msg += `   • Qty: ${item.quantity} × ${formatPrice(itemPrice)} = ${formatPrice(itemPrice * item.quantity)}\n`;
+      if (item.selectedBox && item.selectedBox.price > 0) {
+        msg += `   📦 Box: ${item.selectedBox.code} (+${formatPrice(item.selectedBox.price)})\n`;
+      }
+      msg += `\n\n`;
     });
     msg += `*Order Summary:*\n\n`;
     msg += `Subtotal: ${formatPrice(subtotal)}\n`;
@@ -93,9 +98,12 @@ export default function WhatsAppCheckoutPage() {
     const orderItems = items.map((item) => ({
       id: item.product.id,
       name: item.product.name,
-      price: item.product.price,
+      price: item.product.price + (item.selectedBox?.price ?? 0),
       quantity: item.quantity,
       image: item.product.images[0] ?? null,
+      box: item.selectedBox
+        ? { code: item.selectedBox.code, type: item.selectedBox.type, price: item.selectedBox.price }
+        : null,
     }));
 
     fetch('/api/orders', {

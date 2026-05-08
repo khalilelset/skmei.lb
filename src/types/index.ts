@@ -25,6 +25,7 @@ export interface Product {
   isBestseller?: boolean;
   isFeatured?: boolean;
   gender?: 'men' | 'women' | 'unisex';
+  isCouple?: boolean;
   colors?: ProductColor[];
   rating: number;
   reviewCount: number;
@@ -53,10 +54,22 @@ export interface Category {
   productCount: number;
 }
 
+// Box Types
+export interface Box {
+  id: string;
+  code: string;
+  type: 'standard' | 'gift';
+  price: number;
+  image: string;
+  brandId: string | null;
+  createdAt: string;
+}
+
 // Cart Types
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedBox?: Box;
 }
 
 export interface Cart {
@@ -158,4 +171,5 @@ export interface ProductFilters {
   sortBy?: "price-asc" | "price-desc" | "newest" | "popular";
   search?: string;
   brands?: string[];
+  coupleOnly?: boolean;
 }

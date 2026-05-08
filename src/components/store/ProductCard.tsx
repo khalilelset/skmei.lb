@@ -55,6 +55,9 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {product.brand}
               </span>
             )}
+            {product.isCouple && (
+              <span className="bg-pink-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">SET OF 2</span>
+            )}
             {product.isNew && (
               <span className="bg-brand-red text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full shadow-lg">NEW</span>
             )}
@@ -90,21 +93,19 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
 
           {/* Star Rating */}
-          {product.rating > 0 && (
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className="w-3 h-3 sm:w-3.5 sm:h-3.5"
-                    fill={s <= Math.round(product.rating) ? '#DC2626' : 'transparent'}
-                    stroke={s <= Math.round(product.rating) ? '#DC2626' : '#d1d5db'}
-                  />
-                ))}
-              </div>
-              <span className="text-[10px] sm:text-xs text-gray-400">({product.reviewCount})</span>
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  className="w-3 h-3 sm:w-3.5 sm:h-3.5"
+                  fill={s <= Math.round(product.rating ?? 0) ? '#DC2626' : 'transparent'}
+                  stroke={s <= Math.round(product.rating ?? 0) ? '#DC2626' : '#d1d5db'}
+                />
+              ))}
             </div>
-          )}
+            <span className="text-[10px] sm:text-xs text-gray-400">({product.reviewCount ?? 0})</span>
+          </div>
 
           {/* Price */}
           <div className="flex items-center justify-between gap-2">
@@ -140,22 +141,25 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Add to Cart */}
           {product.stock > 0 ? (
             <>
+              <p className={`text-[10px] sm:text-xs text-orange-400 font-medium mt-2 ${product.stock <= 3 ? 'visible' : 'invisible'}`}>
+                Only {product.stock} left!
+              </p>
               <button
                 onClick={handleAddToCart}
-                className="w-full mt-3 bg-brand-red text-white py-2 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm text-sm"
+                className="w-full mt-2 bg-brand-red text-white py-2 rounded-lg font-medium hover:bg-brand-red-dark active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm text-sm"
                 aria-label={`Add ${product.name} to cart`}
               >
                 <ShoppingCart className="w-4 h-4" />
                 Add to Cart
               </button>
-              {product.stock < 10 && (
-                <p className="text-[10px] sm:text-xs text-orange-400 font-medium mt-2">Only {product.stock} left!</p>
-              )}
             </>
           ) : (
-            <div className="w-full mt-3 bg-white/6 border border-white/10 text-white/40 py-2 rounded-lg text-sm font-medium flex items-center justify-center cursor-not-allowed">
-              Out of Stock
-            </div>
+            <>
+              <p className="text-[10px] sm:text-xs mt-2 invisible">placeholder</p>
+              <div className="w-full mt-2 bg-white/6 border border-white/10 text-white/40 py-2 rounded-lg text-sm font-medium flex items-center justify-center cursor-not-allowed">
+                Out of Stock
+              </div>
+            </>
           )}
         </div>
       </div>

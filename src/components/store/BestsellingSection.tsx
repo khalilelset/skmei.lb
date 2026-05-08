@@ -184,10 +184,10 @@ export default function BestsellingSection({ products }: Props) {
         {/* View All Button */}
         <div className="mt-10 flex justify-center">
           <Link
-            href="/store/products?filter=bestselling"
+            href="/store/products"
             className="group inline-flex items-center gap-3 bg-white text-brand-black px-8 py-4 rounded-full font-bold text-sm sm:text-base hover:bg-brand-red hover:text-white transition-colors duration-300 shadow-lg"
           >
-            View All Bestsellers
+            View All Products
             <span className="w-7 h-7 rounded-full bg-brand-black/10 group-hover:bg-white/20 flex items-center justify-center group-hover:translate-x-0.5 transition-all duration-300">
               <ChevronRight className="w-4 h-4" />
             </span>

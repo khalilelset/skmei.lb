@@ -193,7 +193,7 @@ export default function BrandsPage() {
       {/* Add / Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>{editId ? 'Edit Brand' : 'Add Brand'}</Typography>
+          <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editId ? 'Edit Brand' : 'Add Brand'}</Typography>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent dividers>

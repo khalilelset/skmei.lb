@@ -6,7 +6,7 @@ import ProductCard from "@/components/store/ProductCard";
 import { SkeletonGrid } from "@/components/store/SkeletonProductCard";
 import { categories, products as staticProducts } from "@/data/products";
 import { Product, ProductFilters } from "@/types";
-import { SlidersHorizontal, X, ChevronDown, ChevronRight, Home } from "lucide-react";
+import { SlidersHorizontal, X, ChevronDown, ChevronRight, Home, Heart } from "lucide-react";
 import Link from "next/link";
 
 function ProductsContent() {
@@ -71,6 +71,7 @@ function ProductsContent() {
     if (filterParam === "new") result = result.filter((p) => p.isNew);
     if (filterParam === "sale") result = result.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price));
     if (filterParam === "bestselling" || featuredParam === "true") result = result.filter((p) => p.isBestseller);
+    if (filterParam === "couple" || filters.coupleOnly) result = result.filter((p) => p.isCouple);
     if (filters.brands && filters.brands.length > 0) result = result.filter((p) => filters.brands!.includes(p.brand));
     if (filters.gender) result = result.filter((p) => p.gender === filters.gender);
     if (filters.minPrice !== undefined) result = result.filter((p) => p.price >= filters.minPrice!);
@@ -93,6 +94,7 @@ function ProductsContent() {
     if (filterParam === "bestselling") return "Bestselling Watches";
     if (filterParam === "new") return "New Arrivals";
     if (filterParam === "sale") return "On Sale";
+    if (filterParam === "couple" || filters.coupleOnly) return "Couple Sets";
     if (filters.category) {
       const cat = categories.find((c) => c.slug === filters.category);
       return cat?.name || "All Watches";
@@ -100,7 +102,7 @@ function ProductsContent() {
     return "All Watches";
   };
 
-  const activeFilterCount = [filters.category, filters.gender, filters.minPrice, filters.maxPrice].filter(Boolean).length + (filters.brands?.length ?? 0);
+  const activeFilterCount = [filters.category, filters.gender, filters.minPrice, filters.maxPrice, filters.coupleOnly].filter(Boolean).length + (filters.brands?.length ?? 0);
 
   const sortOptions = [
     { value: "newest", label: "Newest First" },
@@ -198,7 +200,7 @@ function ProductsContent() {
                   Filters & Sort
                 </h3>
                 <button
-                  onClick={() => setFilters({ category: undefined, gender: undefined, brands: [], sortBy: "newest" })}
+                  onClick={() => setFilters({ category: undefined, gender: undefined, brands: [], sortBy: "newest", coupleOnly: undefined })}
                   className="text-xs text-brand-red font-semibold hover:underline transition-colors"
                 >
                   Clear all
@@ -314,6 +316,24 @@ function ProductsContent() {
 
                 <div className="border-t border-white/8" />
 
+                {/* Couple Sets */}
+                <div>
+                  <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-2">Labels</p>
+                  <button
+                    onClick={() => setFilters((f) => ({ ...f, coupleOnly: !f.coupleOnly }))}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
+                      filters.coupleOnly
+                        ? 'bg-pink-500/15 text-pink-400 font-semibold'
+                        : 'text-white/50 hover:bg-white/6 hover:text-white'
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 shrink-0 ${filters.coupleOnly ? 'fill-pink-400 text-pink-400' : 'text-white/30'}`} />
+                    Couple Sets
+                  </button>
+                </div>
+
+                <div className="border-t border-white/8" />
+
                 {/* Price Range */}
                 <div>
                   <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-2">Price Range</p>
@@ -382,7 +402,7 @@ function ProductsContent() {
                 <h3 className="text-xl font-black text-white mb-2">No products found</h3>
                 <p className="text-white/40 mb-6 text-sm">Try adjusting your filters or search terms</p>
                 <button
-                  onClick={() => setFilters({ category: undefined, gender: undefined, brands: [], sortBy: "newest" })}
+                  onClick={() => setFilters({ category: undefined, gender: undefined, brands: [], sortBy: "newest", coupleOnly: undefined })}
                   className="group relative inline-flex items-center gap-2 overflow-hidden bg-brand-red text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-brand-red-dark transition-colors"
                 >
                   <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
@@ -523,6 +543,22 @@ function ProductsContent() {
                 </div>
               </div>
 
+              {/* Couple Sets */}
+              <div>
+                <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-3">Labels</p>
+                <button
+                  onClick={() => updateDraft((f) => ({ ...f, coupleOnly: !f.coupleOnly }))}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    draftFilters.coupleOnly
+                      ? 'bg-pink-500 text-white shadow-md shadow-pink-500/25'
+                      : 'bg-white/6 text-white/50 border border-white/10 hover:border-pink-400 hover:text-pink-400'
+                  }`}
+                >
+                  <Heart className={`w-3.5 h-3.5 ${draftFilters.coupleOnly ? 'fill-white' : ''}`} />
+                  Couple Sets
+                </button>
+              </div>
+
               {/* Price Range */}
               <div>
                 <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-3">Price Range</p>
@@ -558,7 +594,7 @@ function ProductsContent() {
             <div className="shrink-0 border-t border-white/10 p-4 pb-safe flex gap-3 bg-[#111]">
               <button
                 onClick={() => {
-                  const reset: ProductFilters = { category: undefined, gender: undefined, brands: [], sortBy: "newest" };
+                  const reset: ProductFilters = { category: undefined, gender: undefined, brands: [], sortBy: "newest", coupleOnly: undefined };
                   setFilters(reset);
                   setDraftFilters(reset);
                   setIsDirty(false);

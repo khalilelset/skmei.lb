@@ -12,6 +12,7 @@ import {
   VolumeX,
   Maximize,
   X,
+  Heart,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
@@ -20,7 +21,7 @@ import { formatPrice, calculateDiscount, getStockStatus } from "@/lib/utils";
 import ProductCard from "@/components/store/ProductCard";
 import ReviewSection from "@/components/store/ReviewSection";
 import SectionHeader from "@/components/store/SectionHeader";
-import type { Product } from "@/types";
+import type { Product, Box } from "@/types";
 
 interface Props {
   slug: string;
@@ -35,6 +36,9 @@ export default function ProductDetailClient({ slug }: Props) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState<number | null>(null);
+  const [availableBoxes, setAvailableBoxes] = useState<Box[]>([]);
+  const [selectedBox, setSelectedBox] = useState<Box | undefined>(undefined);
+  const [boxImageLightbox, setBoxImageLightbox] = useState<string | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -76,6 +80,23 @@ export default function ProductDetailClient({ slug }: Props) {
           setProduct(data.product);
           setRelatedProducts(data.related ?? []);
           setBrandWarranty(data.brandWarranty ?? null);
+
+          // Fetch boxes for this product's brand
+          const brand = data.product.brand ?? '';
+          fetch(`/api/boxes?brand=${encodeURIComponent(brand)}`)
+            .then((r) => r.json())
+            .then((boxes: Box[]) => {
+              if (Array.isArray(boxes) && boxes.length > 0) {
+                // Standard box always first
+                const sorted = [...boxes].sort((a, b) =>
+                  a.type === 'standard' ? -1 : b.type === 'standard' ? 1 : 0
+                );
+                setAvailableBoxes(sorted);
+                const std = sorted.find((b) => b.type === 'standard') ?? sorted[0];
+                setSelectedBox(std);
+              }
+            })
+            .catch(() => {});
         }
         setIsLoading(false);
       })
@@ -221,7 +242,7 @@ export default function ProductDetailClient({ slug }: Props) {
   };
 
   const handleAddToCart = () => {
-    addItem(product, quantity);
+    addItem(product, quantity, selectedBox);
     showToast({
       productName: product.name,
       productImage: product.images[0] ?? "",
@@ -396,6 +417,11 @@ export default function ProductDetailClient({ slug }: Props) {
 
                   {/* Badges */}
                   <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                    {product.isCouple && (
+                      <span className="bg-pink-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+                        <Heart className="w-3.5 h-3.5 fill-white" /> SET OF 2
+                      </span>
+                    )}
                     {product.isNew && (
                       <span className="bg-emerald-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">NEW</span>
                     )}
@@ -570,6 +596,109 @@ export default function ProductDetailClient({ slug }: Props) {
                     </div>
                   );
                 })()}
+
+                {/* Box Selector */}
+                {availableBoxes.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Box Option</span>
+                      {selectedBox && selectedBox.price > 0 && (
+                        <span className="text-[10px] font-bold text-brand-red bg-brand-red/10 border border-brand-red/20 px-2 py-0.5 rounded-full">
+                          +{formatPrice(selectedBox.price)} added
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableBoxes.map((box) => (
+                        <button
+                          key={box.id}
+                          type="button"
+                          onClick={() => setSelectedBox(box)}
+                          className={`group relative flex flex-col items-center gap-1.5 p-1.5 rounded-xl border-2 transition-all duration-200 w-[116px] ${
+                            selectedBox?.id === box.id
+                              ? 'border-brand-red bg-brand-red/8 shadow-md shadow-brand-red/20'
+                              : 'border-white/12 bg-white/4 hover:border-white/30'
+                          }`}
+                        >
+                          {/* 1:1 image */}
+                          <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-white/8 flex items-center justify-center">
+                            {box.image ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={box.image} alt={box.code} className="w-full h-full object-cover" />
+                                {/* Fullscreen trigger */}
+                                <div
+                                  role="button"
+                                  aria-label="View full screen"
+                                  onClick={(e) => { e.stopPropagation(); setBoxImageLightbox(box.image); }}
+                                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 cursor-pointer"
+                                >
+                                  <svg className="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                  </svg>
+                                </div>
+                              </>
+                            ) : (
+                              <svg className="w-7 h-7 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                            )}
+                            {selectedBox?.id === box.id && (
+                              <div className="absolute top-1 right-1 w-4 h-4 bg-brand-red rounded-full flex items-center justify-center shadow pointer-events-none">
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          {/* Code */}
+                          <span className={`text-[10px] font-semibold text-center leading-tight font-mono ${selectedBox?.id === box.id ? 'text-brand-red' : 'text-white/60'}`}>
+                            {box.code}
+                          </span>
+                          {/* Price badge */}
+                          <span className={`text-[9px] font-bold ${box.type === 'standard' ? 'text-white/35' : 'text-brand-red'}`}>
+                            {box.price === 0 ? 'Free' : `+${formatPrice(box.price)}`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Box image fullscreen lightbox */}
+                {boxImageLightbox && (
+                  <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+                    onClick={() => setBoxImageLightbox(null)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={boxImageLightbox}
+                      alt="Box"
+                      className="max-w-[90vw] max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <button
+                      className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                      onClick={() => setBoxImageLightbox(null)}
+                    >
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Couple Set callout */}
+                {product.isCouple && (
+                  <div className="flex items-center gap-3 bg-pink-500/10 border border-pink-500/25 rounded-xl px-4 py-3 mb-5">
+                    <Heart className="w-5 h-5 text-pink-400 shrink-0 fill-pink-400" />
+                    <div>
+                      <p className="text-sm font-bold text-pink-300">His &amp; Hers Couple Set</p>
+                      <p className="text-xs text-white/45">Includes 2 matching watches — one for each</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Description */}
                 <p className="text-white/55 mb-6 leading-relaxed text-sm sm:text-base">{product.description}</p>

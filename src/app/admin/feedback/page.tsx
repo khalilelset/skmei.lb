@@ -177,7 +177,7 @@ export default function FeedbackPage() {
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>{editId ? 'Edit Image' : 'Add Feedback Image'}</Typography>
+          <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editId ? 'Edit Image' : 'Add Feedback Image'}</Typography>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent dividers>

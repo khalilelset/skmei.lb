@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Product, CartItem } from "@/types";
+import { Product, CartItem, Box } from "@/types";
 
 interface CartState {
   items: CartItem[];
@@ -9,9 +9,10 @@ interface CartState {
   mobileMenuOpen: boolean;
 
   // Actions
-  addItem: (product: Product, quantity?: number) => void;
+  addItem: (product: Product, quantity?: number, box?: Box) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  setItemBox: (productId: string, box: Box | undefined) => void;
   clearCart: () => void;
   toggleCart: () => void;
   openCart: () => void;
@@ -33,7 +34,7 @@ export const useCartStore = create<CartState>()(
       bump: 0,
       mobileMenuOpen: false,
 
-      addItem: (product: Product, quantity: number = 1) => {
+      addItem: (product: Product, quantity: number = 1, box?: Box) => {
         set((state) => {
           const existingItem = state.items.find(
             (item) => item.product.id === product.id
@@ -52,9 +53,17 @@ export const useCartStore = create<CartState>()(
 
           return {
             bump: state.bump + 1,
-            items: [...state.items, { product, quantity }],
+            items: [...state.items, { product, quantity, selectedBox: box }],
           };
         });
+      },
+
+      setItemBox: (productId: string, box: Box | undefined) => {
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.product.id === productId ? { ...item, selectedBox: box } : item
+          ),
+        }));
       },
 
       removeItem: (productId: string) => {
@@ -106,7 +115,8 @@ export const useCartStore = create<CartState>()(
 
       getTotalPrice: () => {
         return get().items.reduce(
-          (total, item) => total + item.product.price * item.quantity,
+          (total, item) =>
+            total + (item.product.price + (item.selectedBox?.price ?? 0)) * item.quantity,
           0
         );
       },

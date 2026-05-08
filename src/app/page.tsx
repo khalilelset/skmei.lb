@@ -172,7 +172,7 @@ export default async function HomePage() {
                   className="group relative shrink-0 w-52 sm:w-auto overflow-hidden rounded-2xl"
                 >
                   {/* Portrait image */}
-                  <div className="relative aspect-[3/4] overflow-hidden bg-[#111]">
+                  <div className="relative aspect-3/4 overflow-hidden bg-[#111]">
                     <CategoryImage
                       src={cfg.image}
                       alt={category.name}
@@ -181,10 +181,10 @@ export default async function HomePage() {
                     />
 
                     {/* Base dark gradient — always visible */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-black/10" />
 
                     {/* Hover red tint at top */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-brand-red/0 to-brand-red/0 group-hover:from-brand-red/25 group-hover:to-transparent transition-all duration-500" />
+                    <div className="absolute inset-0 bg-linear-to-b from-brand-red/0 to-brand-red/0 group-hover:from-brand-red/25 group-hover:to-transparent transition-all duration-500" />
 
                     {/* Border glow on hover */}
                     <div className="absolute inset-0 rounded-2xl border border-white/8 group-hover:border-brand-red/60 transition-colors duration-400" />

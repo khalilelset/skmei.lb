@@ -21,7 +21,7 @@ import {
   MenuItem,
   Slider,
 } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon, Favorite as CoupleIcon } from '@mui/icons-material';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
@@ -59,7 +59,7 @@ const emptyForm = {
   features: [] as string[],
   videoUrl: '',
   brand: 'SKMEI',
-  isNew: false, onSale: false, isBestseller: false, gender: '' as '' | 'men' | 'women' | 'unisex',
+  isNew: false, onSale: false, isBestseller: false, isCouple: false, gender: '' as '' | 'men' | 'women' | 'unisex',
   colors: [] as ProductColor[],
   specifications: { ...emptySpecs },
 };
@@ -140,6 +140,7 @@ export default function ProductsPage() {
       isNew: product.isNew ?? false,
       onSale: product.onSale ?? false,
       isBestseller: product.isBestseller ?? false,
+      isCouple: product.isCouple ?? false,
       videoUrl: product.videoUrl ?? '',
       gender: (product.gender ?? '') as '' | 'men' | 'women' | 'unisex',
       brand: product.brand ?? 'SKMEI',
@@ -230,6 +231,7 @@ export default function ProductsPage() {
       isNew: form.isNew,
       onSale: form.onSale,
       isBestseller: form.isBestseller,
+      isCouple: form.isCouple,
       gender: form.gender || null,
       brand: form.brand || 'SKMEI',
       colors: form.colors,
@@ -328,6 +330,7 @@ export default function ProductsPage() {
             {product.isNew && <Chip label="New" size="small" sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 600, fontSize: 10 }} />}
             {product.onSale && <Chip label="Sale" size="small" sx={{ bgcolor: 'rgba(251,146,60,0.1)', color: '#FB923C', fontWeight: 600, fontSize: 10 }} />}
             {product.isBestseller && <Chip label="Bestseller" size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontWeight: 600, fontSize: 10 }} />}
+            {product.isCouple && <Chip label="Couple Set" size="small" sx={{ bgcolor: 'rgba(236,72,153,0.1)', color: '#EC4899', fontWeight: 600, fontSize: 10 }} />}
             {!product.brand || product.brand.toUpperCase() === 'SKMEI' ? (
               !product.isNew && !product.onSale && !product.isBestseller && !(product.colors?.length) && <span style={{ color: '#9CA3AF', fontSize: 12 }}>—</span>
             ) : null}
@@ -790,6 +793,7 @@ export default function ProductsPage() {
               { key: 'isNew',       label: 'New',        icon: <NewIcon sx={{ fontSize: 22 }} />,        color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  activeBg: '#DC2626' },
               { key: 'onSale',      label: 'Sale',       icon: <SaleIcon sx={{ fontSize: 22 }} />,       color: '#B91C1C', bg: 'rgba(185,28,28,0.08)',   activeBg: '#B91C1C' },
               { key: 'isBestseller',label: 'Bestseller', icon: <BestsellerIcon sx={{ fontSize: 22 }} />, color: '#991B1B', bg: 'rgba(153,27,27,0.08)',   activeBg: '#991B1B' },
+              { key: 'isCouple',    label: 'Couple Set', icon: <CoupleIcon sx={{ fontSize: 22 }} />,     color: '#EC4899', bg: 'rgba(236,72,153,0.08)',  activeBg: '#EC4899' },
             ].map(({ key, label, icon, color, bg, activeBg }) => {
               const active = form[key as keyof typeof emptyForm] as boolean;
               return (

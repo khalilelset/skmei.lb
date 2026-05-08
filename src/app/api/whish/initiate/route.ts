@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { sendOrderEmails } from '@/lib/email';
 
-const WHISH_BASE    = 'https://api.whish.money/itel-service/api';
+// Use sandbox URL when WHISH_SANDBOX=true (testing credentials only work on sandbox)
+const WHISH_BASE    = process.env.WHISH_SANDBOX === 'true'
+  ? 'https://api.sandbox.whish.money/itel-service/api'
+  : 'https://api.whish.money/itel-service/api';
 const WHISH_CHANNEL = process.env.WHISH_CHANNEL!;
 const WHISH_SECRET  = process.env.WHISH_SECRET!;
-const WHISH_WEBSITE = process.env.WHISH_WEBSITE_URL!;
+// Send the value exactly as registered with Whish — strip protocol if present
+const WHISH_WEBSITE = (process.env.WHISH_WEBSITE_URL ?? '')
+  .replace(/^https?:\/\//, '')
+  .replace(/\/$/, '');
 const SITE_URL      = process.env.NEXT_PUBLIC_SITE_URL!;
 
 const MAX_STRING = 200;
@@ -131,8 +137,6 @@ export async function POST(req: NextRequest) {
     // ── 4. Build Whish payload ───────────────────────────────────────────
     const externalId   = Date.now();
     const callbackBase = `${SITE_URL}/api/whish/callback?orderId=${order.id}`;
-    // websiteUrl must be the full URL as registered with Whish
-    const websiteUrl   = WHISH_WEBSITE.startsWith('http') ? WHISH_WEBSITE : `https://${WHISH_WEBSITE}`;
 
     const whishPayload = {
       amount:             total,
@@ -160,7 +164,7 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
           'channel':      WHISH_CHANNEL,
           'secret':       WHISH_SECRET,
-          'websiteUrl':   websiteUrl,
+          'websiteUrl':   WHISH_WEBSITE,
           'User-Agent':   'Whish/1.0 (https://whish.money; support@whish.money)',
         },
         body: JSON.stringify(whishPayload),

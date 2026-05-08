@@ -25,6 +25,7 @@ interface OrderEmailData {
     price: number;
     quantity: number;
     image?: string | null;
+    box?: { name: string; type: string; price: number } | null;
   }[];
   subtotal: number;
   shipping: number;
@@ -65,6 +66,9 @@ function buildAdminEmail(data: OrderEmailData): string {
   const itemRows = data.items
     .map((item) => {
       const img = item.image ?? null;
+      const boxLine = item.box
+        ? `<p style="margin:3px 0 0;font-size:10px;color:#888;">📦 ${item.box.name}${item.box.price > 0 ? ` <span style="color:#e63946;">+${formatPrice(item.box.price)}</span>` : ''}</p>`
+        : '';
       return `
     <tr>
       <td style="padding:16px 14px;border-bottom:1px solid #2a2a2a;vertical-align:middle;" width="72">
@@ -78,6 +82,7 @@ function buildAdminEmail(data: OrderEmailData): string {
   <p style="margin:0;font-size:11px;font-weight:700;color:#ffffff;line-height:1.4;">
     ${item.name} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight:400;color:#666;">×${item.quantity}</span>
   </p>
+  ${boxLine}
 </td>
       <td style="padding:16px 14px;border-bottom:1px solid #2a2a2a;vertical-align:middle;text-align:right;white-space:nowrap;">
         <span style="font-size:14px;font-weight:700;color:#ffffff;">${formatPrice(item.price * item.quantity)}</span>
@@ -197,6 +202,7 @@ interface StatusEmailData {
     price: number;
     quantity: number;
     image?: string | null;
+    box?: { name: string; type: string; price: number } | null;
   }[];
   total: number;
   address?: {
@@ -263,6 +269,9 @@ function buildItemRows(items: StatusEmailData["items"]): string {
   return items
     .map((item) => {
       const img = item.image ?? null;
+      const boxLine = item.box
+        ? `<p style="margin:3px 0 0;font-size:10px;color:#888;">📦 ${item.box.name}${item.box.price > 0 ? ` <span style="color:#e63946;">+${formatPrice(item.box.price)}</span>` : ''}</p>`
+        : '';
       return `
     <tr>
       <td style="padding:16px 14px;border-bottom:1px solid #2a2a2a;vertical-align:middle;" width="72">
@@ -274,6 +283,7 @@ function buildItemRows(items: StatusEmailData["items"]): string {
       </td>
       <td style="padding:16px 2px;border-bottom:1px solid #2a2a2a;vertical-align:middle;">
         <p style="margin:0;font-size:11px;font-weight:700;color:#ffffff;line-height:1.4;">${item.name}&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight:400;color:#666;">×${item.quantity}</span></p>
+        ${boxLine}
       </td>
       <td style="padding:16px 14px;border-bottom:1px solid #2a2a2a;vertical-align:middle;text-align:right;white-space:nowrap;">
         <span style="font-size:15px;font-weight:700;color:#ffffff;">${formatPrice(item.price * item.quantity)}</span>

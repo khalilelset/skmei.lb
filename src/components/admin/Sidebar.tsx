@@ -28,6 +28,7 @@ import {
   BarChart as AnalyticsIcon,
   Reviews as ReviewsIcon,
   Storefront as BrandIcon,
+  CardGiftcard as BoxIcon,
 } from '@mui/icons-material';
 
 interface SidebarProps {
@@ -53,6 +54,7 @@ const NAV_GROUPS = [
       { text: 'Coupons',    icon: <CouponsIcon fontSize="small" />,  href: '/admin/coupons' },
       { text: 'Categories', icon: <CategoryIcon fontSize="small" />, href: '/admin/categories' },
       { text: 'Brands',     icon: <BrandIcon fontSize="small" />,    href: '/admin/brands' },
+      { text: 'Boxes',      icon: <BoxIcon fontSize="small" />,      href: '/admin/boxes' },
     ],
   },
   {

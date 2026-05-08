@@ -44,14 +44,24 @@ export default function Footer() {
             </a>
           </div>
 
-          {/* Copyright */}
-          <p className="text-sm text-white/60 flex items-center gap-2">
-            <span className="relative inline-flex h-2.7 w-2.7">
-              <span className="animate-ping-custom absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-60"></span>
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-red"></span>
-            </span>
-            © {currentYear} SKMEI.LB. All rights reserved.
-          </p>
+          {/* Copyright + credit */}
+          <div className="flex flex-col items-center sm:items-end gap-1">
+            <p className="text-sm text-white/60 flex items-center gap-2">
+              <span className="relative inline-flex h-2.7 w-2.7">
+                <span className="animate-ping-custom absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-60"></span>
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-red"></span>
+              </span>
+              © {currentYear} SKMEI.LB. All rights reserved.
+            </p>
+            <a
+              href="https://www.linkedin.com/in/khalil-elset"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-brand-red/70 hover:text-brand-red transition-colors"
+            >
+              Created by Khalil Elset
+            </a>
+          </div>
         </div>
       </div>
     </footer>

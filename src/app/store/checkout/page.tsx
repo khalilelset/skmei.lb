@@ -475,9 +475,12 @@ export default function CheckoutPage() {
     const orderItems = items.map((item) => ({
       id: item.product.id,
       name: item.product.name,
-      price: item.product.price,
+      price: item.product.price + (item.selectedBox?.price ?? 0),
       quantity: item.quantity,
       image: item.product.images[0] ?? null,
+      box: item.selectedBox
+        ? { code: item.selectedBox.code, type: item.selectedBox.type, price: item.selectedBox.price }
+        : null,
     }));
 
     const orderPayload = {
@@ -527,7 +530,7 @@ export default function CheckoutPage() {
           area:          formData.area,
           city:          formData.city,
           notes:         formData.notes,
-          items:         orderItems,
+          items:         orderItems.map((i) => ({ ...i, image: i.image ?? null })),
           subtotal,
           shipping,
           discountAmount,
@@ -805,8 +808,18 @@ export default function CheckoutPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white line-clamp-2">{item.product.name}</p>
                         <p className="text-xs text-white/40 mt-0.5">{formatPrice(item.product.price)} × {item.quantity}</p>
+                        {item.selectedBox && (
+                          <p className="text-[10px] text-white/35 mt-0.5 flex items-center gap-1">
+                            📦 {item.selectedBox.code}
+                            {item.selectedBox.price > 0 && (
+                              <span className="text-brand-red">+{formatPrice(item.selectedBox.price)}</span>
+                            )}
+                          </p>
+                        )}
                       </div>
-                      <p className="font-bold text-white text-sm shrink-0">{formatPrice(item.product.price * item.quantity)}</p>
+                      <p className="font-bold text-white text-sm shrink-0">
+                        {formatPrice((item.product.price + (item.selectedBox?.price ?? 0)) * item.quantity)}
+                      </p>
                     </div>
                   ))}
                 </div>
