@@ -143,6 +143,7 @@ export async function POST(req: NextRequest) {
       currency:           'USD',
       invoice:            `Order #${order.order_number}`,
       externalId,
+      phoneNumber:        `961${normalizedPhone}`,
       successCallbackUrl: `${callbackBase}&type=success`,
       failureCallbackUrl: `${callbackBase}&type=failure`,
       successRedirectUrl: `${SITE_URL}/store/checkout/payment/success?orderId=${order.id}`,

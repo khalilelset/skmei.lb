@@ -57,9 +57,9 @@ export default function Footer() {
               href="https://www.linkedin.com/in/khalil-elset"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-brand-red/70 hover:text-brand-red transition-colors"
+              className="text-xs text-white/40 hover:text-white/60 transition-colors"
             >
-              Created by Khalil Elset
+              Created by <span className="text-brand-red/70 hover:text-brand-red transition-colors">Khalil Elset</span>
             </a>
           </div>
         </div>

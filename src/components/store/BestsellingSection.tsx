@@ -165,7 +165,7 @@ export default function BestsellingSection({ products }: Props) {
         </div>
 
         {/* Cards — horizontal scroll on mobile, grid on desktop */}
-        <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sm:items-stretch">
+        <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sm:items-stretch">
           {products.slice(0, 4).map((product, i) => (
             <motion.div
               key={product.id}

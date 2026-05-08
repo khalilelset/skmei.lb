@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { XCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { XCircle, RefreshCw, Banknote, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function PaymentFailedPage() {
@@ -23,26 +23,37 @@ export default function PaymentFailedPage() {
           </div>
 
           <h1 className="text-4xl font-black text-white mb-3 tracking-tight">Payment Failed</h1>
-          <p className="text-red-400 font-semibold mb-2">Your payment could not be completed</p>
+          <p className="text-red-400 font-semibold mb-2">Your Whish payment could not be completed</p>
           <p className="text-white/50 text-sm leading-relaxed">
-            Something went wrong with your Whish payment. No charge has been made.
-            Please try again or choose Cash on Delivery.
+            No charge has been made. Retry with Whish or switch to Cash on Delivery — your order details are saved.
           </p>
         </motion.div>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col gap-3">
+          {/* Primary: switch to COD */}
           <Link
-            href="/store/checkout"
-            className="inline-flex items-center justify-center gap-2 bg-brand-red text-white px-7 py-3.5 rounded-full font-bold hover:bg-brand-red-dark transition-all duration-300 shadow-lg shadow-brand-red/25 hover:scale-[1.02] active:scale-95"
+            href="/store/checkout?resume=1&method=cod"
+            className="inline-flex items-center justify-center gap-2 bg-brand-red text-white px-7 py-4 rounded-full font-bold hover:bg-brand-red-dark transition-all duration-300 shadow-lg shadow-brand-red/25 hover:scale-[1.02] active:scale-95 text-base"
+          >
+            <Banknote className="w-5 h-5" />
+            Pay with Cash on Delivery
+          </Link>
+
+          {/* Secondary: retry Whish */}
+          <Link
+            href="/store/checkout?resume=1"
+            className="inline-flex items-center justify-center gap-2 border border-white/20 text-white/70 px-7 py-3.5 rounded-full font-bold hover:bg-white/5 hover:text-white transition-all duration-300"
           >
             <RefreshCw className="w-4 h-4" />
-            Try Again
+            Retry Whish Payment
           </Link>
+
+          {/* Tertiary: back to store */}
           <Link
             href="/store/products"
-            className="inline-flex items-center justify-center gap-2 border border-white/20 text-white/60 px-7 py-3.5 rounded-full font-bold hover:bg-white/5 hover:text-white transition-all duration-300"
+            className="inline-flex items-center justify-center gap-2 text-white/30 hover:text-white/60 transition-colors text-sm font-medium py-2"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Back to Store
           </Link>
         </div>
