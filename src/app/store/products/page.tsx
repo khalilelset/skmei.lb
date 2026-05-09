@@ -4,13 +4,6 @@ import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/store/ProductCard";
 import { SkeletonGrid } from "@/components/store/SkeletonProductCard";
-const categories = [
-  { id: '1', slug: 'digital', name: 'Digital Watches' },
-  { id: '2', slug: 'analog',  name: 'Analog Watches' },
-  { id: '3', slug: 'sports',  name: 'Sports Watches' },
-  { id: '4', slug: 'smart',   name: 'Smart Watches' },
-  { id: '5', slug: 'luxury',  name: 'Luxury Collection' },
-];
 import { Product, ProductFilters } from "@/types";
 import { SlidersHorizontal, X, ChevronDown, ChevronRight, Home, Heart } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +17,7 @@ function ProductsContent() {
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ id: string; slug: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<ProductFilters>({
     category: categoryParam || undefined,
@@ -44,12 +38,14 @@ function ProductsContent() {
     Promise.all([
       fetch('/api/products').then((r) => r.json()),
       fetch('/api/brands').then((r) => r.json()),
+      fetch('/api/categories').then((r) => r.json()),
     ])
-      .then(([productsData, brandsData]) => {
+      .then(([productsData, brandsData, categoriesData]) => {
         setAllProducts(Array.isArray(productsData) ? productsData : []);
         if (Array.isArray(brandsData) && brandsData.length > 0) {
           setAvailableBrands(brandsData.map((b: { name: string }) => b.name));
         }
+        if (Array.isArray(categoriesData)) setCategories(categoriesData);
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));

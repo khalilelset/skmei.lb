@@ -182,7 +182,8 @@ export default function CheckoutPage() {
   const subtotal = getTotalPrice();
   const shipping = subtotal >= 50 ? 0 : 4;
   const discountAmount = appliedCoupon ? Math.round(subtotal * appliedCoupon.discount) / 100 : 0;
-  const total = subtotal + shipping - discountAmount;
+  const rawTotal = subtotal + shipping - discountAmount;
+  const total = appliedCoupon ? Math.ceil(rawTotal * 2) / 2 : rawTotal;
   const totalItems = getTotalItems();
 
   const handleApplyCoupon = async () => {

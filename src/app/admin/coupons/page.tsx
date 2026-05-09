@@ -6,7 +6,6 @@ import {
   Typography,
   Paper,
   Button,
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -25,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
+import MobileDialog from '@/components/admin/MobileDialog';
 
 interface Coupon {
   id: string;
@@ -188,7 +188,7 @@ export default function CouponsPage() {
       </Paper>
 
       {/* Create Coupon Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>New Coupon</Typography>
           <Button onClick={() => setDialogOpen(false)} sx={{ minWidth: 'auto', color: 'text.secondary' }}>
@@ -234,7 +234,7 @@ export default function CouponsPage() {
             {isSaving ? 'Creating...' : 'Create Coupon'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
     </Box>
   );
 }

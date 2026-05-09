@@ -40,6 +40,7 @@ import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
+import MobileDialog from '@/components/admin/MobileDialog';
 
 interface BoxItem {
   id: string;
@@ -352,7 +353,7 @@ export default function BoxesPage() {
       </Paper>
 
       {/* ── Create / Edit Dialog ── */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
             {editId ? 'Edit Box' : 'Add Box'}
@@ -486,7 +487,7 @@ export default function BoxesPage() {
             {isSaving ? <CircularProgress size={20} color="inherit" /> : editId ? 'Save Changes' : 'Create Box'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
 
       {/* ── Crop Dialog — separate, on top of everything, same as products page ── */}
       <Dialog

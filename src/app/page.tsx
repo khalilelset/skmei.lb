@@ -124,20 +124,21 @@ const faqSchema = {
   ],
 };
 
-const CATEGORIES = [
-  { id: '1', slug: 'digital', name: 'Digital Watches' },
-  { id: '2', slug: 'analog',  name: 'Analog Watches' },
-  { id: '3', slug: 'sports',  name: 'Sports Watches' },
-  { id: '4', slug: 'smart',   name: 'Smart Watches' },
-  { id: '5', slug: 'luxury',  name: 'Luxury Collection' },
-];
-
 export default async function HomePage() {
-  const { data: bestsellers } = await supabaseServer
-    .from('products')
-    .select('id, name, slug, price, original_price, images, category, brand, stock, rating, review_count, is_new, on_sale, is_bestseller, is_couple, colors')
-    .or('is_bestseller.eq.true,is_new.eq.true')
-    .limit(12);
+  const [{ data: bestsellers }, { data: productRows }, { data: categoryRows }] = await Promise.all([
+    supabaseServer
+      .from('products')
+      .select('id, name, slug, price, original_price, images, category, brand, stock, rating, review_count, is_new, on_sale, is_bestseller, is_couple, colors')
+      .or('is_bestseller.eq.true,is_new.eq.true')
+      .limit(12),
+    supabaseServer
+      .from('products')
+      .select('category'),
+    supabaseServer
+      .from('categories')
+      .select('id, name, slug, image')
+      .order('sort_order', { ascending: true }),
+  ]);
 
   const featuredProducts = (bestsellers ?? []).map((row) => ({
     id: row.id as string,
@@ -166,14 +167,21 @@ export default async function HomePage() {
     updatedAt: '',
   }));
 
-  const categories = CATEGORIES;
-  const categoryConfig: Record<string, { image: string }> = {
-    digital: { image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop' },
-    analog:  { image: 'https://images.unsplash.com/photo-1524592094714-0f0654e359cf?w=600&q=80&fit=crop' },
-    sports:  { image: 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80&fit=crop' },
-    smart:   { image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&q=80&fit=crop' },
-    luxury:  { image: 'https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600&q=80&fit=crop' },
-  };
+  // Count products per category slug
+  const productCountMap: Record<string, number> = {};
+  for (const p of productRows ?? []) {
+    const slug = p.category as string;
+    productCountMap[slug] = (productCountMap[slug] ?? 0) + 1;
+  }
+
+  // Show all categories from DB; hide section only when table is empty
+  const categories = (categoryRows ?? []).map((row) => ({
+    id: row.id as string,
+    slug: row.slug as string,
+    name: row.name as string,
+    image: (row.image as string) || null,
+    productCount: productCountMap[row.slug as string] ?? 0,
+  }));
 
   return (
     <>
@@ -186,8 +194,8 @@ export default async function HomePage() {
       {/* Hero Section */}
       <HeroSection />
 
-      {/* Shop by Category — near-black background for luxury editorial feel */}
-      <section className="py-16 sm:py-24 bg-[#0a0a0a]">
+      {/* Shop by Category — only shown when at least one category has products */}
+      {categories.length > 0 && <section className="py-16 sm:py-24 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Section header */}
@@ -203,54 +211,51 @@ export default async function HomePage() {
 
           {/* Cards — horizontal scroll on mobile, 5-col grid on desktop */}
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {categories.map((category, idx) => {
-              const cfg = categoryConfig[category.slug];
-              return (
-                <Link
-                  key={category.id}
-                  href={`/store/products?category=${category.slug}`}
-                  className="group relative shrink-0 w-52 sm:w-auto overflow-hidden rounded-2xl"
-                >
-                  {/* Portrait image */}
-                  <div className="relative aspect-3/4 overflow-hidden bg-[#111]">
+            {categories.map((category, idx) => (
+              <Link
+                key={category.id}
+                href={`/store/products?category=${category.slug}`}
+                className="group relative shrink-0 w-52 sm:w-auto overflow-hidden rounded-2xl"
+              >
+                {/* Portrait image */}
+                <div className="relative aspect-3/4 overflow-hidden bg-[#111]">
+                  {category.image && (
                     <CategoryImage
-                      src={cfg.image}
+                      src={category.image}
                       alt={category.name}
                       sizes="(max-width: 640px) 208px, 20vw"
                       priority={idx < 3}
                     />
+                  )}
 
-                    {/* Base dark gradient — always visible */}
-                    <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-black/10" />
+                  {/* Base dark gradient — always visible */}
+                  <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-black/10" />
 
-                    {/* Hover red tint at top */}
-                    <div className="absolute inset-0 bg-linear-to-b from-brand-red/0 to-brand-red/0 group-hover:from-brand-red/25 group-hover:to-transparent transition-all duration-500" />
+                  {/* Hover red tint at top */}
+                  <div className="absolute inset-0 bg-linear-to-b from-brand-red/0 to-brand-red/0 group-hover:from-brand-red/25 group-hover:to-transparent transition-all duration-500" />
 
-                    {/* Border glow on hover */}
-                    <div className="absolute inset-0 rounded-2xl border border-white/8 group-hover:border-brand-red/60 transition-colors duration-400" />
+                  {/* Border glow on hover */}
+                  <div className="absolute inset-0 rounded-2xl border border-white/8 group-hover:border-brand-red/60 transition-colors duration-400" />
 
-                    {/* Content pinned to bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 p-5">
-                      {/* Category count — editorial uppercase */}
-                      <p className="text-white/40 text-[9px] font-bold uppercase tracking-[0.3em] mb-1.5">
-                        {category.name.toUpperCase()} COLLECTION
-                      </p>
-
-                      {/* Name */}
-                      <h3 className="text-white font-bold text-base sm:text-lg leading-tight group-hover:text-brand-red transition-colors duration-300">
-                        {category.name}
-                      </h3>
-
-                      {/* "Explore" cta — slides up on hover */}
-                      <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-white/0 group-hover:text-white translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                        Explore
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </div>
+                  {/* Content pinned to bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 p-5">
+                    <p className="text-white/40 text-[9px] font-bold uppercase tracking-[0.3em] mb-1.5">
+                      {category.name.toUpperCase()} COLLECTION
+                    </p>
+                    <h3 className="text-white font-bold text-base sm:text-lg leading-tight group-hover:text-brand-red transition-colors duration-300">
+                      {category.name}
+                    </h3>
+                    {category.productCount > 0 && (
+                      <p className="text-white/40 text-xs mt-1">{category.productCount} Products</p>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-white/0 group-hover:text-white translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      Explore
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                </Link>
-              );
-            })}
+                </div>
+              </Link>
+            ))}
           </div>
 
           {/* View All */}
@@ -265,7 +270,7 @@ export default async function HomePage() {
           </div>
 
         </div>
-      </section>
+      </section>}
 
       {/* Bestselling Timepieces */}
       <BestsellingSection products={featuredProducts} />

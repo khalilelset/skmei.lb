@@ -15,6 +15,7 @@ export async function PATCH(
     if (body.image !== undefined) update.image = body.image;
     if (body.product_count !== undefined) update.product_count = body.product_count;
     if (body.sort_order !== undefined) update.sort_order = body.sort_order;
+    if (body.icon !== undefined) update.icon = body.icon ?? null;
 
     const { error } = await supabaseServer
       .from('categories')

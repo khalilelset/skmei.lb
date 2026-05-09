@@ -27,6 +27,7 @@ import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
+import MobileDialog from '@/components/admin/MobileDialog';
 const categories = [
   { slug: 'digital', name: 'Digital Watches' },
   { slug: 'analog',  name: 'Analog Watches' },
@@ -424,7 +425,7 @@ export default function ProductsPage() {
       </Box>
 
       {/* Add / Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editProduct ? 'Edit Product' : 'Add Product'}</Typography>
           <Button onClick={() => setDialogOpen(false)} sx={{ minWidth: 'auto', color: 'text.secondary' }}><CloseIcon /></Button>
@@ -889,7 +890,7 @@ export default function ProductsPage() {
             {isSaving ? 'Saving...' : editProduct ? 'Save Changes' : 'Add Product'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
 
       {/* Crop Dialog */}
       <Dialog

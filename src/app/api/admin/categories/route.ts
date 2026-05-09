@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
         slug: body.slug,
         description: body.description ?? '',
         image: body.image ?? '',
+        icon: body.icon ?? null,
         product_count: body.product_count ?? 0,
         sort_order: body.sort_order ?? 0,
       })

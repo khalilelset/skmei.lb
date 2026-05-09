@@ -17,6 +17,7 @@ import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
+import MobileDialog from '@/components/admin/MobileDialog';
 
 interface InstagramPost {
   id: string;
@@ -242,7 +243,7 @@ export default function InstagramPage() {
       </Paper>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editId ? 'Edit Post' : 'Add Instagram Post'}</Typography>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><CloseIcon /></IconButton>
@@ -369,7 +370,7 @@ export default function InstagramPage() {
             {isSaving ? 'Saving...' : editId ? 'Save Changes' : 'Add Post'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
 
       {/* Crop Dialog */}
       <Dialog open={!!cropSrc} maxWidth="sm" fullWidth onClose={() => { setCropSrc(null); setCropQueue([]); }}

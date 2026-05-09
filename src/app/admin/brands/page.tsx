@@ -6,7 +6,6 @@ import {
   Typography,
   Paper,
   Button,
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -24,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
+import MobileDialog from '@/components/admin/MobileDialog';
 
 interface Brand {
   id: string;
@@ -191,7 +191,7 @@ export default function BrandsPage() {
       </Paper>
 
       {/* Add / Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editId ? 'Edit Brand' : 'Add Brand'}</Typography>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><CloseIcon /></IconButton>
@@ -252,10 +252,10 @@ export default function BrandsPage() {
             {isSaving ? 'Saving...' : editId ? 'Save Changes' : 'Add Brand'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
 
       {/* Delete Confirm */}
-      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderTop: '3px solid #DC2626' } }}>
+      <MobileDialog open={!!deleteId} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderTop: '3px solid #DC2626' } }}>
         <DialogTitle>Delete Brand?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary">
@@ -268,7 +268,7 @@ export default function BrandsPage() {
             {isDeleting ? 'Deleting…' : 'Delete'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
     </Box>
   );
 }

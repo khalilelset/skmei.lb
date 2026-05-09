@@ -17,6 +17,7 @@ import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
+import MobileDialog from '@/components/admin/MobileDialog';
 
 interface FeedbackImage {
   id: string;
@@ -175,7 +176,7 @@ export default function FeedbackPage() {
       </Paper>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editId ? 'Edit Image' : 'Add Feedback Image'}</Typography>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><CloseIcon /></IconButton>
@@ -246,7 +247,7 @@ export default function FeedbackPage() {
             {isSaving ? 'Saving...' : editId ? 'Save Changes' : 'Add Image'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
 
       {/* Crop Dialog */}
       <Dialog open={!!cropSrc} maxWidth="sm" fullWidth onClose={() => setCropSrc(null)}
@@ -262,7 +263,7 @@ export default function FeedbackPage() {
         </Box>
         <Box sx={{ position: 'relative', width: '100%', height: 400, bgcolor: '#0a0a0a' }}>
           {cropSrc && (
-            <Cropper image={cropSrc} crop={crop} zoom={zoom} aspect={1}
+            <Cropper image={cropSrc} crop={crop} zoom={zoom} aspect={4 / 3}
               onCropChange={setCrop} onZoomChange={setZoom}
               onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
               style={{ cropAreaStyle: { border: '2px solid #DC2626', boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)' } }}

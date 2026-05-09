@@ -31,8 +31,38 @@ import {
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
+import {
+  Watch, Timer, Clock, Activity, Zap, Gem, Smartphone, Heart, Star,
+  Shield, Package, Users, Tag, Sun, Flame, Award, Layers, Sparkles,
+  type LucideProps,
+} from 'lucide-react';
+
+type IconName = 'Watch' | 'Timer' | 'Clock' | 'Activity' | 'Zap' | 'Gem' | 'Smartphone' |
+  'Heart' | 'Star' | 'Shield' | 'Package' | 'Users' | 'Tag' | 'Sun' | 'Flame' | 'Award' | 'Layers' | 'Sparkles';
+
+const ICON_OPTIONS: { name: IconName; Comp: React.ComponentType<LucideProps> }[] = [
+  { name: 'Watch',      Comp: Watch },
+  { name: 'Timer',      Comp: Timer },
+  { name: 'Clock',      Comp: Clock },
+  { name: 'Activity',   Comp: Activity },
+  { name: 'Zap',        Comp: Zap },
+  { name: 'Gem',        Comp: Gem },
+  { name: 'Smartphone', Comp: Smartphone },
+  { name: 'Heart',      Comp: Heart },
+  { name: 'Star',       Comp: Star },
+  { name: 'Shield',     Comp: Shield },
+  { name: 'Package',    Comp: Package },
+  { name: 'Users',      Comp: Users },
+  { name: 'Tag',        Comp: Tag },
+  { name: 'Sun',        Comp: Sun },
+  { name: 'Flame',      Comp: Flame },
+  { name: 'Award',      Comp: Award },
+  { name: 'Layers',     Comp: Layers },
+  { name: 'Sparkles',   Comp: Sparkles },
+];
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
+import MobileDialog from '@/components/admin/MobileDialog';
 
 interface Category {
   id: string;
@@ -40,6 +70,7 @@ interface Category {
   slug: string;
   description: string;
   image: string;
+  icon: string | null;
   sort_order: number;
   created_at: string;
 }
@@ -49,6 +80,7 @@ const emptyForm = {
   slug: '',
   description: '',
   image: '',
+  icon: '' as string,
   sort_order: 0,
 };
 
@@ -90,6 +122,7 @@ export default function CategoriesPage() {
       slug: cat.slug,
       description: cat.description ?? '',
       image: cat.image ?? '',
+      icon: cat.icon ?? '',
       sort_order: cat.sort_order ?? 0,
     });
     setDialogOpen(true);
@@ -260,7 +293,7 @@ export default function CategoriesPage() {
       </Paper>
 
       {/* Add / Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editId ? 'Edit Category' : 'Add Category'}</Typography>
           <IconButton onClick={() => setDialogOpen(false)} size="small"><CloseIcon /></IconButton>
@@ -293,7 +326,7 @@ export default function CategoriesPage() {
               />
 
               {form.image ? (
-                <Box sx={{ position: 'relative', width: '100%', aspectRatio: '3/4', borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
+                <Box sx={{ position: 'relative', width: 120, aspectRatio: '3/4', borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
                   {isUploading ? (
                     <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.5)' }}>
                       <CircularProgress size={32} sx={{ color: '#DC2626' }} />
@@ -327,7 +360,7 @@ export default function CategoriesPage() {
                 <Box
                   onClick={() => !isUploading && fileInputRef.current?.click()}
                   sx={{
-                    width: '100%', aspectRatio: '3/4', border: '2px dashed', borderColor: 'rgba(0,0,0,0.18)',
+                    width: 120, aspectRatio: '3/4', border: '2px dashed', borderColor: 'rgba(0,0,0,0.18)',
                     borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center',
                     justifyContent: 'center', gap: 1, cursor: isUploading ? 'default' : 'pointer',
                     bgcolor: 'rgba(0,0,0,0.02)', transition: 'all 0.2s',
@@ -360,6 +393,43 @@ export default function CategoriesPage() {
                 inputProps={{ min: 0 }} helperText="Lower numbers appear first"
               />
             </Grid>
+
+            {/* Icon Picker */}
+            <Grid size={12}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                Nav Icon {form.icon && <span style={{ fontWeight: 400, color: '#DC2626' }}>· {form.icon}</span>}
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 1 }}>
+                {ICON_OPTIONS.map(({ name, Comp }) => {
+                  const selected = form.icon === name;
+                  return (
+                    <Box
+                      key={name}
+                      onClick={() => setForm((f) => ({ ...f, icon: selected ? '' : name }))}
+                      sx={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        gap: 0.5, p: 1.5, borderRadius: 2, border: '2px solid',
+                        borderColor: selected ? '#DC2626' : 'rgba(0,0,0,0.1)',
+                        bgcolor: selected ? 'rgba(220,38,38,0.06)' : 'transparent',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        '&:hover': { borderColor: '#DC2626', bgcolor: 'rgba(220,38,38,0.04)' },
+                      }}
+                    >
+                      <Comp size={20} color={selected ? '#DC2626' : '#6b7280'} />
+                      <Typography variant="caption" sx={{ fontSize: 9, color: selected ? '#DC2626' : 'text.secondary', fontWeight: selected ? 700 : 400 }}>
+                        {name}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+              {form.icon && (
+                <Button size="small" onClick={() => setForm((f) => ({ ...f, icon: '' }))}
+                  sx={{ mt: 1, color: 'text.secondary', fontSize: 11 }}>
+                  Clear icon
+                </Button>
+              )}
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -373,7 +443,7 @@ export default function CategoriesPage() {
             {isSaving ? 'Saving...' : editId ? 'Save Changes' : 'Add Category'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobileDialog>
 
       {/* Crop Dialog */}
       <Dialog

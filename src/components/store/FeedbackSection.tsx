@@ -11,45 +11,6 @@ interface FeedbackImage {
   sort_order: number;
 }
 
-const FALLBACK_FEEDBACK: FeedbackImage[] = [
-  {
-    id: 'fb1',
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80&fit=crop',
-    alt: 'Customer showing their SKMEI watch',
-    sort_order: 1,
-  },
-  {
-    id: 'fb2',
-    image: 'https://images.unsplash.com/photo-1524592094714-0f0654e59cf?w=800&q=80&fit=crop',
-    alt: 'Happy customer with SKMEI analog watch',
-    sort_order: 2,
-  },
-  {
-    id: 'fb3',
-    image: 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=800&q=80&fit=crop',
-    alt: 'Customer review photo with sports watch',
-    sort_order: 3,
-  },
-  {
-    id: 'fb4',
-    image: 'https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=800&q=80&fit=crop',
-    alt: 'Customer with SKMEI luxury watch',
-    sort_order: 4,
-  },
-  {
-    id: 'fb5',
-    image: 'https://images.unsplash.com/photo-1508057198894-247b23fe5ade?w=800&q=80&fit=crop',
-    alt: 'Happy customer new SKMEI watch',
-    sort_order: 5,
-  },
-  {
-    id: 'fb6',
-    image: 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=800&q=80&fit=crop',
-    alt: 'Customer SKMEI digital sport watch',
-    sort_order: 6,
-  },
-];
-
 const PER_PAGE = 3;
 
 export default function FeedbackSection() {
@@ -59,8 +20,8 @@ export default function FeedbackSection() {
   useEffect(() => {
     fetch('/api/feedback')
       .then((r) => r.json())
-      .then((data) => setItems(Array.isArray(data) && data.length > 0 ? data : FALLBACK_FEEDBACK))
-      .catch(() => setItems(FALLBACK_FEEDBACK));
+      .then((data) => setItems(Array.isArray(data) ? data : []))
+      .catch(() => setItems([]));
   }, []);
 
   const totalPages = Math.ceil(items.length / PER_PAGE);

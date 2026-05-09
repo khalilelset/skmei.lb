@@ -8,34 +8,27 @@ import {
   ShoppingBag, Search, Menu, X, User, ChevronDown, ChevronRight,
   Timer, Clock, Activity, Watch, Gem, Truck, Shield,
   Tag, Info, Phone,
+  Zap, Smartphone, Heart, Star, Package, Users, Sun, Flame, Award, Layers, Sparkles,
+  type LucideProps,
 } from "lucide-react";
+
+type IconComp = React.ComponentType<LucideProps>;
+const ICON_MAP: Record<string, IconComp> = {
+  Watch, Timer, Clock, Activity, Zap, Gem, Smartphone, Heart, Star,
+  Shield, Package, Users, Tag, Sun, Flame, Award, Layers, Sparkles,
+};
 import Marquee from "react-fast-marquee";
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  digital: <Timer className="w-4 h-4" />,
-  analog:  <Clock className="w-4 h-4" />,
-  sports:  <Activity className="w-4 h-4" />,
-  smart:   <Watch className="w-4 h-4" />,
-  luxury:  <Gem className="w-4 h-4" />,
-};
 
-const navigation = [
-  {
-    name: "Products",
-    href: "/store/products",
-    icon: <ShoppingBag className="w-4 h-4" />,
-    submenu: [
-      { name: "Digital Watches",  href: "/store/products?category=digital",  slug: "digital" },
-      { name: "Analog Watches",   href: "/store/products?category=analog",   slug: "analog" },
-      { name: "Sports Watches",   href: "/store/products?category=sports",   slug: "sports" },
-      { name: "Smart Watches",    href: "/store/products?category=smart",    slug: "smart" },
-      { name: "Luxury Collection",href: "/store/products?category=luxury",   slug: "luxury" },
-    ],
-  },
+const staticNavigation = [
   { name: "Sale",    href: "/store/products?filter=sale", icon: <Tag className="w-4 h-4" /> },
   { name: "About",   href: "/about",   icon: <Info className="w-4 h-4" /> },
   { name: "Contact", href: "/contact", icon: <Phone className="w-4 h-4" /> },
 ];
+
+interface NavCategory { id: string; name: string; slug: string; icon?: string | null; }
+interface NavSubItem { name: string; href: string; slug: string; icon?: string | null; }
+interface NavItem { name: string; href: string; icon: React.ReactNode; submenu?: NavSubItem[]; }
 
 export default function Header() {
   const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState<string | null>(null);
@@ -43,6 +36,31 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [dbCategories, setDbCategories] = useState<NavCategory[]>([]);
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then((data) => setDbCategories(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  const navigation: NavItem[] = [
+    {
+      name: "Products",
+      href: "/store/products",
+      icon: <ShoppingBag className="w-4 h-4" />,
+      submenu: dbCategories.length > 0
+        ? dbCategories.map((c) => ({ name: c.name, href: `/store/products?category=${c.slug}`, slug: c.slug, icon: c.icon }))
+        : undefined,
+    },
+    ...staticNavigation,
+  ];
+
+  const quickLinks = [
+    ...dbCategories.slice(0, 4).map((c) => ({ label: c.name, href: `/store/products?category=${c.slug}` })),
+    { label: "Sale", href: "/store/products?filter=sale" },
+  ];
 
   const { getTotalItems, openCart, bump, mobileMenuOpen, toggleMobileMenu, closeMobileMenu: closeMenu } = useCartStore();
   const cartItemsCount = getTotalItems();
@@ -77,13 +95,6 @@ export default function Header() {
     }
   };
 
-  const quickLinks = [
-    { label: "Digital", href: "/store/products?category=digital" },
-    { label: "Sports",  href: "/store/products?category=sports" },
-    { label: "Smart",   href: "/store/products?category=smart" },
-    { label: "Luxury",  href: "/store/products?category=luxury" },
-    { label: "Sale",    href: "/store/products?filter=sale" },
-  ];
 
   return (
     <header
@@ -203,7 +214,7 @@ export default function Header() {
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/65 hover:bg-brand-red hover:text-white transition-all group"
                         >
                           <span className="w-8 h-8 rounded-lg bg-white/8 group-hover:bg-white/20 flex items-center justify-center text-brand-red group-hover:text-white transition-colors shrink-0">
-                            {categoryIcons[subitem.slug]}
+                            {(() => { const Ic = ICON_MAP[subitem.icon ?? ''] ?? Watch; return <Ic className="w-4 h-4" />; })()}
                           </span>
                           {subitem.name}
                           <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -339,7 +350,7 @@ export default function Header() {
                         className="flex items-center gap-2.5 px-4 py-3.5 bg-white/6 hover:bg-brand-red hover:text-white rounded-xl text-sm font-medium text-white/70 transition-all group active:scale-95 border border-white/8"
                       >
                         <span className="text-brand-red group-hover:text-white transition-colors shrink-0">
-                          {categoryIcons[subitem.slug]}
+                          {(() => { const Ic = ICON_MAP[subitem.icon ?? ''] ?? Watch; return <Ic className="w-4 h-4" />; })()}
                         </span>
                         <span className="leading-tight">{subitem.name}</span>
                       </Link>
