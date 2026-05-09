@@ -27,6 +27,7 @@ export interface PlacedOrder {
   total: number;
   placedAt: string;
   paymentMethod?: string;
+  warrantyLabel?: string;
 }
 
 export function OrderConfirmation({ order }: { order: PlacedOrder }) {
@@ -82,7 +83,7 @@ export function OrderConfirmation({ order }: { order: PlacedOrder }) {
           {[
             { icon: Truck, title: 'Delivery', sub: '3–5 days' },
             { icon: isWhish ? Wallet : Banknote, title: 'Payment', sub: isWhish ? 'Paid via Whish' : 'Cash on delivery' },
-            { icon: ShieldCheck, title: 'Warranty', sub: '1-year included' },
+            { icon: ShieldCheck, title: 'Warranty', sub: order.warrantyLabel ?? '1-year included' },
           ].map(({ icon: Icon, title, sub }) => (
             <div key={title} className="bg-white/5 rounded-xl pt-0 border border-white/8 text-center overflow-hidden">
               <div className="h-0.5 bg-brand-red" />

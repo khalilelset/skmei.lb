@@ -27,7 +27,13 @@ import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
-import { categories } from '@/data/products';
+const categories = [
+  { slug: 'digital', name: 'Digital Watches' },
+  { slug: 'analog',  name: 'Analog Watches' },
+  { slug: 'sports',  name: 'Sports Watches' },
+  { slug: 'smart',   name: 'Smart Watches' },
+  { slug: 'luxury',  name: 'Luxury Collection' },
+];
 import { formatPrice } from '@/lib/utils';
 import type { Product, ProductColor } from '@/types';
 
@@ -61,6 +67,7 @@ const emptyForm = {
   brand: 'SKMEI',
   isNew: false, onSale: false, isBestseller: false, isCouple: false, gender: '' as '' | 'men' | 'women' | 'unisex',
   colors: [] as ProductColor[],
+  priceTiers: [] as { qty: string; price: string }[],
   specifications: { ...emptySpecs },
 };
 
@@ -145,6 +152,7 @@ export default function ProductsPage() {
       gender: (product.gender ?? '') as '' | 'men' | 'women' | 'unisex',
       brand: product.brand ?? 'SKMEI',
       colors: product.colors ?? [],
+      priceTiers: (product.priceTiers ?? []).map((t) => ({ qty: String(t.qty), price: String(t.price) })),
       specifications: { ...emptySpecs, ...(product.specifications ?? {}) },
     });
     setDialogOpen(true);
@@ -235,6 +243,10 @@ export default function ProductsPage() {
       gender: form.gender || null,
       brand: form.brand || 'SKMEI',
       colors: form.colors,
+      priceTiers: form.priceTiers
+        .filter((t) => t.qty && t.price && parseFloat(t.qty) > 0 && parseFloat(t.price) > 0)
+        .map((t) => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
+        .sort((a, b) => a.qty - b.qty),
       specifications: form.specifications,
     };
 
@@ -465,6 +477,48 @@ export default function ProductsPage() {
                 </Grid>
               );
             })()}
+            {/* Bundle / Tiered Pricing */}
+            <Grid size={12}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Bundle Pricing <Typography component="span" variant="caption" color="text.secondary">(optional — e.g. 2 for $15)</Typography></Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                Each row defines a total price when the customer buys exactly that many units.
+              </Typography>
+              {form.priceTiers.map((tier, i) => (
+                <Box key={i} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                  <TextField
+                    size="small" type="number" label="Qty" sx={{ width: 90 }}
+                    value={tier.qty}
+                    onChange={(e) => setForm(f => ({
+                      ...f,
+                      priceTiers: f.priceTiers.map((t, idx) => idx === i ? { ...t, qty: e.target.value } : t),
+                    }))}
+                    inputProps={{ min: 1, step: 1 }}
+                  />
+                  <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>units for</Typography>
+                  <TextField
+                    size="small" type="number" label="Total ($)" sx={{ width: 110 }}
+                    value={tier.price}
+                    onChange={(e) => setForm(f => ({
+                      ...f,
+                      priceTiers: f.priceTiers.map((t, idx) => idx === i ? { ...t, price: e.target.value } : t),
+                    }))}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                  <IconButton size="small" onClick={() => setForm(f => ({ ...f, priceTiers: f.priceTiers.filter((_, idx) => idx !== i) }))}
+                    sx={{ color: '#EF4444' }}>
+                    <CloseIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                size="small" variant="outlined" startIcon={<AddIcon />}
+                onClick={() => setForm(f => ({ ...f, priceTiers: [...f.priceTiers, { qty: '', price: '' }] }))}
+                sx={{ borderColor: 'rgba(0,0,0,0.23)', color: 'text.secondary', mt: 0.5, '&:hover': { borderColor: '#DC2626', color: '#DC2626' } }}
+              >
+                Add Tier
+              </Button>
+            </Grid>
+
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth size="small" select label="Category" value={form.category}

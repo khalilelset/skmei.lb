@@ -6,7 +6,7 @@ import Link from "next/link";
 import { X, ShoppingBag, Minus, Plus, Trash2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getTierTotal } from "@/lib/utils";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -137,9 +137,20 @@ export default function CartDrawer() {
                           >
                             {item.product.name}
                           </Link>
-                          <p className="text-brand-red font-bold mt-1 text-sm">
-                            {formatPrice(item.product.price)}
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <p className="text-brand-red font-bold text-sm">
+                              {formatPrice(getTierTotal(item.product.priceTiers, item.product.price, item.quantity) + (item.selectedBox?.price ?? 0) * item.quantity)}
+                            </p>
+                            {(() => {
+                              const tier = item.product.priceTiers?.find((t) => t.qty === item.quantity && t.qty > 1);
+                              if (!tier) return null;
+                              return (
+                                <span className="text-[9px] font-black text-orange-400 bg-orange-400/10 border border-orange-400/25 px-1.5 py-0.5 rounded-full leading-none">
+                                  {tier.qty} for {formatPrice(tier.price)}
+                                </span>
+                              );
+                            })()}
+                          </div>
 
                           {/* Quantity + Remove */}
                           <div className="flex items-center justify-between mt-2.5">

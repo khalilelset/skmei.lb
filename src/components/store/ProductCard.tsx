@@ -117,15 +117,27 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Price */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-baseline gap-2">
-              <span className="text-base sm:text-lg font-bold text-white">
-                {formatPrice(product.price)}
-              </span>
-              {product.originalPrice && (
-                <span className="text-xs sm:text-sm text-gray-400 line-through">
-                  {formatPrice(product.originalPrice)}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-base sm:text-lg font-bold text-white">
+                  {formatPrice(product.price)}
                 </span>
-              )}
+                {product.originalPrice && (
+                  <span className="text-xs sm:text-sm text-gray-400 line-through">
+                    {formatPrice(product.originalPrice)}
+                  </span>
+                )}
+              </div>
+              {/* Bundle deal badge */}
+              {(() => {
+                const tier = product.priceTiers?.filter((t) => t.qty > 1).sort((a, b) => a.qty - b.qty)[0];
+                if (!tier) return null;
+                return (
+                  <span className="text-[9px] sm:text-[10px] font-black text-orange-400 bg-orange-400/10 border border-orange-400/25 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
+                    {tier.qty} for {formatPrice(tier.price)}
+                  </span>
+                );
+              })()}
             </div>
 
             {/* Color dots */}

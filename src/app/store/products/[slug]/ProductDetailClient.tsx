@@ -17,7 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { useToastStore } from "@/store/toastStore";
-import { formatPrice, calculateDiscount, getStockStatus } from "@/lib/utils";
+import { formatPrice, calculateDiscount, getStockStatus, getTierTotal } from "@/lib/utils";
 import ProductCard from "@/components/store/ProductCard";
 import ReviewSection from "@/components/store/ReviewSection";
 import SectionHeader from "@/components/store/SectionHeader";
@@ -523,8 +523,10 @@ export default function ProductDetailClient({ slug }: Props) {
                 </h1>
 
                 {/* Price */}
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="text-4xl font-black text-white">{formatPrice(product.price)}</span>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl font-black text-white">
+                    {formatPrice(getTierTotal(product.priceTiers, product.price, quantity) / quantity)}
+                  </span>
                   {product.originalPrice && (
                     <>
                       <span className="text-xl text-white/30 line-through">{formatPrice(product.originalPrice)}</span>
@@ -534,6 +536,42 @@ export default function ProductDetailClient({ slug }: Props) {
                     </>
                   )}
                 </div>
+
+                {/* Bundle deal labels */}
+                {product.priceTiers && product.priceTiers.filter((t) => t.qty > 1).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    {[...product.priceTiers]
+                      .filter((t) => t.qty > 1)
+                      .sort((a, b) => a.qty - b.qty)
+                      .map((tier) => {
+                        const active = quantity === tier.qty;
+                        return (
+                          <button
+                            key={tier.qty}
+                            type="button"
+                            onClick={() => setQuantity(active ? 1 : tier.qty)}
+                            className={`group flex items-center gap-2 px-4 py-2 rounded-full border-2 font-bold text-sm transition-all duration-200 active:scale-95 ${
+                              active
+                                ? 'border-orange-400 bg-orange-400/15 text-orange-300'
+                                : 'border-orange-400/35 bg-orange-400/6 text-orange-400 hover:border-orange-400 hover:bg-orange-400/12'
+                            }`}
+                          >
+                            {active && (
+                              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                            <span>Get {tier.qty} for {formatPrice(tier.price)}</span>
+                            {!active && (
+                              <span className="text-[10px] font-medium text-orange-400/60">
+                                ({formatPrice(tier.price / tier.qty)} each)
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
 
                 {/* Color Combination Display */}
                 {product.colors && product.colors.length > 0 && (

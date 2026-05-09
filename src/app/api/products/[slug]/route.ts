@@ -23,6 +23,7 @@ function mapProduct(row: Record<string, unknown>, reviews: { rating: number }[] 
     features: row.features,
     specifications: row.specifications,
     videoUrl: row.video_url ?? null,
+    priceTiers: Array.isArray(row.price_tiers) ? row.price_tiers : null,
     isNew: row.is_new,
     isFeatured: row.is_featured,
     gender: row.gender,

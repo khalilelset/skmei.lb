@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -17,62 +17,62 @@ import {
   Grid,
   Divider,
   Stack,
+  CircularProgress,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Close as CloseIcon,
-  Email as EmailIcon,
   Phone as PhoneIcon,
   ShoppingBag as OrderIcon,
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
-import { getCustomers, getCustomerOrders } from '@/data/mockData';
 import { formatDate, formatPrice } from '@/lib/utils';
-import type { Customer } from '@/types';
+
+interface RealCustomer {
+  phone: string;
+  name: string;
+  email: string | null;
+  orderCount: number;
+  totalSpent: number;
+  firstOrderAt: string;
+  lastOrderAt: string;
+  orders: { id: string; total: number; status: string; createdAt: string }[];
+}
 
 export default function CustomersPage() {
+  const [customers, setCustomers] = useState<RealCustomer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const customers = getCustomers();
+  const [selected, setSelected] = useState<RealCustomer | null>(null);
 
-  // Filter customers based on search
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((customer) =>
-      `${customer.firstName} ${customer.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.phone.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [customers, searchQuery]);
+  useEffect(() => {
+    fetch('/api/admin/customers')
+      .then((r) => r.json())
+      .then((data) => { setCustomers(Array.isArray(data) ? data : []); setIsLoading(false); })
+      .catch(() => setIsLoading(false));
+  }, []);
+
+  const filtered = useMemo(() =>
+    customers.filter((c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.phone.includes(searchQuery) ||
+      (c.email ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+    ), [customers, searchQuery]);
 
   const columns: Column[] = [
     {
-      id: 'avatar',
-      label: '',
-      minWidth: 60,
-      sortable: false,
-      format: (_, customer: Customer) => (
-        <Avatar
-          sx={{
-            width: 40,
-            height: 40,
-            bgcolor: '#DC2626',
-            fontWeight: 600,
-          }}
-        >
-          {`${customer.firstName} ${customer.lastName}`.charAt(0).toUpperCase()}
-        </Avatar>
-      ),
-    },
-    {
-      id: 'firstName',
-      label: 'Customer Name',
-      minWidth: 200,
-      format: (_, customer: Customer) => (
-        <Box>
-          <Typography sx={{ fontWeight: 600 }}>{customer.firstName} {customer.lastName}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            {customer.email}
-          </Typography>
+      id: 'name',
+      label: 'Customer',
+      minWidth: 220,
+      format: (_, c: RealCustomer) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: '#DC2626', fontWeight: 600, fontSize: 15 }}>
+            {c.name.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box>
+            <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{c.name}</Typography>
+            {c.email && <Typography variant="caption" color="text.secondary">{c.email}</Typography>}
+          </Box>
         </Box>
       ),
     },
@@ -80,305 +80,182 @@ export default function CustomersPage() {
       id: 'phone',
       label: 'Phone',
       minWidth: 140,
-      format: (value) => (
-        <Typography variant="body2">{value}</Typography>
-      ),
+      format: (value) => <Typography variant="body2">{value}</Typography>,
     },
     {
-      id: 'totalOrders',
-      label: 'Total Orders',
-      minWidth: 120,
-      align: 'center',
-      format: (_, customer: Customer) => {
-        const orderCount = getCustomerOrders(customer.id).length;
-        return (
-          <Chip
-            label={orderCount}
-            size="small"
-            sx={{
-              bgcolor: 'rgba(220, 38, 38, 0.1)',
-              color: '#DC2626',
-              fontWeight: 600,
-            }}
-          />
-        );
-      },
-    },
-    {
-      id: 'createdAt',
-      label: 'Member Since',
-      minWidth: 140,
-      format: (value) => formatDate(value),
-    },
-    {
-      id: 'status',
-      label: 'Status',
+      id: 'orderCount',
+      label: 'Orders',
       minWidth: 100,
       align: 'center',
-      sortable: false,
-      format: () => (
-        <Chip
-          label="Active"
-          size="small"
-          sx={{
-            bgcolor: 'rgba(34, 197, 94, 0.1)',
-            color: '#22C55E',
-            fontWeight: 600,
-          }}
-        />
+      format: (value) => (
+        <Chip label={value} size="small" sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 600 }} />
       ),
+    },
+    {
+      id: 'totalSpent',
+      label: 'Total Spent',
+      minWidth: 120,
+      align: 'right',
+      format: (value) => <Typography sx={{ fontWeight: 600, color: '#DC2626' }}>{formatPrice(value)}</Typography>,
+    },
+    {
+      id: 'lastOrderAt',
+      label: 'Last Order',
+      minWidth: 140,
+      format: (value) => <Typography variant="body2" color="text.secondary">{formatDate(value)}</Typography>,
     },
   ];
 
-  const handleRowClick = (customer: Customer) => {
-    setSelectedCustomer(customer);
-  };
-
-  const handleCloseDialog = () => {
-    setSelectedCustomer(null);
-  };
-
-  const customerOrders = selectedCustomer ? getCustomerOrders(selectedCustomer.id) : [];
-
   return (
     <Box>
-      {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
-          Customers Management
+          Customers
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          View and manage your customer base
+          Unique customers aggregated from orders
         </Typography>
       </Box>
 
-      {/* Search */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <TextField
           fullWidth
-          placeholder="Search by name, email, or phone..."
+          placeholder="Search by name, phone, or email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
         />
       </Paper>
 
-      {/* Stats Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#DC2626', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
-              {customers.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Total Customers
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#22C55E', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
-              {customers.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Active Customers
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#3B82F6', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
-              0
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              New This Month
-            </Typography>
-          </Paper>
-        </Grid>
+        {[
+          { label: 'Total Customers', value: customers.length, color: '#DC2626' },
+          { label: 'Total Orders', value: customers.reduce((s, c) => s + c.orderCount, 0), color: '#3B82F6' },
+          { label: 'Total Revenue', value: `$${customers.reduce((s, c) => s + c.totalSpent, 0).toFixed(2)}`, color: '#10B981' },
+        ].map(({ label, value, color }) => (
+          <Grid key={label} size={{ xs: 12, sm: 4 }}>
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>{value}</Typography>
+              <Typography variant="body2" color="text.secondary">{label}</Typography>
+            </Paper>
+          </Grid>
+        ))}
       </Grid>
 
-      {/* Customers Table */}
       <Box sx={{ mb: 2 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Showing {filteredCustomers.length} of {customers.length} customers
-        </Typography>
-        <DataTable
-          columns={columns}
-          data={filteredCustomers}
-          onRowClick={handleRowClick}
-          emptyMessage="No customers found. Try adjusting your search."
-        />
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress sx={{ color: '#DC2626' }} />
+          </Box>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Showing {filtered.length} of {customers.length} customers
+            </Typography>
+            <DataTable
+              columns={columns}
+              data={filtered}
+              onRowClick={(c) => setSelected(c as RealCustomer)}
+              emptyMessage="No customers found."
+            />
+          </>
+        )}
       </Box>
 
       {/* Customer Details Dialog */}
-      <Dialog
-        open={!!selectedCustomer}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        {selectedCustomer && (
+      <Dialog open={!!selected} onClose={() => setSelected(null)} maxWidth="sm" fullWidth>
+        {selected && (
           <>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    bgcolor: '#DC2626',
-                    fontWeight: 600,
-                    fontSize: 24,
-                  }}
-                >
-                  {`${selectedCustomer.firstName} ${selectedCustomer.lastName}`.charAt(0).toUpperCase()}
+                <Avatar sx={{ width: 48, height: 48, bgcolor: '#DC2626', fontWeight: 700, fontSize: 20 }}>
+                  {selected.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {`${selectedCustomer.firstName} ${selectedCustomer.lastName}`}
-                  </Typography>
-                  <Chip
-                    label="Active"
-                    size="small"
-                    sx={{
-                      bgcolor: 'rgba(34, 197, 94, 0.1)',
-                      color: '#22C55E',
-                      fontWeight: 600,
-                      mt: 0.5,
-                    }}
-                  />
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>{selected.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">Customer since {formatDate(selected.firstOrderAt)}</Typography>
                 </Box>
               </Box>
-              <Button
-                onClick={handleCloseDialog}
-                sx={{ minWidth: 'auto', color: 'text.secondary' }}
-              >
+              <Button onClick={() => setSelected(null)} sx={{ minWidth: 'auto', color: 'text.secondary' }}>
                 <CloseIcon />
               </Button>
             </DialogTitle>
-            <DialogContent dividers>
-              <Grid container spacing={3}>
-                {/* Contact Information */}
-                <Grid size={12}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-                    Contact Information
-                  </Typography>
-                  <Stack spacing={1.5}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <EmailIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                      <Typography variant="body2">{selectedCustomer.email}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PhoneIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                      <Typography variant="body2">{selectedCustomer.phone}</Typography>
-                    </Box>
-                  </Stack>
-                </Grid>
 
-                {/* Addresses */}
-                <Grid size={12}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-                    Addresses
-                  </Typography>
-                  <Stack spacing={2}>
-                    {selectedCustomer.addresses.map((address, index) => (
-                      <Paper key={index} sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
-                          {[address.area, address.city].filter(Boolean).join(', ') || address.state || '—'}
-                        </Typography>
-                        {address.street && (
-                          <Typography variant="body2" color="text.secondary">
-                            {address.street}
-                          </Typography>
-                        )}
-                        {address.building && (
-                          <Typography variant="body2" color="text.secondary">
-                            {address.building}
-                          </Typography>
-                        )}
-                        <Typography variant="body2" color="text.secondary">Lebanon</Typography>
+            <DialogContent dividers>
+              <Stack spacing={2.5}>
+                <Stack direction="row" spacing={2}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PhoneIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                    <Typography variant="body2">{selected.phone}</Typography>
+                  </Box>
+                  {selected.email && (
+                    <Typography variant="body2" color="text.secondary">{selected.email}</Typography>
+                  )}
+                </Stack>
+
+                <Stack direction="row" spacing={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Orders</Typography>
+                    <Typography sx={{ fontWeight: 700, color: '#DC2626' }}>{selected.orderCount}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Total Spent</Typography>
+                    <Typography sx={{ fontWeight: 700, color: '#10B981' }}>{formatPrice(selected.totalSpent)}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Last Order</Typography>
+                    <Typography sx={{ fontWeight: 700 }}>{formatDate(selected.lastOrderAt)}</Typography>
+                  </Box>
+                </Stack>
+
+                <Divider />
+
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <OrderIcon sx={{ color: '#DC2626', fontSize: 18 }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      Orders ({selected.orders.length})
+                    </Typography>
+                  </Box>
+                  <Stack spacing={1.5}>
+                    {selected.orders.map((o) => (
+                      <Paper key={o.id} sx={{ p: 1.5, bgcolor: 'rgba(0,0,0,0.02)' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>
+                              SK-{o.id.slice(0, 6).toUpperCase()}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">{formatDate(o.createdAt)}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip
+                              label={o.status}
+                              size="small"
+                              sx={{ textTransform: 'capitalize', fontSize: 10, height: 20 }}
+                            />
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#DC2626' }}>
+                              {formatPrice(o.total)}
+                            </Typography>
+                          </Box>
+                        </Box>
                       </Paper>
                     ))}
                   </Stack>
-                </Grid>
-
-                <Grid size={12}>
-                  <Divider />
-                </Grid>
-
-                {/* Order History */}
-                <Grid size={12}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <OrderIcon sx={{ color: '#DC2626' }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Order History ({customerOrders.length} orders)
-                    </Typography>
-                  </Box>
-                  {customerOrders.length > 0 ? (
-                    <Stack spacing={2}>
-                      {customerOrders.map((order) => (
-                        <Paper key={order.id} sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {order.orderNumber}
-                            </Typography>
-                            <Chip
-                              label={order.status}
-                              size="small"
-                              sx={{
-                                textTransform: 'capitalize',
-                                fontSize: 11,
-                              }}
-                            />
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" color="text.secondary">
-                              {formatDate(order.createdAt)}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#DC2626' }}>
-                              {formatPrice(order.total)}
-                            </Typography>
-                          </Box>
-                        </Paper>
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No orders yet
-                      </Typography>
-                    </Paper>
-                  )}
-                </Grid>
-
-                {/* Account Info */}
-                <Grid size={12}>
-                  <Divider sx={{ mb: 2 }} />
-                  <Typography variant="caption" color="text.secondary">
-                    Member since {formatDate(selectedCustomer.createdAt)}
-                  </Typography>
-                </Grid>
-              </Grid>
+                </Box>
+              </Stack>
             </DialogContent>
+
             <DialogActions>
-              <Button onClick={handleCloseDialog}>Close</Button>
+              <Button onClick={() => setSelected(null)}>Close</Button>
               <Button
                 variant="contained"
                 component="a"
-                href={`https://wa.me/${selectedCustomer.phone.replace(/\D/g, '')}`}
+                href={`https://wa.me/${selected.phone.replace(/\D/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                sx={{
-                  bgcolor: '#DC2626',
-                  '&:hover': { bgcolor: '#B91C1C' },
-                }}
+                sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}
               >
-                Contact Customer
+                WhatsApp
               </Button>
             </DialogActions>
           </>

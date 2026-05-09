@@ -20,6 +20,7 @@ function mapProduct(row: Record<string, unknown>) {
     features: row.features,
     specifications: row.specifications,
     videoUrl: row.video_url ?? null,
+    priceTiers: Array.isArray(row.price_tiers) ? row.price_tiers : null,
     isNew: row.is_new,
     onSale: row.on_sale,
     isBestseller: row.is_bestseller,
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
       is_couple: body.isCouple ?? false,
       gender: body.gender ?? null,
       colors: body.colors ?? [],
+      price_tiers: body.priceTiers ?? null,
       rating: Number(body.rating ?? 0),
       review_count: Number(body.reviewCount ?? 0),
     };

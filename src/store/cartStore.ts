@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Product, CartItem, Box } from "@/types";
+import { getTierTotal } from "@/lib/utils";
 
 interface CartState {
   items: CartItem[];
@@ -114,11 +115,11 @@ export const useCartStore = create<CartState>()(
       },
 
       getTotalPrice: () => {
-        return get().items.reduce(
-          (total, item) =>
-            total + (item.product.price + (item.selectedBox?.price ?? 0)) * item.quantity,
-          0
-        );
+        return get().items.reduce((total, item) => {
+          const productTotal = getTierTotal(item.product.priceTiers, item.product.price, item.quantity);
+          const boxTotal = (item.selectedBox?.price ?? 0) * item.quantity;
+          return total + productTotal + boxTotal;
+        }, 0);
       },
 
       getItemQuantity: (productId: string) => {

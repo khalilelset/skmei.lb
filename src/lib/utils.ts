@@ -66,6 +66,24 @@ export function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
   };
 }
 
+export function getTierTotal(
+  tiers: { qty: number; price: number }[] | null | undefined,
+  basePrice: number,
+  quantity: number,
+): number {
+  if (!tiers || tiers.length === 0) return basePrice * quantity;
+  const sorted = [...tiers].sort((a, b) => b.qty - a.qty);
+  let remaining = quantity;
+  let total = 0;
+  for (const tier of sorted) {
+    const batches = Math.floor(remaining / tier.qty);
+    total += batches * tier.price;
+    remaining -= batches * tier.qty;
+  }
+  total += remaining * basePrice;
+  return total;
+}
+
 export function getOrderStatusColor(status: string): string {
   const colors: Record<string, string> = {
     pending: "bg-red-100 text-red-800",

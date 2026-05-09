@@ -7,7 +7,7 @@ import BestsellingSection from "@/components/store/BestsellingSection";
 import CategoryImage from "@/components/store/CategoryImage";
 import HomeProductGrid from "@/components/store/HomeProductGrid";
 import SectionHeader from "@/components/store/SectionHeader";
-import { getFeaturedProducts, categories } from "@/data/products";
+import { supabaseServer } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ChevronRight, ArrowRight } from "lucide-react";
 
@@ -124,15 +124,55 @@ const faqSchema = {
   ],
 };
 
-export default async function HomePage() {
-  const featuredProducts = getFeaturedProducts();
+const CATEGORIES = [
+  { id: '1', slug: 'digital', name: 'Digital Watches' },
+  { id: '2', slug: 'analog',  name: 'Analog Watches' },
+  { id: '3', slug: 'sports',  name: 'Sports Watches' },
+  { id: '4', slug: 'smart',   name: 'Smart Watches' },
+  { id: '5', slug: 'luxury',  name: 'Luxury Collection' },
+];
 
-  const categoryConfig: Record<string, { count: number; image: string }> = {
-    digital: { count: 24, image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop' },
-    analog:  { count: 18, image: 'https://images.unsplash.com/photo-1524592094714-0f0654e359cf?w=600&q=80&fit=crop' },
-    sports:  { count: 32, image: 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80&fit=crop' },
-    smart:   { count: 15, image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&q=80&fit=crop' },
-    luxury:  { count: 12, image: 'https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600&q=80&fit=crop' },
+export default async function HomePage() {
+  const { data: bestsellers } = await supabaseServer
+    .from('products')
+    .select('id, name, slug, price, original_price, images, category, brand, stock, rating, review_count, is_new, on_sale, is_bestseller, is_couple, colors')
+    .or('is_bestseller.eq.true,is_new.eq.true')
+    .limit(12);
+
+  const featuredProducts = (bestsellers ?? []).map((row) => ({
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    price: Number(row.price),
+    originalPrice: row.original_price ? Number(row.original_price) : undefined,
+    images: Array.isArray(row.images)
+      ? (row.images as unknown[]).filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+      : [],
+    category: row.category as string,
+    brand: row.brand as string,
+    stock: Number(row.stock ?? 0),
+    rating: Number(row.rating ?? 0),
+    reviewCount: Number(row.review_count ?? 0),
+    isNew: row.is_new as boolean,
+    onSale: row.on_sale as boolean,
+    isBestseller: row.is_bestseller as boolean,
+    isCouple: row.is_couple as boolean,
+    colors: row.colors ?? [],
+    description: '',
+    sku: '',
+    features: [],
+    specifications: { movement: '', caseMaterial: '', bandMaterial: '', dialColor: '', caseSize: '', waterResistance: '', warranty: '' },
+    createdAt: '',
+    updatedAt: '',
+  }));
+
+  const categories = CATEGORIES;
+  const categoryConfig: Record<string, { image: string }> = {
+    digital: { image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop' },
+    analog:  { image: 'https://images.unsplash.com/photo-1524592094714-0f0654e359cf?w=600&q=80&fit=crop' },
+    sports:  { image: 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80&fit=crop' },
+    smart:   { image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&q=80&fit=crop' },
+    luxury:  { image: 'https://images.unsplash.com/photo-1548169874-53e85f753f1e?w=600&q=80&fit=crop' },
   };
 
   return (

@@ -56,6 +56,7 @@ function SuccessContent() {
           total:         Number(data.total ?? 0),
           placedAt:      data.created_at ?? new Date().toISOString(),
           paymentMethod: data.payment_method ?? 'whish',
+          warrantyLabel: data.warranty_label ?? undefined,
         });
       })
       .catch(() => { /* show fallback */ })

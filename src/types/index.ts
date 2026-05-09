@@ -4,6 +4,11 @@ export interface ProductColor {
 }
 
 // Product Types
+export interface PriceTier {
+  qty: number;
+  price: number; // total price for this many units
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -12,6 +17,7 @@ export interface Product {
   price: number;
   costPrice?: number;
   originalPrice?: number;
+  priceTiers?: PriceTier[];
   images: string[];
   category: string;
   brand: string;

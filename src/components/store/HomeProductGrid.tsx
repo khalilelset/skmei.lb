@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
-import { SkeletonGrid } from './SkeletonProductCard';
-import { products as staticProducts } from '@/data/products';
 import type { Product } from '@/types';
 
 interface Props {
@@ -12,13 +10,9 @@ interface Props {
 }
 
 function filterProducts(all: Product[], type: Props['type'], count: number): Product[] {
-  if (type === 'newest') {
-    return all.filter((p) => p.isNew).slice(0, count);
-  }
-  if (type === 'featured') {
-    return all.filter((p) => p.isBestseller || p.isNew).slice(0, count);
-  }
-  return all.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price));
+  if (type === 'newest') return all.filter((p) => p.isNew).slice(0, count);
+  if (type === 'featured') return all.filter((p) => p.isBestseller || p.isNew).slice(0, count);
+  return all.filter((p) => p.onSale || (p.originalPrice && p.originalPrice > p.price)).slice(0, count);
 }
 
 export default function HomeProductGrid({ type, count = 8 }: Props) {
@@ -29,14 +23,10 @@ export default function HomeProductGrid({ type, count = 8 }: Props) {
     fetch('/api/products')
       .then((r) => r.json())
       .then((data) => {
-        const all: Product[] = Array.isArray(data) && data.length > 0 ? data : staticProducts;
-        setProducts(filterProducts(all, type, count));
+        setProducts(Array.isArray(data) ? filterProducts(data, type, count) : []);
         setLoading(false);
       })
-      .catch(() => {
-        setProducts(filterProducts(staticProducts, type, count));
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [type, count]);
 
   if (loading) {
@@ -69,6 +59,8 @@ export default function HomeProductGrid({ type, count = 8 }: Props) {
       </div>
     );
   }
+
+  if (products.length === 0) return null;
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">

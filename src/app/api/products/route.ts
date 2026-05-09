@@ -18,6 +18,7 @@ function mapProduct(row: Record<string, unknown>) {
     stock: Number(row.stock ?? 0),
     features: row.features,
     specifications: row.specifications,
+    priceTiers: Array.isArray(row.price_tiers) ? row.price_tiers : null,
     isNew: row.is_new,
     isFeatured: row.is_featured,
     isCouple: row.is_couple ?? false,

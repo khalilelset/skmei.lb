@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getTierTotal } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -255,21 +255,37 @@ export default function CheckoutPage() {
     else if (currentStep === 2 && validateStep2()) setCurrentStep(3);
   };
 
+  const getWarrantyLabel = async (brandName: string): Promise<string> => {
+    try {
+      const res = await fetch('/api/brands');
+      const brands: { name: string; warranty_value?: number; warranty_unit?: string }[] = await res.json();
+      const brand = brands.find((b) => b.name.toLowerCase() === brandName.toLowerCase());
+      if (brand?.warranty_value && brand?.warranty_unit) {
+        return `${brand.warranty_value} ${brand.warranty_unit} included`;
+      }
+    } catch { /* fall through */ }
+    return '1-year included';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setWhishError('');
 
-    const orderItems = items.map((item) => ({
-      id: item.product.id,
-      name: item.product.name,
-      price: item.product.price + (item.selectedBox?.price ?? 0),
-      quantity: item.quantity,
-      image: item.product.images[0] ?? null,
-      box: item.selectedBox
-        ? { code: item.selectedBox.code, type: item.selectedBox.type, price: item.selectedBox.price }
-        : null,
-    }));
+    const orderItems = items.map((item) => {
+      const productTotal = getTierTotal(item.product.priceTiers, item.product.price, item.quantity);
+      const pricePerUnit = productTotal / item.quantity;
+      return {
+        id: item.product.id,
+        name: item.product.name,
+        price: pricePerUnit + (item.selectedBox?.price ?? 0),
+        quantity: item.quantity,
+        image: item.product.images[0] ?? null,
+        box: item.selectedBox
+          ? { code: item.selectedBox.code, type: item.selectedBox.type, price: item.selectedBox.price }
+          : null,
+      };
+    });
 
     const orderPayload = {
       customer_name:  `${formData.firstName} ${formData.lastName}`.trim(),
@@ -307,6 +323,8 @@ export default function CheckoutPage() {
           body:    JSON.stringify({ ...orderPayload, status: 'pending' }),
         });
         const data = await res.json();
+        const primaryBrand = items[0]?.product.brand ?? '';
+        const warrantyLabel = await getWarrantyLabel(primaryBrand);
         clearCart();
         setPlacedOrder({
           orderId:       data.orderId ?? 'unknown',
@@ -325,6 +343,7 @@ export default function CheckoutPage() {
           couponCode:    appliedCoupon?.code ?? null,
           total,
           placedAt:      new Date().toISOString(),
+          warrantyLabel,
         });
       }
     } catch (err) {
@@ -606,7 +625,7 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white line-clamp-2">{item.product.name}</p>
-                        <p className="text-xs text-white/40 mt-0.5">{formatPrice(item.product.price)} × {item.quantity}</p>
+                        <p className="text-xs text-white/40 mt-0.5">{formatPrice(getTierTotal(item.product.priceTiers, item.product.price, item.quantity) / item.quantity)} × {item.quantity}</p>
                         {item.selectedBox && (
                           <p className="text-[10px] text-white/35 mt-0.5 flex items-center gap-1">
                             📦 {item.selectedBox.code}
@@ -617,7 +636,7 @@ export default function CheckoutPage() {
                         )}
                       </div>
                       <p className="font-bold text-white text-sm shrink-0">
-                        {formatPrice((item.product.price + (item.selectedBox?.price ?? 0)) * item.quantity)}
+                        {formatPrice(getTierTotal(item.product.priceTiers, item.product.price, item.quantity) + (item.selectedBox?.price ?? 0) * item.quantity)}
                       </p>
                     </div>
                   ))}
