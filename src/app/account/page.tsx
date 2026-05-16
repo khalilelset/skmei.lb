@@ -43,9 +43,15 @@ export default function AccountPage() {
         const addresses: Record<string, string>[] = c.addresses ?? [];
         const addr = addresses[0] ?? {};
         const storedPhone = raw.startsWith('+') ? raw : `+961${phone}`;
-        setForm({
-          name: `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim(),
-          email: c.email ?? '',
+        const resolvedName  = `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim();
+        const resolvedEmail = c.email ?? '';
+        // Sync fresh data from DB to localStorage
+        if (resolvedName)  localStorage.setItem('skmei-name',  resolvedName);
+        if (resolvedEmail) localStorage.setItem('skmei-email', resolvedEmail);
+        setForm((prev) => ({
+          ...prev,
+          name:  resolvedName  || prev.name,
+          email: resolvedEmail || prev.email,
           phone: storedPhone,
           saveAddress: addresses.length > 0,
           address: {
@@ -54,9 +60,10 @@ export default function AccountPage() {
             city:     addr.city     ?? '',
             region:   addr.region   ?? '',
           },
-        });
+        }));
         setLookupStatus('found');
-        setIsDirty(false);
+        // Keep save button visible if email is missing — prompt user to add it
+        setIsDirty(!resolvedEmail);
       } else {
         setLookupStatus('not-found');
         setIsDirty(true);

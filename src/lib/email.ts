@@ -2,7 +2,8 @@ import { Resend } from "resend";
 import { formatPhoneDisplay } from "@/lib/utils";
 
 let _resend: Resend | null = null;
-function getResend() {
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
   return _resend;
 }
@@ -493,7 +494,9 @@ export async function sendStatusChangeEmail(
       break;
   }
 
-  const result = await getResend().emails.send({
+  const resend = getResend();
+  if (!resend) return;
+  const result = await resend.emails.send({
     from: FROM_EMAIL,
     to: d.customerEmail,
     subject: subject!,
@@ -510,7 +513,9 @@ export async function sendOrderEmails(data: OrderEmailData) {
   const label = orderLabel(data);
 
   // Send admin notification only — customer email is sent later when status changes
-  const result = await getResend().emails.send({
+  const resend = getResend();
+  if (!resend) return;
+  const result = await resend.emails.send({
     from: FROM_EMAIL,
     to: ADMIN_EMAIL,
     subject: `New Order ${label} — ${data.customerName} — ${formatPrice(data.total)}`,

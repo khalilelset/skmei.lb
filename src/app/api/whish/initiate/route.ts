@@ -12,7 +12,6 @@ const WHISH_SECRET  = process.env.WHISH_SECRET!;
 const WHISH_WEBSITE = (process.env.WHISH_WEBSITE_URL ?? '')
   .replace(/^https?:\/\//, '')
   .replace(/\/$/, '');
-const SITE_URL      = process.env.NEXT_PUBLIC_SITE_URL!;
 
 const MAX_STRING = 200;
 const MAX_NOTE   = 1000;
@@ -135,19 +134,24 @@ export async function POST(req: NextRequest) {
     await supabaseServer.from('order_items').insert(orderItems);
 
     // ── 4. Build Whish payload ───────────────────────────────────────────
+    const origin =
+      req.headers.get('origin') ??
+      (req.headers.get('x-forwarded-proto') ?? 'https') +
+        '://' +
+        (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000');
+
     const externalId   = Date.now();
-    const callbackBase = `${SITE_URL}/api/whish/callback?orderId=${order.id}`;
+    const callbackBase = `${origin}/api/whish/callback?orderId=${order.id}`;
 
     const whishPayload = {
       amount:             total,
       currency:           'USD',
       invoice:            `Order #${order.order_number}`,
       externalId,
-      phoneNumber:        `961${normalizedPhone}`,
       successCallbackUrl: `${callbackBase}&type=success`,
       failureCallbackUrl: `${callbackBase}&type=failure`,
-      successRedirectUrl: `${SITE_URL}/store/checkout/payment/success?orderId=${order.id}`,
-      failureRedirectUrl: `${SITE_URL}/store/checkout/payment/failed?orderId=${order.id}`,
+      successRedirectUrl: `${origin}/store/checkout/payment/success?orderId=${order.id}`,
+      failureRedirectUrl: `${origin}/store/checkout/payment/failed?orderId=${order.id}`,
     };
 
     // ── 5. Call Whish API ────────────────────────────────────────────────
