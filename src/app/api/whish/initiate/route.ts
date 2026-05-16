@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac } from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
-import { sendOrderEmails } from '@/lib/email';
 
 // Use sandbox URL when WHISH_SANDBOX=true (testing credentials only work on sandbox)
 const WHISH_BASE    = process.env.WHISH_SANDBOX === 'true'
@@ -91,70 +91,50 @@ export async function POST(req: NextRequest) {
       customerId = newCustomer?.id ?? null;
     }
 
-    // ── 2. Insert order with pending_payment status ──────────────────────
-    const { data: order, error: orderError } = await supabaseServer
-      .from('orders')
-      .insert({
-        customer_id:    customerId,
-        customer_name,
-        customer_phone,
-        customer_email: customer_email || null,
-        items,
-        subtotal:       Number(subtotal),
-        shipping:       Number(shipping),
-        discount:       Number(discount ?? 0),
-        coupon_code:    coupon_code || null,
-        total:          Number(total),
-        address,
-        notes:          notes || null,
-        status:         'pending_payment',
-        source:         'website',
-        payment_method: 'whish',
-      })
-      .select('id, order_number')
-      .single();
+    // ── 2. Sign cart data and embed it in the callback URL ───────────────
+    // No order is created here. The callback creates it only on success.
+    const orderId = crypto.randomUUID();
 
-    if (orderError || !order) {
-      console.error('[whish/initiate] order insert error:', orderError);
-      return NextResponse.json(
-        { error: orderError?.message ?? 'Order creation failed' },
-        { status: 500 }
-      );
-    }
+    const cartPayload = {
+      oid:   orderId,
+      cid:   customerId,
+      cn:    customer_name,
+      cp:    normalizedPhone,
+      ce:    customer_email || null,
+      it:    items,
+      sub:   Number(subtotal),
+      sh:    Number(shipping),
+      dis:   Number(discount ?? 0),
+      cc:    coupon_code || null,
+      tot:   Number(total),
+      addr:  address ?? null,
+      notes: notes || null,
+    };
 
-    // ── 3. Insert order_items ────────────────────────────────────────────
-    const orderItems = (items as Record<string, unknown>[]).map((item) => ({
-      order_id:      order.id,
-      product_id:    (item.id as string) || null,
-      product_name:  String(item.name ?? item.productName ?? ''),
-      product_image: String(item.image ?? ''),
-      price:         Number(item.price ?? 0),
-      quantity:      Number(item.quantity ?? 1),
-    }));
-    await supabaseServer.from('order_items').insert(orderItems);
+    const cartB64 = Buffer.from(JSON.stringify(cartPayload)).toString('base64url');
+    const sig     = createHmac('sha256', WHISH_SECRET).update(cartB64).digest('hex');
 
-    // ── 4. Build Whish payload ───────────────────────────────────────────
+    // ── 3. Build Whish payload ───────────────────────────────────────────
     const origin =
       req.headers.get('origin') ??
       (req.headers.get('x-forwarded-proto') ?? 'https') +
         '://' +
         (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000');
 
-    const externalId   = Date.now();
-    const callbackBase = `${origin}/api/whish/callback?orderId=${order.id}`;
+    const callbackBase = `${origin}/api/whish/callback?cart=${cartB64}&sig=${sig}`;
 
     const whishPayload = {
       amount:             total,
       currency:           'USD',
-      invoice:            `Order #${order.order_number}`,
-      externalId,
+      invoice:            `Order ${orderId.slice(0, 8).toUpperCase()}`,
+      externalId:         Date.now(),
       successCallbackUrl: `${callbackBase}&type=success`,
       failureCallbackUrl: `${callbackBase}&type=failure`,
-      successRedirectUrl: `${origin}/store/checkout/payment/success?orderId=${order.id}`,
-      failureRedirectUrl: `${origin}/store/checkout/payment/failed?orderId=${order.id}`,
+      successRedirectUrl: `${origin}/store/checkout/payment/success?orderId=${orderId}`,
+      failureRedirectUrl: `${origin}/store/checkout/payment/failed?orderId=${orderId}`,
     };
 
-    // ── 5. Call Whish API ────────────────────────────────────────────────
+    // ── 4. Call Whish API ────────────────────────────────────────────────
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 12_000);
 
@@ -196,37 +176,13 @@ export async function POST(req: NextRequest) {
 
     if (!collectUrl) {
       console.error('[whish/initiate] aborting. detail:', whishErrorDetail);
-      await supabaseServer.from('order_items').delete().eq('order_id', order.id);
-      await supabaseServer.from('orders').delete().eq('id', order.id);
       return NextResponse.json(
         { error: `Payment gateway error: ${whishErrorDetail || 'unknown'}` },
         { status: 502 }
       );
     }
 
-    // ── 6. Send confirmation email (non-blocking) ───────────────────────
-    sendOrderEmails({
-      orderId:       order.id,
-      orderNumber:   order.order_number,
-      customerName:  customer_name,
-      customerEmail: customer_email || null,
-      customerPhone: normalizedPhone,
-      items: (items as Record<string, unknown>[]).map((item) => ({
-        name:     String(item.name ?? item.productName ?? ''),
-        price:    Number(item.price ?? 0),
-        quantity: Number(item.quantity ?? 1),
-        image:    item.image ? String(item.image) : null,
-      })),
-      subtotal:   Number(subtotal),
-      shipping:   Number(shipping),
-      discount:   Number(discount ?? 0),
-      couponCode: coupon_code || null,
-      total:      Number(total),
-      address:    address ?? null,
-      notes:      notes || null,
-    }).catch((err) => console.error('[whish/initiate] email error:', err));
-
-    return NextResponse.json({ collectUrl, orderId: order.id });
+    return NextResponse.json({ collectUrl, orderId });
   } catch (err) {
     console.error('[whish/initiate]', err);
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

@@ -78,15 +78,15 @@ function SuccessContent() {
           className="mb-10"
         >
           <div className="relative w-36 h-36 mx-auto mb-6 flex items-center justify-center">
-            <div className="absolute w-36 h-36 rounded-full border border-brand-red/20" />
-            <div className="absolute w-28 h-28 rounded-full border border-brand-red/10" />
-            <div className="absolute w-20 h-20 bg-brand-red rounded-full flex items-center justify-center shadow-xl shadow-brand-red/30">
+            <div className="absolute w-36 h-36 rounded-full border border-green-500/20" />
+            <div className="absolute w-28 h-28 rounded-full border border-green-500/10" />
+            <div className="absolute w-20 h-20 bg-green-500 rounded-full flex items-center justify-center shadow-xl shadow-green-500/30">
               <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2.5} />
             </div>
-            <div className="absolute w-36 h-36 rounded-full border border-brand-red/30 animate-ping" style={{ animationIterationCount: 2 }} />
+            <div className="absolute w-36 h-36 rounded-full border border-green-500/30 animate-ping" style={{ animationIterationCount: 2 }} />
           </div>
           <h1 className="text-4xl font-black text-white mb-3 tracking-tight">Payment Confirmed!</h1>
-          <p className="text-brand-red font-semibold mb-2">Your Whish payment was successful</p>
+          <p className="text-green-500 font-semibold mb-2">Your Whish payment was successful</p>
           <p className="text-white/50 text-sm leading-relaxed">
             Thank you for your purchase. Your order has been confirmed and will be processed shortly.
           </p>
@@ -100,7 +100,7 @@ function SuccessContent() {
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-              className="h-full bg-brand-red origin-left"
+              className="h-full bg-green-500 origin-left"
             />
           </div>
         </motion.div>
