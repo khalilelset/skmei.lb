@@ -24,6 +24,7 @@ function mapOrder(row: Record<string, unknown>) {
       image: String(item.image ?? ''),
       price: Number(item.price ?? 0),
       quantity: Number(item.quantity ?? 1),
+      box: item.box as { code?: string; type: string; price: number; image?: string | null } | null ?? null,
     })),
     status: row.status,
     subtotal: Number(row.subtotal),

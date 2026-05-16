@@ -45,6 +45,7 @@ export async function GET(
     .from('products')
     .select('*')
     .eq('slug', slug)
+    .eq('is_visible', true)
     .single();
 
   if (error || !data) {
@@ -79,6 +80,7 @@ export async function GET(
     .from('products')
     .select('*')
     .eq('category', data.category)
+    .eq('is_visible', true)
     .neq('slug', slug)
     .limit(20);
 

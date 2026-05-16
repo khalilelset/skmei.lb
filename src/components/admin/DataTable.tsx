@@ -28,62 +28,106 @@ interface DataTableProps {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MobileCard({ row, columns, onRowClick }: { row: any; columns: Column[]; onRowClick?: (row: any) => void }) {
-  const imageCol  = columns.find((c) => c.label === 'Image');
+  const imageCol   = columns.find((c) => c.label === 'Image');
   const actionsCol = columns.find((c) => c.label === 'Actions');
-  const mainCols  = columns.filter((c) => c.label !== 'Image' && c.label !== 'Actions');
+  const mainCols   = columns.filter((c) => c.label !== 'Image' && c.label !== 'Actions');
 
   return (
     <Paper
-      onClick={() => onRowClick?.(row)}
       elevation={0}
       sx={{
-        mb: 1.5, borderRadius: 2,
-        border: '1px solid rgba(0,0,0,0.09)',
-        cursor: onRowClick ? 'pointer' : 'default',
+        mb: 1.5,
+        borderRadius: 3,
+        border: '1px solid rgba(0,0,0,0.08)',
         overflow: 'hidden',
-        '&:active': { boxShadow: '0 0 0 2px rgba(220,38,38,0.5)' },
+        bgcolor: '#fff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
       }}
     >
-      {/* Top row: image + primary info + actions */}
-      <Box sx={{ display: 'flex', gap: 1.5, p: 1.5, alignItems: 'center' }}>
+      {/* ── Primary row: image + info + action ── */}
+      <Box
+        onClick={() => onRowClick?.(row)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          px: 1.5,
+          py: 1.25,
+          cursor: onRowClick ? 'pointer' : 'default',
+          transition: 'background-color 0.1s',
+          '&:active': { bgcolor: 'rgba(220,38,38,0.04)' },
+        }}
+      >
+        {/* Thumbnail */}
         {imageCol && (
-          <Box sx={{ flexShrink: 0 }}>
+          <Box sx={{ flexShrink: 0, borderRadius: 2, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
             {imageCol.format ? imageCol.format(row[imageCol.id], row) : row[imageCol.id]}
           </Box>
         )}
 
+        {/* Info: title + subtitle */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {mainCols.slice(0, 2).map((col, i) => (
-            <Box key={col.id} sx={{ mb: i === 0 ? 0.25 : 0 }}>
-              {col.format ? col.format(row[col.id], row) : (
-                <Typography sx={{ fontSize: i === 0 ? '0.875rem' : '0.8rem', fontWeight: i === 0 ? 600 : 400, color: i === 0 ? 'text.primary' : 'text.secondary' }}>
-                  {row[col.id] ?? '—'}
+          {mainCols[0] && (
+            <Box sx={{ mb: 0.4, overflow: 'hidden' }}>
+              {mainCols[0].format ? mainCols[0].format(row[mainCols[0].id], row) : (
+                <Typography noWrap sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary', lineHeight: 1.3 }}>
+                  {row[mainCols[0].id] ?? '—'}
                 </Typography>
               )}
             </Box>
-          ))}
+          )}
+          {mainCols[1] && (
+            <Box sx={{ overflow: 'hidden' }}>
+              {mainCols[1].format ? mainCols[1].format(row[mainCols[1].id], row) : (
+                <Typography noWrap sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                  {row[mainCols[1].id] ?? '—'}
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
 
+        {/* Action button — 44×44 touch target */}
         {actionsCol && (
-          <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          <Box
+            onClick={(e) => e.stopPropagation()}
+            sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', ml: 0.5 }}
+          >
             {actionsCol.format ? actionsCol.format(row[actionsCol.id], row) : null}
           </Box>
         )}
       </Box>
 
-      {/* Extra fields */}
+      {/* ── Extra fields strip ── */}
       {mainCols.length > 2 && (
-        <Box sx={{
-          px: 1.5, pb: 1.25, pt: 0.75,
-          borderTop: '1px solid rgba(0,0,0,0.06)',
-          display: 'flex', flexWrap: 'wrap', gap: 1.25,
-        }}>
+        <Box
+          sx={{
+            px: 1.5,
+            py: 1,
+            borderTop: '1px solid rgba(0,0,0,0.06)',
+            bgcolor: 'rgba(0,0,0,0.016)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            rowGap: 1,
+            alignItems: 'flex-start',
+          }}
+        >
           {mainCols.slice(2).map((col) => (
-            <Box key={col.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.62rem', color: 'text.disabled' }}>
-                {col.label}:
+            <Box key={col.id} sx={{ display: 'flex', flexDirection: 'column', gap: 0.35, minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.56rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.09em',
+                  color: 'rgba(0,0,0,0.32)',
+                  lineHeight: 1,
+                }}
+              >
+                {col.label}
               </Typography>
-              <Box sx={{ fontSize: '0.8rem' }}>
+              <Box sx={{ lineHeight: 1.4 }}>
                 {col.format ? col.format(row[col.id], row) : (row[col.id] ?? '—')}
               </Box>
             </Box>

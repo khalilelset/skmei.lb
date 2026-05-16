@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ShoppingCart, Star, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useCartStore } from '@/store/cartStore';
-import { useToastStore } from '@/store/toastStore';
-import { formatPrice, calculateDiscount } from '@/lib/utils';
-import SectionHeader from './SectionHeader';
-import type { Product } from '@/types';
+import { useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ShoppingCart, Star, ChevronRight } from "lucide-react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useCartStore } from "@/store/cartStore";
+import { useToastStore } from "@/store/toastStore";
+import { formatPrice, calculateDiscount } from "@/lib/utils";
+import SectionHeader from "./SectionHeader";
+import type { Product } from "@/types";
 
 interface Props {
   products: Product[];
@@ -22,8 +22,8 @@ function StarRating({ rating }: { rating: number }) {
         <Star
           key={star}
           className="w-3.5 h-3.5"
-          fill={star <= Math.round(rating) ? '#DC2626' : 'transparent'}
-          stroke={star <= Math.round(rating) ? '#DC2626' : '#d1d5db'}
+          fill={star <= Math.round(rating) ? "#DC2626" : "transparent"}
+          stroke={star <= Math.round(rating) ? "#DC2626" : "#d1d5db"}
         />
       ))}
     </div>
@@ -43,21 +43,21 @@ function ProductCard({ product }: { product: Product }) {
     addItem(product, 1);
     showToast({
       productName: product.name,
-      productImage: product.images[0] ?? '',
+      productImage: product.images[0] ?? "",
       productPrice: product.price,
       quantity: 1,
     });
   };
 
   const badge = product.isNew
-    ? { label: 'New', className: 'bg-brand-red text-white' }
+    ? { label: "New", className: "bg-brand-red text-white" }
     : product.isBestseller
-    ? { label: 'Bestseller', className: 'bg-blue-500 text-white' }
-    : product.onSale
-    ? { label: 'Sale', className: 'bg-orange-400 text-white' }
-    : discount > 0
-    ? { label: `−${discount}%`, className: 'bg-brand-black text-white' }
-    : null;
+      ? { label: "Bestseller", className: "bg-blue-500 text-white" }
+      : product.onSale
+        ? { label: "Sale", className: "bg-orange-400 text-white" }
+        : discount > 0
+          ? { label: `−${discount}%`, className: "bg-brand-black text-white" }
+          : null;
 
   return (
     <Link
@@ -66,19 +66,23 @@ function ProductCard({ product }: { product: Product }) {
     >
       {/* Badge */}
       {badge && (
-        <span className={`absolute top-3 left-3 z-10 text-xs font-bold px-2.5 py-1 rounded-full ${badge.className}`}>
+        <span
+          className={`absolute top-3 left-3 z-10 text-xs font-bold px-2.5 py-1 rounded-full ${badge.className}`}
+        >
           {badge.label}
         </span>
       )}
 
       {/* Image */}
       <div className="relative aspect-square bg-white/5 overflow-hidden shrink-0">
-        {!imgLoaded && <div className="skeleton-shimmer absolute inset-0 z-10" />}
+        {!imgLoaded && (
+          <div className="skeleton-shimmer absolute inset-0 z-10" />
+        )}
         <Image
           src={product.images[0]}
           alt={product.name}
           fill
-          className={`object-cover group-hover:scale-105 transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`object-cover group-hover:scale-105 transition-all duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
           sizes="(max-width: 640px) 70vw, (max-width: 1024px) 33vw, 25vw"
           onLoad={() => setImgLoaded(true)}
         />
@@ -133,26 +137,39 @@ const cardVariants = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as [number, number, number, number], delay: i * 0.08 },
+    transition: {
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+      delay: i * 0.08,
+    },
   }),
 };
 
 export default function BestsellingSection({ products }: Props) {
-  return (
-    <section className="relative py-16 sm:py-24 bg-brand-black overflow-hidden">
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+  const bgX = useTransform(scrollYProgress, [0, 1], ["-400px", "400px"]);
 
-      {/* Architectural background watermark */}
-      <div
+  return (
+    <section ref={sectionRef} className="relative py-16 sm:py-24 bg-brand-black overflow-hidden">
+      {/* Architectural background watermark — horizontal parallax */}
+      <motion.div
         aria-hidden
+        style={{ x: bgX }}
         className="absolute inset-0 flex items-center justify-start pointer-events-none select-none overflow-hidden"
       >
-        <span className="text-[clamp(80px,15vw,140px)] font-black text-white/[0.028] leading-none whitespace-nowrap tracking-tight">
+        <span
+          className="text-[clamp(80px,15vw,140px)] font-black leading-none whitespace-nowrap tracking-tight"
+          style={{ color: "transparent", WebkitTextStroke: "1px rgba(255,255,255,0.07)" }}
+        >
           BESTSELLERS&nbsp;•&nbsp;BESTSELLERS&nbsp;•&nbsp;BESTSELLERS
         </span>
-      </div>
+      </motion.div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
         {/* Header */}
         <div className="mb-10 sm:mb-14">
           <SectionHeader

@@ -344,8 +344,9 @@ function ProductsContent() {
                       <input
                         type="number"
                         placeholder="Min"
+                        min={0}
                         value={filters.minPrice || ""}
-                        onChange={(e) => setFilters((f) => ({ ...f, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                        onChange={(e) => setFilters((f) => ({ ...f, minPrice: e.target.value ? Math.max(0, Number(e.target.value)) : undefined }))}
                         className="w-full pl-6 pr-2 py-2 bg-white/6 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-brand-red transition-colors"
                       />
                     </div>
@@ -355,8 +356,9 @@ function ProductsContent() {
                       <input
                         type="number"
                         placeholder="Max"
+                        min={1}
                         value={filters.maxPrice || ""}
-                        onChange={(e) => setFilters((f) => ({ ...f, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                        onChange={(e) => setFilters((f) => ({ ...f, maxPrice: e.target.value ? Math.max(1, Number(e.target.value)) : undefined }))}
                         className="w-full pl-6 pr-2 py-2 bg-white/6 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-brand-red transition-colors"
                       />
                     </div>
@@ -569,8 +571,9 @@ function ProductsContent() {
                     <input
                       type="number"
                       placeholder="Min"
+                      min={0}
                       value={draftFilters.minPrice ?? ''}
-                      onChange={(e) => updateDraft((f) => ({ ...f, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                      onChange={(e) => updateDraft((f) => ({ ...f, minPrice: e.target.value ? Math.max(0, Number(e.target.value)) : undefined }))}
                       className="w-full pl-7 pr-3 py-3 bg-white/6 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-brand-red transition-colors"
                     />
                   </div>
@@ -580,8 +583,9 @@ function ProductsContent() {
                     <input
                       type="number"
                       placeholder="Max"
+                      min={1}
                       value={draftFilters.maxPrice ?? ''}
-                      onChange={(e) => updateDraft((f) => ({ ...f, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                      onChange={(e) => updateDraft((f) => ({ ...f, maxPrice: e.target.value ? Math.max(1, Number(e.target.value)) : undefined }))}
                       className="w-full pl-7 pr-3 py-3 bg-white/6 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-brand-red transition-colors"
                     />
                   </div>

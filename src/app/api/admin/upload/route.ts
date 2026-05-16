@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
+import { Readable } from 'stream';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -7,12 +8,30 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024;    // 8 MB
+const MAX_VIDEO_SIZE = 200 * 1024 * 1024;  // 200 MB
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
 
+// Stream-based upload — avoids base64 size inflation and Cloudinary's data-URI limit
+function streamUpload(
+  buffer: Buffer,
+  options: Record<string, unknown>,
+): Promise<{ secure_url: string; public_id: string }> {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      options as unknown as Parameters<typeof cloudinary.uploader.upload_stream>[0],
+      (error, result) => {
+        if (error) return reject(error);
+        if (!result) return reject(new Error('No result from Cloudinary'));
+        resolve({ secure_url: result.secure_url, public_id: result.public_id });
+      },
+    );
+    Readable.from(buffer).pipe(stream);
+  });
+}
+
 export async function POST(req: NextRequest) {
-  // Auth is enforced by middleware — this is an extra defence-in-depth check
   const token = req.cookies.get('admin_auth')?.value;
   const expected = process.env.ADMIN_SESSION_SECRET;
   if (!token || !expected || token !== expected) {
@@ -28,39 +47,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    // Strip codec parameters (e.g. "video/webm;codecs=vp9,opus" → "video/webm")
+    const baseType = file.type.split(';')[0].trim().toLowerCase();
+    const isImage = ALLOWED_IMAGE_TYPES.includes(baseType);
+    const isVideo = baseType.startsWith('video/') && baseType.length > 6;
+
+    if (!isImage && !isVideo) {
       return NextResponse.json(
-        { error: 'Only image files are allowed (JPEG, PNG, WebP, GIF, AVIF)' },
-        { status: 400 }
+        { error: 'Only image (JPEG, PNG, WebP, GIF, AVIF) or video files are allowed.' },
+        { status: 400 },
       );
     }
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+    if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 8 MB.' },
-        { status: 400 }
+        { error: `File too large. Maximum size is ${isVideo ? '200' : '8'} MB.` },
+        { status: 400 },
       );
     }
 
-    // Sanitize slug: only allow lowercase letters, digits, hyphens
     const slug = SLUG_PATTERN.test(rawSlug) ? rawSlug : 'temp';
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString('base64');
-    const dataUri = `data:${file.type};base64,${base64}`;
-
-    const result = await cloudinary.uploader.upload(dataUri, {
-      folder: `products/${slug}`,
-      resource_type: 'image', // never auto — only images
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
+    const result = await streamUpload(buffer, {
+      folder: isVideo ? `products/${slug}/videos` : `products/${slug}`,
+      resource_type: isVideo ? 'video' : 'image',
+      ...(isImage ? { allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'] } : {}),
     });
 
     return NextResponse.json({ url: result.secure_url, public_id: result.public_id });
   } catch (err) {
-    console.error('Cloudinary upload error:', err);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Cloudinary upload error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

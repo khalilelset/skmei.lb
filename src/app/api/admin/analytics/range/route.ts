@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data: orders } = await supabaseServer
       .from('orders')
-      .select('id, total, subtotal, shipping, discount, status')
+      .select('id, total, subtotal, shipping, discount, status, items')
       .gte('created_at', `${from}T00:00:00.000Z`)
       .lte('created_at', `${to}T23:59:59.999Z`)
       .not('status', 'in', '("pending_payment","cancelled")');
@@ -54,6 +54,17 @@ export async function GET(req: NextRequest) {
         const ratio = orderRatio[(item as Record<string, unknown>).order_id as string] ?? 1;
         const effectivePrice = Number(item.price) * ratio;
         totalGrossProfit += (effectivePrice - Number(costPrice)) * Number(item.quantity ?? 1);
+      }
+    }
+
+    // Add box profit (boxes cost nothing — full price is profit)
+    for (const o of safeOrders) {
+      const rawItems = (o as Record<string, unknown>).items;
+      if (!Array.isArray(rawItems)) continue;
+      for (const item of rawItems as Record<string, unknown>[]) {
+        const box = item.box as { price?: number } | null | undefined;
+        if (!box || !box.price) continue;
+        totalGrossProfit += Number(box.price) * Number(item.quantity ?? 1);
       }
     }
 

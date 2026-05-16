@@ -42,11 +42,13 @@ export const useCartStore = create<CartState>()(
           );
 
           if (existingItem) {
+            const newQty = Math.min(existingItem.quantity + quantity, product.stock);
+            if (newQty === existingItem.quantity) return state; // already at stock limit
             return {
               bump: state.bump + 1,
               items: state.items.map((item) =>
                 item.product.id === product.id
-                  ? { ...item, quantity: item.quantity + quantity }
+                  ? { ...item, quantity: newQty }
                   : item
               ),
             };
@@ -81,7 +83,9 @@ export const useCartStore = create<CartState>()(
 
         set((state) => ({
           items: state.items.map((item) =>
-            item.product.id === productId ? { ...item, quantity } : item
+            item.product.id === productId
+              ? { ...item, quantity: Math.min(quantity, item.product.stock) }
+              : item
           ),
         }));
       },

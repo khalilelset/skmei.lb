@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabaseServer
       .from('coupons')
-      .select('code, discount, active')
+      .select('code, discount, active, expires_at, max_discount, apply_on_sale')
       .eq('code', code.trim().toUpperCase())
       .single();
 
@@ -20,10 +20,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (!data.active) {
+      return NextResponse.json({ valid: false, error: 'This coupon is no longer active.' });
+    }
+
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
       return NextResponse.json({ valid: false, error: 'This coupon has expired.' });
     }
 
-    return NextResponse.json({ valid: true, code: data.code, discount: data.discount });
+    return NextResponse.json({
+      valid: true,
+      code: data.code,
+      discount: data.discount,
+      maxDiscount: data.max_discount ?? null,
+      applyOnSale: data.apply_on_sale ?? true,
+    });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }

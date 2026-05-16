@@ -16,6 +16,7 @@ import {
   FormControlLabel,
   IconButton,
   Tooltip,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -31,15 +32,33 @@ interface Coupon {
   code: string;
   discount: number;
   active: boolean;
+  expires_at: string | null;
+  max_discount: number | null;
+  apply_on_sale: boolean;
   created_at: string;
+}
+
+const emptyForm = {
+  code: '',
+  discount: '',
+  expires_at: '',
+  max_discount: '',
+  apply_on_sale: true,
+};
+
+function isExpired(coupon: Coupon): boolean {
+  return !!coupon.expires_at && new Date(coupon.expires_at) < new Date();
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newCode, setNewCode] = useState('');
-  const [newDiscount, setNewDiscount] = useState('');
+  const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
 
   const loadCoupons = useCallback(() => {
@@ -67,43 +86,96 @@ export default function CouponsPage() {
   };
 
   const handleCreate = async () => {
-    if (!newCode || !newDiscount) return;
+    if (!form.code || !form.discount) return;
     setIsSaving(true);
     await fetch('/api/admin/coupons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: newCode, discount: parseInt(newDiscount) }),
+      body: JSON.stringify({
+        code: form.code,
+        discount: Number(form.discount),
+        expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+        max_discount: form.max_discount !== '' ? Number(form.max_discount) : null,
+        apply_on_sale: form.apply_on_sale,
+      }),
     });
     setIsSaving(false);
     setDialogOpen(false);
-    setNewCode('');
-    setNewDiscount('');
+    setForm(emptyForm);
     loadCoupons();
   };
+
+  const activeCount  = coupons.filter((c) => c.active && !isExpired(c)).length;
+  const expiredCount = coupons.filter((c) => isExpired(c)).length;
 
   const columns: Column[] = [
     {
       id: 'code',
       label: 'Code',
-      minWidth: 150,
+      minWidth: 140,
       format: (value) => (
-        <Typography sx={{ fontWeight: 700, fontSize: 15, letterSpacing: 1, color: '#DC2626' }}>
-          {value}
+        <Typography sx={{ fontWeight: 700, fontSize: 14, letterSpacing: 1.5, color: '#DC2626', fontFamily: 'monospace' }}>
+          {value as string}
         </Typography>
       ),
     },
     {
       id: 'discount',
       label: 'Discount',
-      minWidth: 120,
+      minWidth: 110,
       align: 'center',
+      format: (value, row: Coupon) => (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+          <Chip
+            label={`${value}% OFF`}
+            size="small"
+            sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 700 }}
+          />
+          {row.max_discount != null && (
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>
+              up to ${row.max_discount}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      id: 'apply_on_sale',
+      label: 'On Sale Items',
+      minWidth: 110,
+      align: 'center',
+      sortable: false,
       format: (value) => (
         <Chip
-          label={`${value}% OFF`}
+          label={value ? 'Yes' : 'No'}
           size="small"
-          sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 700 }}
+          sx={{
+            bgcolor: value ? 'rgba(59,130,246,0.1)' : 'rgba(245,158,11,0.1)',
+            color: value ? '#3B82F6' : '#F59E0B',
+            fontWeight: 600,
+            fontSize: 11,
+          }}
         />
       ),
+    },
+    {
+      id: 'expires_at',
+      label: 'Expires',
+      minWidth: 120,
+      format: (value, row: Coupon) => {
+        if (!value) return <Typography variant="caption" color="text.disabled">Never</Typography>;
+        const expired = isExpired(row);
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <Typography variant="caption" sx={{ color: expired ? '#EF4444' : 'text.secondary', fontWeight: expired ? 600 : 400 }}>
+              {formatDate(value as string)}
+            </Typography>
+            {expired && (
+              <Typography variant="caption" sx={{ fontSize: 10, color: '#EF4444', fontWeight: 700 }}>EXPIRED</Typography>
+            )}
+          </Box>
+        );
+      },
     },
     {
       id: 'active',
@@ -111,36 +183,40 @@ export default function CouponsPage() {
       minWidth: 120,
       align: 'center',
       sortable: false,
-      format: (value, row: Coupon) => (
-        <FormControlLabel
-          control={
-            <Switch
-              checked={value}
-              onChange={() => handleToggleActive(row)}
-              sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#DC2626' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#DC2626' } }}
-            />
-          }
-          label={<Typography variant="body2" sx={{ color: value ? '#22C55E' : 'text.secondary', fontWeight: 600 }}>{value ? 'Active' : 'Inactive'}</Typography>}
-        />
-      ),
-    },
-    {
-      id: 'created_at',
-      label: 'Created',
-      minWidth: 120,
-      format: (value) => new Date(value).toLocaleDateString(),
+      format: (value, row: Coupon) => {
+        const expired = isExpired(row);
+        if (expired) {
+          return <Chip label="Expired" size="small" sx={{ bgcolor: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 600 }} />;
+        }
+        return (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={value as boolean}
+                onChange={() => handleToggleActive(row)}
+                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#DC2626' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#DC2626' } }}
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ color: value ? '#22C55E' : 'text.secondary', fontWeight: 600 }}>
+                {value ? 'Active' : 'Inactive'}
+              </Typography>
+            }
+          />
+        );
+      },
     },
     {
       id: 'id',
       label: 'Actions',
-      minWidth: 80,
+      minWidth: 70,
       align: 'center',
       sortable: false,
       format: (value) => (
         <Tooltip title="Delete coupon">
           <IconButton
             size="small"
-            onClick={(e) => { e.stopPropagation(); handleDelete(value); }}
+            onClick={(e) => { e.stopPropagation(); handleDelete(value as string); }}
             sx={{ color: '#EF4444', '&:hover': { bgcolor: 'rgba(239,68,68,0.1)' } }}
           >
             <DeleteIcon fontSize="small" />
@@ -168,20 +244,15 @@ export default function CouponsPage() {
       </Box>
 
       <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <Chip
-            label={`${coupons.filter(c => c.active).length} Active`}
-            size="small"
-            sx={{ bgcolor: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 600 }}
-          />
-          <Chip
-            label={`${coupons.filter(c => !c.active).length} Inactive`}
-            size="small"
-            sx={{ bgcolor: 'rgba(0,0,0,0.05)', color: 'text.secondary', fontWeight: 600 }}
-          />
+        <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
+          <Chip label={`${activeCount} Active`} size="small" sx={{ bgcolor: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 600 }} />
+          <Chip label={`${coupons.filter(c => !c.active && !isExpired(c)).length} Inactive`} size="small" sx={{ bgcolor: 'rgba(0,0,0,0.05)', color: 'text.secondary', fontWeight: 600 }} />
+          {expiredCount > 0 && (
+            <Chip label={`${expiredCount} Expired`} size="small" sx={{ bgcolor: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 600 }} />
+          )}
         </Box>
         {isLoading ? (
-          <TableSkeleton columns={5} rows={6} />
+          <TableSkeleton columns={6} rows={6} />
         ) : (
           <DataTable columns={columns} data={coupons} emptyMessage="No coupons found. Create one above." />
         )}
@@ -195,39 +266,114 @@ export default function CouponsPage() {
             <CloseIcon />
           </Button>
         </DialogTitle>
+
         <DialogContent dividers>
           <Grid container spacing={2}>
+            {/* Code */}
             <Grid size={12}>
               <TextField
-                fullWidth
-                size="small"
+                fullWidth size="small"
                 label="Coupon Code *"
                 placeholder="e.g. SUMMER20"
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                inputProps={{ style: { textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 } }}
+                value={form.code}
+                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+                inputProps={{ style: { textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, fontFamily: 'monospace' } }}
               />
             </Grid>
+
+            {/* Discount % */}
+            <Grid size={6}>
+              <TextField
+                fullWidth size="small"
+                type="number"
+                label="Discount % *"
+                placeholder="e.g. 15"
+                value={form.discount}
+                onChange={(e) => setForm((f) => ({ ...f, discount: e.target.value }))}
+                inputProps={{ min: 1, max: 100 }}
+                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+              />
+            </Grid>
+
+            {/* Max discount $ */}
+            <Grid size={6}>
+              <TextField
+                fullWidth size="small"
+                type="number"
+                label="Max Discount"
+                placeholder="e.g. 12"
+                value={form.max_discount}
+                onChange={(e) => setForm((f) => ({ ...f, max_discount: e.target.value }))}
+                inputProps={{ min: 0, step: 0.5 }}
+                InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+                helperText="Leave empty for no cap"
+              />
+            </Grid>
+
+            {/* Expiry date */}
             <Grid size={12}>
               <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="Discount Percentage *"
-                placeholder="e.g. 15"
-                value={newDiscount}
-                onChange={(e) => setNewDiscount(e.target.value)}
-                inputProps={{ min: 1, max: 100 }}
-                InputProps={{ endAdornment: <Typography sx={{ color: 'text.secondary', mr: 1 }}>%</Typography> }}
+                fullWidth size="small"
+                type="date"
+                label="Expiry Date"
+                value={form.expires_at}
+                onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                helperText="Leave empty for no expiry"
               />
             </Grid>
+
+            {/* Apply on sale items */}
+            <Grid size={12}>
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 2, py: 1.5 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.apply_on_sale}
+                      onChange={(e) => setForm((f) => ({ ...f, apply_on_sale: e.target.checked }))}
+                      sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#DC2626' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#DC2626' } }}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>Apply on sale items</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {form.apply_on_sale ? 'Discount applies to all items including those on sale' : 'Discount only applies to full-price items'}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </Box>
+            </Grid>
+
+            {/* Preview */}
+            {form.code && form.discount && (
+              <Grid size={12}>
+                <Box sx={{ bgcolor: 'rgba(220,38,38,0.04)', border: '1px dashed rgba(220,38,38,0.3)', borderRadius: 2, p: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Preview
+                  </Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, color: '#DC2626', fontFamily: 'monospace', letterSpacing: 1 }}>
+                    {form.code}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {form.discount}% off
+                    {form.max_discount && ` · up to $${form.max_discount}`}
+                    {!form.apply_on_sale && ' · excludes sale items'}
+                    {form.expires_at && ` · expires ${new Date(form.expires_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
+
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
-            disabled={isSaving || !newCode || !newDiscount}
+            disabled={isSaving || !form.code || !form.discount}
             onClick={handleCreate}
             sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}
           >

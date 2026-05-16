@@ -30,6 +30,7 @@ export interface Product {
   onSale?: boolean;
   isBestseller?: boolean;
   isFeatured?: boolean;
+  isVisible?: boolean;
   gender?: 'men' | 'women' | 'unisex';
   isCouple?: boolean;
   colors?: ProductColor[];
@@ -111,6 +112,7 @@ export interface OrderItem {
   image: string;
   quantity: number;
   price: number;
+  box?: { code?: string; type: string; price: number; image?: string | null } | null;
 }
 
 export type OrderStatus =

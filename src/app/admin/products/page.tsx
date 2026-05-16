@@ -21,20 +21,13 @@ import {
   MenuItem,
   Slider,
 } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon, Favorite as CoupleIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon, Favorite as CoupleIcon, DeleteOutline as DeleteIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
 import MobileDialog from '@/components/admin/MobileDialog';
-const categories = [
-  { slug: 'digital', name: 'Digital Watches' },
-  { slug: 'analog',  name: 'Analog Watches' },
-  { slug: 'sports',  name: 'Sports Watches' },
-  { slug: 'smart',   name: 'Smart Watches' },
-  { slug: 'luxury',  name: 'Luxury Collection' },
-];
 import { formatPrice } from '@/lib/utils';
 import type { Product, ProductColor } from '@/types';
 
@@ -50,11 +43,6 @@ const stockColors = {
   'out-of-stock': { bg: 'rgba(239, 68, 68, 0.1)',    text: '#EF4444' },
 };
 
-const categoryOptions = [
-  { value: 'all', label: 'All Products' },
-  ...categories.map((cat) => ({ value: cat.slug, label: cat.name })),
-];
-
 const emptySpecs = {
   movement: '', caseMaterial: '', bandMaterial: '',
   dialColor: '', caseSize: '', waterResistance: '', warranty: '',
@@ -62,11 +50,11 @@ const emptySpecs = {
 
 const emptyForm = {
   name: '', slug: '', description: '', price: '', costPrice: '', originalPrice: '',
-  category: 'digital', stock: '', images: [] as string[],
+  category: '', stock: '', images: [] as string[],
   features: [] as string[],
   videoUrl: '',
-  brand: 'SKMEI',
-  isNew: false, onSale: false, isBestseller: false, isCouple: false, gender: '' as '' | 'men' | 'women' | 'unisex',
+  brand: '',
+  isNew: false, onSale: false, isBestseller: false, isCouple: false, isVisible: true, gender: '' as '' | 'men' | 'women' | 'unisex',
   colors: [] as ProductColor[],
   priceTiers: [] as { qty: string; price: string }[],
   specifications: { ...emptySpecs },
@@ -80,6 +68,7 @@ interface BrandOption {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<BrandOption[]>([]);
+  const [dbCategories, setDbCategories] = useState<{ id: string; slug: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -87,6 +76,9 @@ export default function ProductsPage() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [featureInput, setFeatureInput] = useState('');
@@ -114,7 +106,16 @@ export default function ProductsPage() {
       .then((r) => r.json())
       .then((data) => setBrands(Array.isArray(data) ? data : []))
       .catch(() => {});
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then((data) => setDbCategories(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
+
+  const categoryOptions = useMemo(() => [
+    { value: 'all', label: 'All Products' },
+    ...dbCategories.map((c) => ({ value: c.slug, label: c.name })),
+  ], [dbCategories]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -128,7 +129,8 @@ export default function ProductsPage() {
 
   const openAdd = () => {
     setEditProduct(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, category: dbCategories[0]?.slug ?? '' });
+    setSubmitted(false);
     setDialogOpen(true);
   };
 
@@ -149,13 +151,15 @@ export default function ProductsPage() {
       onSale: product.onSale ?? false,
       isBestseller: product.isBestseller ?? false,
       isCouple: product.isCouple ?? false,
+      isVisible: product.isVisible ?? true,
       videoUrl: product.videoUrl ?? '',
       gender: (product.gender ?? '') as '' | 'men' | 'women' | 'unisex',
-      brand: product.brand ?? 'SKMEI',
+      brand: product.brand ?? '',
       colors: product.colors ?? [],
       priceTiers: (product.priceTiers ?? []).map((t) => ({ qty: String(t.qty), price: String(t.price) })),
       specifications: { ...emptySpecs, ...(product.specifications ?? {}) },
     });
+    setSubmitted(false);
     setDialogOpen(true);
   };
 
@@ -223,6 +227,8 @@ export default function ProductsPage() {
   };
 
   const handleSave = async () => {
+    setSubmitted(true);
+    if (!form.name.trim() || !form.price || !form.stock.trim() || !form.brand || !form.category || form.images.length === 0) return;
     setIsSaving(true);
     const payload = {
       name: form.name,
@@ -241,8 +247,9 @@ export default function ProductsPage() {
       onSale: form.onSale,
       isBestseller: form.isBestseller,
       isCouple: form.isCouple,
+      isVisible: form.isVisible,
       gender: form.gender || null,
-      brand: form.brand || 'SKMEI',
+      brand: form.brand,
       colors: form.colors,
       priceTiers: form.priceTiers
         .filter((t) => t.qty && t.price && parseFloat(t.qty) > 0 && parseFloat(t.price) > 0)
@@ -270,6 +277,16 @@ export default function ProductsPage() {
     loadProducts();
   };
 
+  const handleDelete = async () => {
+    if (!editProduct) return;
+    setIsDeleting(true);
+    await fetch(`/api/admin/products/${editProduct.id}`, { method: 'DELETE' });
+    setIsDeleting(false);
+    setDeleteConfirm(false);
+    setDialogOpen(false);
+    loadProducts();
+  };
+
   const columns: Column[] = [
     {
       id: 'images',
@@ -277,10 +294,10 @@ export default function ProductsPage() {
       minWidth: 80,
       sortable: false,
       format: (value, product: Product) => (
-        <Box sx={{ width: 64, height: 64, position: 'relative', bgcolor: '#f3f4f6', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <Box sx={{ width: 72, height: 72, flexShrink: 0, bgcolor: '#f3f4f6', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
           {product.images?.[0] && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.images[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={product.images[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           )}
         </Box>
       ),
@@ -288,12 +305,21 @@ export default function ProductsPage() {
     {
       id: 'name',
       label: 'Product Name',
-      minWidth: 250,
+      minWidth: 220,
       format: (value, product: Product) => (
         <Box>
-          <Typography sx={{ fontWeight: 500 }}>{value}</Typography>
-          <Typography variant="caption" color="text.secondary">SKU: {product.sku}</Typography>
+          <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.3 }}>{value}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.72rem' }}>SKU: {product.sku}</Typography>
         </Box>
+      ),
+    },
+    {
+      id: 'price',
+      label: 'Price',
+      minWidth: 100,
+      align: 'right',
+      format: (value) => (
+        <Typography sx={{ fontWeight: 700, color: '#DC2626', fontSize: '0.9rem' }}>{formatPrice(value)}</Typography>
       ),
     },
     {
@@ -301,16 +327,27 @@ export default function ProductsPage() {
       label: 'Category',
       minWidth: 120,
       format: (value) => {
-        const cat = categories.find((c) => c.slug === value);
-        return <Chip label={cat?.name || value} size="small" variant="outlined" sx={{ textTransform: 'capitalize' }} />;
+        const cat = dbCategories.find((c) => c.slug === value);
+        return <Chip label={cat?.name || value} size="small" variant="outlined" sx={{ textTransform: 'capitalize', fontSize: '0.72rem' }} />;
       },
     },
     {
-      id: 'price',
-      label: 'Price',
+      id: 'brand',
+      label: 'Brand',
       minWidth: 100,
-      align: 'right',
-      format: (value) => <Typography sx={{ fontWeight: 600 }}>{formatPrice(value)}</Typography>,
+      format: (value) => value
+        ? <Chip label={value} size="small" sx={{ bgcolor: 'rgba(251,146,60,0.12)', color: '#B45309', fontWeight: 700, fontSize: '0.72rem', border: '1px solid rgba(251,146,60,0.3)' }} />
+        : <span style={{ color: '#9CA3AF', fontSize: 12 }}>—</span>,
+    },
+    {
+      id: 'isVisible',
+      label: 'Visible',
+      minWidth: 80,
+      align: 'center' as const,
+      sortable: false,
+      format: (value) => value === false
+        ? <VisibilityOffIcon sx={{ fontSize: 18, color: '#EF4444' }} titleAccess="Hidden from store" />
+        : <VisibilityIcon sx={{ fontSize: 18, color: '#22C55E' }} titleAccess="Visible in store" />,
     },
     {
       id: 'stock',
@@ -321,40 +358,55 @@ export default function ProductsPage() {
         const status = getStockLabel(product.stock);
         const col = stockColors[status];
         return (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-            <Typography sx={{ fontWeight: 600 }}>{value}</Typography>
-            <Chip label={status.replace('-', ' ')} size="small" sx={{ bgcolor: col.bg, color: col.text, fontWeight: 600, fontSize: 10, height: 20, textTransform: 'capitalize' }} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.4 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: status === 'out-of-stock' ? col.text : 'inherit' }}>{value}</Typography>
+            {status === 'out-of-stock' && (
+              <Chip label="out of stock" size="small" sx={{ bgcolor: col.bg, color: col.text, fontWeight: 600, fontSize: 10, height: 18 }} />
+            )}
           </Box>
         );
       },
     },
     {
-      id: 'isNew',
-      label: 'Labels',
-      minWidth: 140,
+      id: 'id',
+      label: 'Actions',
+      minWidth: 60,
       align: 'center',
       sortable: false,
       format: (_, product: Product) => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {product.brand && product.brand.toUpperCase() !== 'SKMEI' && (
-              <Chip label={product.brand} size="small" sx={{ bgcolor: 'rgba(251,146,60,0.12)', color: '#B45309', fontWeight: 700, fontSize: 10, border: '1px solid rgba(251,146,60,0.3)' }} />
-            )}
+        <IconButton
+          size="small"
+          onClick={(e) => { e.stopPropagation(); setEditProduct(product); setDeleteConfirm(true); }}
+          sx={{ color: '#EF4444', width: 40, height: 40, '&:hover': { bgcolor: 'rgba(239,68,68,0.08)' } }}
+        >
+          <DeleteIcon sx={{ fontSize: 19 }} />
+        </IconButton>
+      ),
+    },
+    {
+      id: 'isNew',
+      label: 'Labels',
+      minWidth: 140,
+      align: 'left',
+      sortable: false,
+      format: (_, product: Product) => (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6, alignItems: 'flex-start' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {product.isNew && <Chip label="New" size="small" sx={{ bgcolor: 'rgba(220,38,38,0.1)', color: '#DC2626', fontWeight: 600, fontSize: 10 }} />}
             {product.onSale && <Chip label="Sale" size="small" sx={{ bgcolor: 'rgba(251,146,60,0.1)', color: '#FB923C', fontWeight: 600, fontSize: 10 }} />}
             {product.isBestseller && <Chip label="Bestseller" size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontWeight: 600, fontSize: 10 }} />}
             {product.isCouple && <Chip label="Couple Set" size="small" sx={{ bgcolor: 'rgba(236,72,153,0.1)', color: '#EC4899', fontWeight: 600, fontSize: 10 }} />}
-            {!product.brand || product.brand.toUpperCase() === 'SKMEI' ? (
-              !product.isNew && !product.onSale && !product.isBestseller && !(product.colors?.length) && <span style={{ color: '#9CA3AF', fontSize: 12 }}>—</span>
-            ) : null}
+            {!product.isNew && !product.onSale && !product.isBestseller && !product.isCouple && !(product.colors?.length) && (
+              <span style={{ color: '#9CA3AF', fontSize: 12 }}>—</span>
+            )}
           </Box>
           {product.colors && product.colors.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
               {product.colors.slice(0, 6).map((c, i) => (
-                <Box key={i} title={c.name} sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: c.hex, border: '1.5px solid rgba(0,0,0,0.15)', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                <Box key={i} title={c.name} sx={{ width: 13, height: 13, borderRadius: '50%', bgcolor: c.hex, border: '1.5px solid rgba(0,0,0,0.15)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }} />
               ))}
               {product.colors.length > 6 && (
-                <Typography variant="caption" sx={{ fontSize: 9, color: 'text.secondary', lineHeight: '14px' }}>+{product.colors.length - 6}</Typography>
+                <Typography variant="caption" sx={{ fontSize: 9, color: 'text.secondary', lineHeight: '13px' }}>+{product.colors.length - 6}</Typography>
               )}
             </Box>
           )}
@@ -425,29 +477,35 @@ export default function ProductsPage() {
       </Box>
 
       {/* Add / Edit Dialog */}
-      <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <MobileDialog open={dialogOpen} onClose={() => { setDialogOpen(false); setSubmitted(false); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>{editProduct ? 'Edit Product' : 'Add Product'}</Typography>
           <Button onClick={() => setDialogOpen(false)} sx={{ minWidth: 'auto', color: 'text.secondary' }}><CloseIcon /></Button>
         </DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
-            {[
-              { label: 'Product Name *', key: 'name' },
+            {([
+              { label: 'Product Name *', key: 'name', required: true },
               { label: 'Slug (auto-generated if empty)', key: 'slug' },
-              { label: 'Sale Price ($) *', key: 'price', type: 'number' },
+              { label: 'Sale Price ($) *', key: 'price', type: 'number', required: true },
               { label: 'My Cost Price ($)', key: 'costPrice', type: 'number' },
               { label: 'Original Price ($)', key: 'originalPrice', type: 'number' },
-              { label: 'Stock *', key: 'stock', type: 'number' },
-            ].map(({ label, key, type }) => (
-              <Grid key={key} size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth size="small" label={label} type={type ?? 'text'}
-                  value={form[key as keyof typeof emptyForm] as string}
-                  onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
-                />
-              </Grid>
-            ))}
+              { label: 'Stock *', key: 'stock', type: 'number', required: true },
+            ] as { label: string; key: string; type?: string; required?: boolean }[]).map(({ label, key, type, required }) => {
+              const val = form[key as keyof typeof emptyForm] as string;
+              const hasError = submitted && !!required && !val.trim();
+              return (
+                <Grid key={key} size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth size="small" label={label} type={type ?? 'text'}
+                    value={val}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    error={hasError}
+                    helperText={hasError ? 'This field is required' : ''}
+                  />
+                </Grid>
+              );
+            })}
             {/* Live gross profit hint */}
             {form.price && form.costPrice && parseFloat(form.price) > 0 && parseFloat(form.costPrice) > 0 && (() => {
               const sale = parseFloat(form.price);
@@ -522,10 +580,13 @@ export default function ProductsPage() {
 
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
-                fullWidth size="small" select label="Category" value={form.category}
+                fullWidth size="small" select label="Category *" value={form.category}
                 onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
+                error={submitted && !form.category}
+                helperText={submitted && !form.category ? 'This field is required' : ''}
               >
-                {categories.map(c => <MenuItem key={c.slug} value={c.slug}>{c.name}</MenuItem>)}
+                <MenuItem value="" disabled><em>— Select category —</em></MenuItem>
+                {dbCategories.map(c => <MenuItem key={c.slug} value={c.slug}>{c.name}</MenuItem>)}
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -541,10 +602,13 @@ export default function ProductsPage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
-                fullWidth size="small" select label="Brand"
+                fullWidth size="small" select label="Brand *"
                 value={form.brand}
                 onChange={(e) => setForm(f => ({ ...f, brand: e.target.value }))}
+                error={submitted && !form.brand}
+                helperText={submitted && !form.brand ? 'This field is required' : ''}
               >
+                <MenuItem value="" disabled><em>— Select brand —</em></MenuItem>
                 {brands.map((b) => (
                   <MenuItem key={b.id} value={b.name}>{b.name}</MenuItem>
                 ))}
@@ -556,7 +620,12 @@ export default function ProductsPage() {
 
             {/* Image Upload Section */}
             <Grid size={12}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 2, mt: 1 }}>Images</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>Images *</Typography>
+                {submitted && form.images.length === 0 && (
+                  <Typography variant="caption" sx={{ color: '#EF4444' }}>At least one image is required</Typography>
+                )}
+              </Box>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
                 {/* Thumbnails */}
                 {form.images.map((url, index) => (
@@ -589,7 +658,7 @@ export default function ProductsPage() {
                     sx={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                       gap: 1, width: 200, height: 200,
-                      border: '2px dashed', borderColor: isUploading ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.23)',
+                      border: '2px dashed', borderColor: isUploading ? 'rgba(0,0,0,0.12)' : (submitted && form.images.length === 0) ? '#EF4444' : 'rgba(0,0,0,0.23)',
                       borderRadius: 2, fontSize: 12, color: isUploading ? 'rgba(0,0,0,0.26)' : 'text.secondary',
                       transition: 'all 0.2s',
                       '&:hover': isUploading ? {} : { borderColor: '#DC2626', color: '#DC2626', bgcolor: 'rgba(220,38,38,0.02)' },
@@ -842,6 +911,45 @@ export default function ProductsPage() {
               )}
             </Grid>
 
+            {/* Visibility Toggle */}
+            <Grid size={12}>
+              <Box
+                onClick={() => setForm(f => ({ ...f, isVisible: !f.isVisible }))}
+                sx={{
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  p: 2, borderRadius: 2, border: '2px solid',
+                  borderColor: form.isVisible ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
+                  bgcolor: form.isVisible ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
+                  transition: 'all 0.2s', userSelect: 'none',
+                  '&:hover': { borderColor: form.isVisible ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)' },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  {form.isVisible
+                    ? <VisibilityIcon sx={{ color: '#22C55E', fontSize: 22 }} />
+                    : <VisibilityOffIcon sx={{ color: '#EF4444', fontSize: 22 }} />}
+                  <Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: 14, color: form.isVisible ? '#15803D' : '#B91C1C' }}>
+                      {form.isVisible ? 'Visible in Store' : 'Hidden from Store'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {form.isVisible ? 'Customers can find and buy this product' : 'Product is saved but not shown to customers'}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{
+                  width: 44, height: 24, borderRadius: 12, position: 'relative', transition: 'background 0.2s',
+                  bgcolor: form.isVisible ? '#22C55E' : '#D1D5DB', flexShrink: 0,
+                }}>
+                  <Box sx={{
+                    position: 'absolute', top: 2, width: 20, height: 20, borderRadius: '50%', bgcolor: 'white',
+                    boxShadow: 1, transition: 'left 0.2s',
+                    left: form.isVisible ? 22 : 2,
+                  }} />
+                </Box>
+              </Box>
+            </Grid>
+
             {/* Label Toggles */}
             <Grid size={12}><Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5, mt: 1 }}>Product Labels</Typography></Grid>
             {[
@@ -882,15 +990,45 @@ export default function ProductsPage() {
             })}
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" disabled={isSaving || isUploading || isUploadingVideo || !form.name || !form.price}
-            onClick={handleSave}
-            sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
-            {isSaving ? 'Saving...' : editProduct ? 'Save Changes' : 'Add Product'}
-          </Button>
+        <DialogActions sx={{ justifyContent: 'space-between' }}>
+          <Box>
+            {editProduct && (
+              <IconButton
+                onClick={() => setDeleteConfirm(true)}
+                disabled={isSaving || isUploading || isUploadingVideo}
+                sx={{ color: '#EF4444', '&:hover': { bgcolor: 'rgba(239,68,68,0.08)' } }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button onClick={() => { setDialogOpen(false); setSubmitted(false); }}>Cancel</Button>
+            <Button variant="contained" disabled={isSaving || isUploading || isUploadingVideo}
+              onClick={handleSave}
+              sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+              {isSaving ? 'Saving...' : editProduct ? 'Save Changes' : 'Add Product'}
+            </Button>
+          </Box>
         </DialogActions>
       </MobileDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderTop: '3px solid #EF4444', borderRadius: 2 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete Product?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            <strong style={{ color: '#111' }}>{editProduct?.name}</strong> will be permanently deleted. This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirm(false)} disabled={isDeleting}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDelete} disabled={isDeleting}
+            sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: '#DC2626' } }}>
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Crop Dialog */}
       <Dialog
@@ -1023,6 +1161,7 @@ export default function ProductsPage() {
           </Button>
         </Box>
       </Dialog>
+
     </Box>
   );
 }

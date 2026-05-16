@@ -6,7 +6,7 @@ export async function GET() {
     const [ordersResult, itemsResult, productsResult] = await Promise.all([
       supabaseServer
         .from('orders')
-        .select('id, total, subtotal, shipping, discount, status, address, created_at, source')
+        .select('id, total, subtotal, shipping, discount, status, address, created_at, source, items')
         .not('status', 'in', '("pending_payment","cancelled")'),
       supabaseServer
         .from('order_items')
@@ -46,6 +46,19 @@ export async function GET() {
       const profit = costPrice != null ? (salePrice - costPrice) * qty : 0;
       const oid = item.order_id as string;
       orderGrossProfit[oid] = (orderGrossProfit[oid] ?? 0) + profit;
+    });
+
+    // Add box profit (boxes cost nothing — full price is profit)
+    orders.forEach((o) => {
+      const oid = o.id as string;
+      const rawItems = (o as Record<string, unknown>).items;
+      if (!Array.isArray(rawItems)) return;
+      for (const item of rawItems as Record<string, unknown>[]) {
+        const box = item.box as { price?: number } | null | undefined;
+        if (!box || !box.price) continue;
+        const qty = Number(item.quantity ?? 1);
+        orderGrossProfit[oid] = (orderGrossProfit[oid] ?? 0) + Number(box.price) * qty;
+      }
     });
 
     const now = new Date();

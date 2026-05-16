@@ -19,6 +19,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import { OrderConfirmation, PlacedOrder } from '@/components/store/OrderConfirmation';
+import PhoneInputField, { isValidPhoneNumber } from '@/components/ui/PhoneInputField';
+import { LEBANON_AREAS } from '@/lib/lebanon-areas';
 
 
 export default function CheckoutPage() {
@@ -32,86 +34,13 @@ export default function CheckoutPage() {
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [couponInput, setCouponInput] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount: number;
+    maxDiscount: number | null;
+    applyOnSale: boolean;
+  } | null>(null);
   const [couponError, setCouponError] = useState('');
-
-  const LEBANON_AREAS: Record<string, string[]> = {
-    'Beirut': [
-      'Achrafieh', 'Badaro', 'Hamra', 'Verdun', 'Ras Beirut', 'Corniche El Mazraa',
-      'Basta', 'Bourj Hammoud', 'Chiyah', 'Dekwaneh', 'Furn El Chebbak',
-      'Geitawi', 'Jdeideh', 'Martyrs Square', 'Mar Elias', 'Mar Mikhael',
-      'Msaytbeh', 'Qoreitem', 'Ramlet El Baida', 'Sanayeh', 'Sodeco',
-      'Tallet El Khayat', 'Zarif',
-    ],
-    'Mount Lebanon': [
-      // Matn
-      'Antelias', 'Bsalim', 'Dbayeh', 'Dekwaneh', 'Fanar', 'Jdeideh', 'Mansourieh',
-      'Metn (Naccache)', 'Mtayleb', 'Rabieh', 'Roumieh', 'Sed El Baouchrieh',
-      'Sin El Fil', 'Zalka',
-      // Metn highlands
-      'Beit Mery', 'Broummana', 'Baskinta', 'Bikfaya', 'Ainab',
-      // Kesrouane
-      'Jounieh', 'Ghazir', 'Adma', 'Bouar', 'Faraya', 'Faqra', 'Jeita', 'Kfardebian', 'Sarba',
-      // Jbeil (Byblos)
-      'Byblos (Jbeil)', 'Amchit', 'Laqlouq',
-      // Batroun
-      'Batroun', 'Tannourine', 'Douma',
-      // Chouf
-      'Aley', 'Aramoun', 'Bhamdoun', 'Bchamoun', 'Choueifat', 'Deir El Qamar',
-      'Doha', 'Hadath', 'Jdeideh El Metn', 'Khalde', 'Kfarhbab',
-      'Sofar', 'Simone Abou Shakra', 'Yarze',
-      // South Matn / Iqlim
-      'Baabda', 'Beit El Chaar', 'Damour', 'Jieh', 'Naameh', 'Rmeil',
-    ],
-    'North Lebanon': [
-      // Tripoli district
-      'Tripoli', 'Mina', 'Beddawi', 'Qalamoun',
-      // Koura
-      'Amioun', 'Barsa', 'Btouratij', 'Kousba', 'Shekka',
-      // Zgharta
-      'Zgharta', 'Ehden', 'Miziara',
-      // Bcharre
-      'Bcharre', 'Bsharri', 'Hasroun', 'Qadisha Valley',
-      // Miniyeh-Danniyeh
-      'Miniyeh', 'Sir El Dinniyeh',
-      // Batroun (North)
-      'Enfeh', 'Chekka',
-    ],
-    'Akkar': [
-      'Halba', 'Andket', 'Qobayat', 'Berkayel', 'Fnaydeq', 'Mhammara',
-      'Akkar El Atika', 'Aarsal (border)', 'Rahbe', 'Tal Abbas', 'Wadi Khaled',
-    ],
-    'Bekaa': [
-      'Zahle', 'Bar Elias', 'Taalabaya', 'Saadnayel',
-      'Chtaura', 'Taanayel', 'Qabb Elias',
-      'Anjar', 'Deir El Ahmar', 'Yohmor', 'Saghbine', 'Lala',
-      'Rashaya', 'Yanta', 'Khirbet Qanafar',
-    ],
-    'Baalbek-Hermel': [
-      // Baalbek district
-      'Baalbek', 'Taalabaya', 'Britel', 'Nabi Othman', 'Nahleh', 'Iaat',
-      'Qsarnaba', 'Sbouba', 'Kherbet Daoud',
-      // Hermel district
-      'Hermel', 'Yammouneh', 'Hawsh El Oumara', 'Aarsal',
-    ],
-    'South Lebanon': [
-      // Saida district
-      'Saida (Sidon)', 'Darb El Sim', 'Ghaziyeh', 'Hlaliyeh', 'Maghdouche',
-      'Miyeh Miyeh', 'Sarafand',
-      // Jezzine district
-      'Jezzine', 'Ain Maarouf', 'Kfarhoune',
-      // Tyre district
-      'Tyre (Sour)', 'Abbasiyeh', 'Deir Qanoun', 'Qana',
-      // Zahrani
-      'Zahrani', 'Kafra', 'Adloun',
-    ],
-    'Nabatieh': [
-      'Nabatieh', 'Arnoun', 'Deir Zahrani', 'Kfar Rommane', 'Majdel Selm',
-      'Bint Jbeil', 'Aita El Chaab', 'Houla', 'Kfar Kila', 'Yarun',
-      'Marjeyoun', 'Deir Mimas', 'Ebel El Saqi', 'Qlayaa',
-      'Hasbaya', 'Chebaa', 'Rachaya El Wadi',
-    ],
-  };
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -126,8 +55,10 @@ export default function CheckoutPage() {
 
   // Look up customer by phone and pre-fill the form
   const lookupByPhone = useCallback(async (phone: string) => {
-    const normalized = phone.trim().replace(/^(\+961|00961)/, '');
-    if (!normalized) return;
+    // Only look up Lebanese numbers (+961); extract the local part for the API
+    const isLebanese = phone.startsWith('+961') || phone.startsWith('00961');
+    const normalized = phone.trim().replace(/^(\+961|00961)/, '').replace(/\D/g, '');
+    if (!isLebanese || !normalized) return;
     setIsLookingUp(true);
     try {
       const res = await fetch(`/api/customers/${encodeURIComponent(normalized)}`);
@@ -150,14 +81,22 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // On mount: if we have a saved phone in localStorage, auto-fill and look up customer
+  // On mount: restore saved profile then freshen via API lookup
   useEffect(() => {
     const raw = localStorage.getItem('skmei-phone');
-    if (raw) {
-      const localPhone = raw.trim().replace(/^(\+961|00961)/, '');
-      setFormData((prev) => ({ ...prev, phone: localPhone }));
-      lookupByPhone(localPhone);
-    }
+    if (!raw) return;
+    const phone = raw.startsWith('+') ? raw : `+961${raw.replace(/\D/g, '')}`;
+    const savedName  = localStorage.getItem('skmei-name')  ?? '';
+    const savedEmail = localStorage.getItem('skmei-email') ?? '';
+    const nameParts  = savedName.trim().split(/\s+/);
+    setFormData((prev) => ({
+      ...prev,
+      phone,
+      firstName: nameParts[0] || prev.firstName,
+      lastName:  nameParts.slice(1).join(' ') || prev.lastName,
+      email:     savedEmail || prev.email,
+    }));
+    lookupByPhone(phone);
   }, [lookupByPhone]);
 
   // On mount: restore form if returning from a failed Whish payment
@@ -179,9 +118,29 @@ export default function CheckoutPage() {
 
   const handlePhoneBlur = () => lookupByPhone(formData.phone);
 
+  const handlePhoneChange = (phone: string) => {
+    setFormData((prev) => ({ ...prev, phone }));
+    if (errors.phone) setErrors((prev) => { const n = { ...prev }; delete n.phone; return n; });
+  };
+
   const subtotal = getTotalPrice();
   const shipping = subtotal >= 50 ? 0 : 4;
-  const discountAmount = appliedCoupon ? Math.round(subtotal * appliedCoupon.discount) / 100 : 0;
+
+  // Coupon: only apply to non-sale items if applyOnSale=false
+  const applyableSubtotal = appliedCoupon && !appliedCoupon.applyOnSale
+    ? items.reduce((sum, i) => {
+        const isSale = !!i.product.originalPrice;
+        return isSale ? sum : sum + (i.product.price + (i.selectedBox?.price ?? 0)) * i.quantity;
+      }, 0)
+    : subtotal;
+
+  const rawDiscount = appliedCoupon ? (applyableSubtotal * appliedCoupon.discount) / 100 : 0;
+  const discountAmount = appliedCoupon
+    ? appliedCoupon.maxDiscount != null
+      ? Math.min(rawDiscount, appliedCoupon.maxDiscount)
+      : rawDiscount
+    : 0;
+
   const rawTotal = subtotal + shipping - discountAmount;
   const total = appliedCoupon ? Math.ceil(rawTotal * 2) / 2 : rawTotal;
   const totalItems = getTotalItems();
@@ -197,7 +156,7 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (data.valid) {
-        setAppliedCoupon({ code: data.code, discount: data.discount });
+        setAppliedCoupon({ code: data.code, discount: data.discount, maxDiscount: data.maxDiscount ?? null, applyOnSale: data.applyOnSale ?? true });
         setCouponError('');
       } else {
         setCouponError(data.error || 'Invalid coupon code. Please try again.');
@@ -238,7 +197,11 @@ export default function CheckoutPage() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!isValidPhoneNumber(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number for the selected country';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -283,7 +246,7 @@ export default function CheckoutPage() {
         quantity: item.quantity,
         image: item.product.images[0] ?? null,
         box: item.selectedBox
-          ? { code: item.selectedBox.code, type: item.selectedBox.type, price: item.selectedBox.price }
+          ? { code: item.selectedBox.code, type: item.selectedBox.type, price: item.selectedBox.price, image: item.selectedBox.image ?? null }
           : null,
       };
     });
@@ -315,6 +278,7 @@ export default function CheckoutPage() {
           setIsSubmitting(false);
           return;
         }
+        localStorage.setItem('skmei-phone', formData.phone);
         localStorage.setItem('skmei-pending-checkout', JSON.stringify({ formData, appliedCoupon, paymentMethod: 'whish' }));
         window.location.href = data.collectUrl;
       } else {
@@ -326,6 +290,7 @@ export default function CheckoutPage() {
         const data = await res.json();
         const primaryBrand = items[0]?.product.brand ?? '';
         const warrantyLabel = await getWarrantyLabel(primaryBrand);
+        localStorage.setItem('skmei-phone', formData.phone);
         clearCart();
         setPlacedOrder({
           orderId:       data.orderId ?? 'unknown',
@@ -439,25 +404,25 @@ export default function CheckoutPage() {
                     <h3 className="text-lg font-bold text-white mb-4">Contact Information</h3>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/60 mb-2">Phone Number *</label>
-                      <div className={`flex rounded-xl overflow-hidden border ${errors.phone ? 'border-red-500' : 'border-white/12 focus-within:border-brand-red'}`}>
-                        <span className="flex items-center px-3 bg-white/8 border-r border-white/10 text-white/50 font-semibold text-sm shrink-0 select-none">
-                          +961
-                        </span>
-                        <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
-                          onBlur={handlePhoneBlur}
-                          placeholder="XX XXX XXX"
-                          className="flex-1 px-3 py-3 bg-white/6 focus:outline-none text-sm text-white placeholder-white/25" />
-                        {isLookingUp && (
-                          <span className="flex items-center pr-3">
-                            <svg className="w-4 h-4 text-brand-red animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                            </svg>
-                          </span>
-                        )}
-                      </div>
-                      {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
-                      <p className="text-xs text-white/35 mt-1">Enter your phone and we&apos;ll auto-fill your saved info.</p>
+                      <PhoneInputField
+                        value={formData.phone}
+                        onChange={handlePhoneChange}
+                        onBlur={handlePhoneBlur}
+                        error={errors.phone}
+                        variant="dark"
+                      />
+                      {isLookingUp && (
+                        <p className="text-xs text-brand-red/70 mt-1 flex items-center gap-1.5">
+                          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                          Looking up saved info…
+                        </p>
+                      )}
+                      {!isLookingUp && !errors.phone && (
+                        <p className="text-xs text-white/35 mt-1">Enter your phone and we&apos;ll auto-fill your saved info.</p>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -652,7 +617,11 @@ export default function CheckoutPage() {
                     <div className="flex items-center justify-between bg-white/10 border border-white/20 rounded-xl px-3 py-2.5">
                       <div>
                         <p className="text-sm font-bold text-brand-red">{appliedCoupon.code}</p>
-                        <p className="text-xs text-white/50">{appliedCoupon.discount}% discount applied</p>
+                        <p className="text-xs text-white/50">
+                          {appliedCoupon.discount}% off
+                          {appliedCoupon.maxDiscount != null && ` (up to ${formatPrice(appliedCoupon.maxDiscount)})`}
+                          {!appliedCoupon.applyOnSale && ' · excludes sale items'}
+                        </p>
                       </div>
                       <button type="button" onClick={handleRemoveCoupon} className="text-white/40 hover:text-brand-red transition-colors p-1">
                         <X className="w-4 h-4" />
@@ -686,7 +655,10 @@ export default function CheckoutPage() {
                   </div>
                   {appliedCoupon && (
                     <div className="flex justify-between text-sm text-brand-red font-medium">
-                      <span>Discount ({appliedCoupon.discount}%)</span>
+                      <span>
+                        Discount ({appliedCoupon.discount}%
+                        {appliedCoupon.maxDiscount != null && `, max ${formatPrice(appliedCoupon.maxDiscount)}`})
+                      </span>
                       <span>-{formatPrice(discountAmount)}</span>
                     </div>
                   )}

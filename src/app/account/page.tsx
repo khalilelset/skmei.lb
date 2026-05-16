@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  User, Phone, Mail, MapPin, Save, CheckCircle,
+  User, Mail, MapPin, Save, CheckCircle,
   Home, ChevronRight, Loader2, Info,
 } from 'lucide-react';
+import PhoneInputField, { isValidPhoneNumber } from '@/components/ui/PhoneInputField';
+import { LEBANON_AREAS } from '@/lib/lebanon-areas';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type LookupStatus = 'idle' | 'found' | 'not-found';
@@ -23,10 +25,14 @@ export default function AccountPage() {
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
+  const [phoneError, setPhoneError] = useState('');
+
   // Look up customer by phone and pre-fill the form
   const lookupByPhone = useCallback(async (raw: string) => {
-    const phone = raw.trim().replace(/^(\+961|00961)/, '');
-    if (!phone) return;
+    // Only look up Lebanese numbers
+    const isLebanese = raw.startsWith('+961') || raw.startsWith('00961');
+    const phone = raw.trim().replace(/^(\+961|00961)/, '').replace(/\D/g, '');
+    if (!isLebanese || !phone) return;
     setIsLookingUp(true);
     setLookupStatus('idle');
     try {
@@ -36,10 +42,11 @@ export default function AccountPage() {
         const c = json.customer;
         const addresses: Record<string, string>[] = c.addresses ?? [];
         const addr = addresses[0] ?? {};
+        const storedPhone = raw.startsWith('+') ? raw : `+961${phone}`;
         setForm({
           name: `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim(),
           email: c.email ?? '',
-          phone: c.phone,
+          phone: storedPhone,
           saveAddress: addresses.length > 0,
           address: {
             street:   addr.street   ?? '',
@@ -49,31 +56,26 @@ export default function AccountPage() {
           },
         });
         setLookupStatus('found');
-        setIsDirty(false); // fresh load — nothing changed yet
+        setIsDirty(false);
       } else {
         setLookupStatus('not-found');
-        setIsDirty(true); // new customer — show save button immediately
+        setIsDirty(true);
       }
     } catch { /* silent */ } finally {
       setIsLookingUp(false);
     }
   }, []);
 
-  // On mount: if we have a saved phone, auto-load the customer data
+  // On mount: restore saved profile then do API lookup to freshen data
   useEffect(() => {
     const raw = localStorage.getItem('skmei-phone');
-    if (raw) {
-      const localPhone = raw.trim().replace(/^(\+961|00961)/, '');
-      localStorage.setItem('skmei-phone', localPhone); // fix any old stored value
-      setForm((f) => ({ ...f, phone: localPhone }));
-      lookupByPhone(localPhone);
-    }
+    if (!raw) return;
+    const phone = raw.startsWith('+') ? raw : `+961${raw.replace(/\D/g, '')}`;
+    const savedName  = localStorage.getItem('skmei-name')  ?? '';
+    const savedEmail = localStorage.getItem('skmei-email') ?? '';
+    setForm((f) => ({ ...f, phone, name: savedName, email: savedEmail }));
+    lookupByPhone(phone);
   }, [lookupByPhone]);
-
-  const regions = [
-    'Beirut', 'Mount Lebanon', 'North Lebanon', 'South Lebanon',
-    'Bekaa', 'Nabatieh', 'Akkar', 'Baalbek-Hermel',
-  ];
 
   const inputClass =
     'w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-brand-black placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-brand-red focus:ring-2 focus:ring-brand-red/10 transition-all text-sm';
@@ -83,7 +85,15 @@ export default function AccountPage() {
     const { name, value, type } = e.target;
     if (name.startsWith('address.')) {
       const field = name.replace('address.', '');
-      setForm((f) => ({ ...f, address: { ...f.address, [field]: value } }));
+      setForm((f) => ({
+        ...f,
+        address: {
+          ...f.address,
+          [field]: value,
+          // Reset city when region changes
+          ...(field === 'region' ? { city: '' } : {}),
+        },
+      }));
     } else if (type === 'checkbox') {
       setForm((f) => ({ ...f, [name]: (e.target as HTMLInputElement).checked }));
     } else {
@@ -93,11 +103,29 @@ export default function AccountPage() {
     setIsDirty(true);
   };
 
-  const handlePhoneBlur = () => lookupByPhone(form.phone);
+  const handlePhoneChange = (phone: string) => {
+    setForm((f) => ({ ...f, phone }));
+    setSaveStatus('idle');
+    setIsDirty(true);
+    setPhoneError('');
+  };
+
+  const handlePhoneBlur = () => {
+    if (form.phone && !isValidPhoneNumber(form.phone)) {
+      setPhoneError('Please enter a valid phone number');
+      return;
+    }
+    setPhoneError('');
+    lookupByPhone(form.phone);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.phone.trim() || !form.name.trim()) return;
+    if (!isValidPhoneNumber(form.phone)) {
+      setPhoneError('Please enter a valid phone number');
+      return;
+    }
     setSaveStatus('saving');
 
     const nameParts = form.name.trim().split(/\s+/);
@@ -121,10 +149,11 @@ export default function AccountPage() {
         }),
       });
       if (res.ok) {
-        // Store only local number (no +961) so lookup works correctly
-        const localPhone = form.phone.trim().replace(/^(\+961|00961)/, '');
-        localStorage.setItem('skmei-phone', localPhone);
+        localStorage.setItem('skmei-phone', form.phone.trim());
+        localStorage.setItem('skmei-name',  form.name.trim());
+        localStorage.setItem('skmei-email', form.email.trim());
         setSaveStatus('saved');
+        setLookupStatus('found');
         setIsDirty(false);
         setTimeout(() => setSaveStatus('idle'), 4000);
       } else {
@@ -206,29 +235,24 @@ export default function AccountPage() {
                 <label className={labelClass}>
                   Phone Number <span className="text-brand-red">*</span>
                 </label>
-                <div className={`flex rounded-xl overflow-hidden border transition-all ${isLookingUp ? 'border-brand-red ring-2 ring-brand-red/10' : 'border-gray-200 focus-within:border-brand-red focus-within:ring-2 focus-within:ring-brand-red/10'}`}>
-                  <span className="flex items-center gap-1.5 px-3 bg-gray-100 border-r border-gray-200 text-brand-black font-semibold text-sm shrink-0 select-none">
-                    +961
-                  </span>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    onBlur={handlePhoneBlur}
-                    required
-                    placeholder="XX XXX XXX"
-                    className="flex-1 px-3 py-3.5 bg-gray-50 text-brand-black placeholder:text-gray-400 focus:outline-none focus:bg-white text-sm transition-colors"
-                  />
-                  {isLookingUp && (
-                    <span className="flex items-center pr-3">
-                      <Loader2 className="w-4 h-4 text-brand-red animate-spin" />
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-brand-gray mt-1">
-                  Your phone number is your account ID — we use it to load your saved info.
-                </p>
+                <PhoneInputField
+                  value={form.phone}
+                  onChange={handlePhoneChange}
+                  onBlur={handlePhoneBlur}
+                  error={phoneError}
+                  variant="light"
+                />
+                {isLookingUp && (
+                  <p className="text-xs text-brand-red/70 mt-1.5 flex items-center gap-1.5">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Looking up saved info…
+                  </p>
+                )}
+                {!isLookingUp && !phoneError && (
+                  <p className="text-xs text-brand-gray mt-1">
+                    Your phone number is your account ID — we use it to load your saved info.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -307,15 +331,25 @@ export default function AccountPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>City / Town</label>
-                    <input type="text" name="address.city" value={form.address.city} onChange={handleChange}
-                      placeholder="e.g. Beirut" className={inputClass} />
-                  </div>
-                  <div>
                     <label className={labelClass}>Region / Governorate</label>
                     <select name="address.region" value={form.address.region} onChange={handleChange} className={inputClass}>
                       <option value="">Select region</option>
-                      {regions.map((r) => <option key={r} value={r}>{r}</option>)}
+                      {Object.keys(LEBANON_AREAS).map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>City / Town</label>
+                    <select
+                      name="address.city"
+                      value={form.address.city}
+                      onChange={handleChange}
+                      disabled={!form.address.region}
+                      className={`${inputClass} ${!form.address.region ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <option value="">{form.address.region ? 'Select city' : 'Select region first'}</option>
+                      {(LEBANON_AREAS[form.address.region] ?? []).map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

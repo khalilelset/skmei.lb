@@ -6,6 +6,8 @@ import { useProfileStore } from '@/store/profileStore';
 import { formatPrice } from '@/lib/utils';
 import { X, User, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import PhoneInputField, { isValidPhoneNumber } from '@/components/ui/PhoneInputField';
+import { formatPhoneDisplay } from '@/lib/utils';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -54,14 +56,19 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
     if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
   };
 
+  const handlePhoneChange = (phone: string) => {
+    setFormData((prev) => ({ ...prev, phone }));
+    if (errors.phone) setErrors((prev) => { const n = { ...prev }; delete n.phone; return n; });
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = 'Full name is required';
     if (!formData.address.trim()) newErrors.address = 'Delivery address is required';
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required';
-    } else if (!/^[\d\s\+\-()]+$/.test(formData.phone)) {
-      newErrors.phone = 'Invalid phone number';
+    } else if (!isValidPhoneNumber(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -72,11 +79,16 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
     msg += `*Customer Details:*\n\n`;
     msg += `👤 Name: ${formData.name}\n\n`;
     msg += `📍 Address: ${formData.address}\n\n`;
-    msg += `📱 Phone: ${formData.phone}\n\n\n`;
+    msg += `📱 Phone: ${formatPhoneDisplay(formData.phone)}\n\n\n`;
     msg += `*Order Items:*\n\n\n`;
     items.forEach((item, index) => {
+      const itemPrice = item.product.price + (item.selectedBox?.price ?? 0);
       msg += `${index + 1}. ${item.product.name}\n`;
-      msg += `   • Qty: ${item.quantity} × ${formatPrice(item.product.price)} = ${formatPrice(item.product.price * item.quantity)}\n\n\n`;
+      msg += `   • Qty: ${item.quantity} × ${formatPrice(itemPrice)} = ${formatPrice(itemPrice * item.quantity)}\n`;
+      if (item.selectedBox) {
+        msg += `   📦 Box: ${item.selectedBox.code}${item.selectedBox.price > 0 ? ` (+${formatPrice(item.selectedBox.price)})` : ' (Free)'}\n`;
+      }
+      msg += `\n\n`;
     });
     msg += `*Order Summary:*\n\n`;
     msg += `Subtotal: ${formatPrice(subtotal)}\n`;
@@ -180,22 +192,16 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
 
             {/* Phone */}
             <div>
-              <label htmlFor="modal-phone" className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+              <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
                 Phone <span className="text-brand-red">*</span>
                 <span className="normal-case tracking-normal font-normal text-white/25 ml-1">(WhatsApp)</span>
               </label>
-              <div className={`flex rounded-xl overflow-hidden border transition-colors ${errors.phone ? 'border-brand-red' : 'border-white/10 focus-within:border-white/25'}`}>
-                <span className="flex items-center px-3.5 bg-white/8 border-r border-white/10 text-white/50 font-bold text-sm shrink-0 select-none">
-                  +961
-                </span>
-                <input
-                  type="tel" id="modal-phone" name="phone"
-                  value={formData.phone} onChange={handleChange}
-                  placeholder="XX XXX XXX"
-                  className="flex-1 px-4 py-3 bg-white/6 text-white text-sm placeholder:text-white/20 focus:outline-none"
-                />
-              </div>
-              {errors.phone && <p className="text-brand-red text-xs mt-1">{errors.phone}</p>}
+              <PhoneInputField
+                value={formData.phone}
+                onChange={handlePhoneChange}
+                error={errors.phone}
+                variant="dark"
+              />
             </div>
 
             {/* Order Total */}

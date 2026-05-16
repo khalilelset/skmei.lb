@@ -133,8 +133,14 @@ export default function OrdersPage() {
     const orderNum = order.orderNumber;
 
     // Build items list for confirmed & cancelled
-    const itemsAr = order.items.map((i) => `- ${i.productName} x${i.quantity}`).join('\n');
-    const itemsEn = order.items.map((i) => `- ${i.productName} x${i.quantity}`).join('\n');
+    const itemsAr = order.items.map((i) => {
+      const box = i.box ? ` 📦 ${i.box.code ?? 'Box'}${i.box.price > 0 ? ` (+$${i.box.price.toFixed(2)})` : ' (Free)'}` : '';
+      return `- ${i.productName} x${i.quantity}${box}`;
+    }).join('\n');
+    const itemsEn = order.items.map((i) => {
+      const box = i.box ? ` 📦 ${i.box.code ?? 'Box'}${i.box.price > 0 ? ` (+$${i.box.price.toFixed(2)})` : ' (Free)'}` : '';
+      return `- ${i.productName} x${i.quantity}${box}`;
+    }).join('\n');
 
     const sep = '\n\n---\n\n';
     const messages: Record<string, string> = {
@@ -526,6 +532,11 @@ export default function OrdersPage() {
                         )}
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography sx={{ fontWeight: 600, fontSize: 14, lineHeight: 1.4 }}>{item.productName}</Typography>
+                          {item.box && (
+                            <Typography sx={{ fontSize: 11, color: '#9ca3af', mt: 0.4 }}>
+                              📦 {item.box.code ?? 'Gift Box'}{item.box.price > 0 ? ` (+${formatPrice(item.box.price)})` : ' (Free)'}
+                            </Typography>
+                          )}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75 }}>
                             <Box sx={{ display: 'inline-flex', alignItems: 'center', bgcolor: '#f3f4f6', borderRadius: 10, px: 1.25, py: 0.25 }}>
                               <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>×{item.quantity}</Typography>

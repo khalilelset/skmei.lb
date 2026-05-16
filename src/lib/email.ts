@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { formatPhoneDisplay } from "@/lib/utils";
 
 let _resend: Resend | null = null;
 function getResend() {
@@ -25,7 +26,7 @@ interface OrderEmailData {
     price: number;
     quantity: number;
     image?: string | null;
-    box?: { name: string; type: string; price: number } | null;
+    box?: { code: string; type: string; price: number; image?: string | null } | null;
   }[];
   subtotal: number;
   shipping: number;
@@ -67,7 +68,7 @@ function buildAdminEmail(data: OrderEmailData): string {
     .map((item) => {
       const img = item.image ?? null;
       const boxLine = item.box
-        ? `<p style="margin:3px 0 0;font-size:10px;color:#888;">📦 ${item.box.name}${item.box.price > 0 ? ` <span style="color:#e63946;">+${formatPrice(item.box.price)}</span>` : ''}</p>`
+        ? `<p style="margin:8px 0 0;font-size:0;line-height:0;">${item.box.image ? `<img src="${item.box.image}" width="32" height="32" style="display:inline-block;vertical-align:middle;width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid #333;margin-right:6px;" />` : ''}<span style="display:inline-block;vertical-align:middle;font-size:10px;color:#888;line-height:1.3;">📦 ${item.box.code}${item.box.price > 0 ? ` <span style="color:#e63946;">+${formatPrice(item.box.price)}</span>` : ' <span style="color:#22c55e;">Free</span>'}</span></p>`
         : '';
       return `
     <tr>
@@ -132,7 +133,7 @@ function buildAdminEmail(data: OrderEmailData): string {
             <div style="background:#222;border-radius:12px;padding:18px 20px;margin-bottom:12px;">
               <p style="margin:0 0 18px;font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1.5px;">Customer</p>
               <p style="margin:0 0 18px;font-size:15px;font-weight:700;color:#ffffff;">${data.customerName}</p>
-              <p style="margin:0 0 16px;font-size:14px;color:#aaa;">📞 +961 ${data.customerPhone}</p>
+              <p style="margin:0 0 16px;font-size:14px;color:#aaa;">📞 ${formatPhoneDisplay(data.customerPhone)}</p>
               ${data.customerEmail ? `<p style="margin:0 0 16px;font-size:14px;color:#aaa;">✉️ ${data.customerEmail}</p>` : ""}
               ${data.address ? `<p style="margin:0 0 16px;font-size:14px;color:#aaa;">📍 ${[data.address.area, data.address.city, data.address.street, "Lebanon"].filter(Boolean).join(", ")}</p>` : ""}
               ${data.notes ? `<p style="margin:16px 0 0;font-size:13px;color:#888;font-style:italic;">Note: ${data.notes}</p>` : ""}
@@ -202,7 +203,7 @@ interface StatusEmailData {
     price: number;
     quantity: number;
     image?: string | null;
-    box?: { name: string; type: string; price: number } | null;
+    box?: { code: string; type: string; price: number; image?: string | null } | null;
   }[];
   total: number;
   address?: {
@@ -270,7 +271,7 @@ function buildItemRows(items: StatusEmailData["items"]): string {
     .map((item) => {
       const img = item.image ?? null;
       const boxLine = item.box
-        ? `<p style="margin:3px 0 0;font-size:10px;color:#888;">📦 ${item.box.name}${item.box.price > 0 ? ` <span style="color:#e63946;">+${formatPrice(item.box.price)}</span>` : ''}</p>`
+        ? `<p style="margin:8px 0 0;font-size:0;line-height:0;">${item.box.image ? `<img src="${item.box.image}" width="32" height="32" style="display:inline-block;vertical-align:middle;width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid #333;margin-right:6px;" />` : ''}<span style="display:inline-block;vertical-align:middle;font-size:10px;color:#888;line-height:1.3;">📦 ${item.box.code}${item.box.price > 0 ? ` <span style="color:#e63946;">+${formatPrice(item.box.price)}</span>` : ' <span style="color:#22c55e;">Free</span>'}</span></p>`
         : '';
       return `
     <tr>
@@ -400,7 +401,7 @@ function buildShippedEmail(d: StatusEmailData): string {
       <div style="background:#1a2540;border:1px solid #2a3d6a;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
         <p style="margin:0;font-size:14px;color:#93c5fd;line-height:1.7;">
           🕐 <strong>Estimated delivery:</strong> 2–4 business days.<br/>
-          Our team will call you on <strong>+961 ${d.customerPhone}</strong> before arriving.${d.address ? `<br/>📍 <strong>Delivering to:</strong> ${[d.address.area, d.address.city, d.address.street, "Lebanon"].filter(Boolean).join(", ")}` : ""}
+          Our team will call you on <strong>${formatPhoneDisplay(d.customerPhone)}</strong> before arriving.${d.address ? `<br/>📍 <strong>Delivering to:</strong> ${[d.address.area, d.address.city, d.address.street, "Lebanon"].filter(Boolean).join(", ")}` : ""}
         </p>
       </div>
 

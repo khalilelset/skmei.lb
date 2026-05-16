@@ -1,9 +1,19 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Mail, Clock, Truck, ChevronRight, Home, ArrowRight, MessageCircle, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  Mail,
+  Clock,
+  Truck,
+  ChevronRight,
+  Home,
+  ArrowRight,
+  MessageCircle,
+  ChevronDown,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import PhoneInputField from "@/components/ui/PhoneInputField";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -14,22 +24,53 @@ const WA_SVG = (
 );
 
 const FAQS = [
-  { q: "How long does delivery take?", a: "We deliver across all of Lebanon, typically within 2–4 business days depending on your location." },
-  { q: "Do you offer a warranty?", a: "Yes — every SKMEI watch comes with a full 1-year manufacturer warranty covering defects in materials and workmanship. Other brands we carry include a 1-month warranty." },
-  { q: "Are all your watches authentic?", a: "All SKMEI watches are 100% authentic — we are Lebanon's official authorized SKMEI dealer, sourcing directly from the manufacturer." },
-  { q: "What payment methods do you accept?", a: "We accept Cash on Delivery (COD) and Whish payment across Lebanon." },
-  { q: "Can I exchange or return a watch?", a: "Yes — exchanges are available. We take full responsibility for any defect or issue with your order. Contact us and we will make it right." },
+  {
+    q: "How long does delivery take?",
+    a: "We deliver across all of Lebanon, typically within 2–4 business days depending on your location.",
+  },
+  {
+    q: "Do you offer a warranty?",
+    a: "Yes — every SKMEI watch comes with a full 1-year manufacturer warranty covering defects in materials and workmanship. Other brands we carry include a 1-month warranty.",
+  },
+  {
+    q: "Are all your watches authentic?",
+    a: "All SKMEI watches are 100% authentic — we are Lebanon's official authorized SKMEI dealer, sourcing directly from the manufacturer.",
+  },
+  {
+    q: "What payment methods do you accept?",
+    a: "We accept Cash on Delivery (COD) and Whish payment across Lebanon.",
+  },
+  {
+    q: "Can I exchange or return a watch?",
+    a: "Yes — exchanges are available. We take full responsibility for any defect or issue with your order. Contact us and we will make it right.",
+  },
 ];
 
-function FAQItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
+function FAQItem({
+  q,
+  a,
+  open,
+  onToggle,
+}: {
+  q: string;
+  a: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <div className={`border-b border-brand-silver last:border-0 transition-colors duration-300 ${open ? 'border-l-2 border-l-brand-red pl-4' : ''}`}>
+    <div
+      className={`border-b border-brand-silver last:border-b-0 transition-colors duration-300 ${open ? "border-l-2 border-l-brand-red pl-4" : ""}`}
+    >
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between py-4 text-left gap-4"
       >
         <span className="text-sm font-bold text-brand-black">{q}</span>
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.3, ease }} className="shrink-0">
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.3, ease }}
+          className="shrink-0"
+        >
           <ChevronDown className="w-4 h-4 text-brand-gray" />
         </motion.span>
       </button>
@@ -38,7 +79,7 @@ function FAQItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
           <motion.div
             key="answer"
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease }}
             className="overflow-hidden"
@@ -52,35 +93,73 @@ function FAQItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
 }
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: '', email: '', subject: '', message: '',
+  const [formData, setFormData] = useState(() => {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('skmei-phone') : null;
+    const phone = raw ? (raw.startsWith('+') ? raw : `+961${raw.replace(/\D/g, '')}`) : '';
+    return { name: '', email: '', phone, subject: '', message: '' };
   });
   const [submitted, setSubmitted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
+  // Pre-fill name & email from saved account data on mount
+  useEffect(() => {
+    const raw = localStorage.getItem('skmei-phone');
+    if (!raw) return;
+    const phone = raw.startsWith('+') ? raw : `+961${raw.replace(/\D/g, '')}`;
+
+    const isLebanese = phone.startsWith('+961');
+    const localNum = phone.replace(/^(\+961|00961)/, '').replace(/\D/g, '');
+    if (!isLebanese || !localNum) return;
+
+    fetch(`/api/customers/${encodeURIComponent(localNum)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.found && json.customer) {
+          const c = json.customer;
+          setFormData((p) => ({
+            ...p,
+            name: p.name || `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim(),
+            email: p.email || (c.email ?? ''),
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const text = `New Contact Form Message:\n\nName: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\n\nMessage:\n${formData.message}`;
-    window.open(`https://wa.me/96179170387?text=${encodeURIComponent(text)}`, '_blank');
+    const phoneStr = formData.phone ? `\nPhone: ${formData.phone}` : "";
+    const text = `New Contact Form Message:\n\nName: ${formData.name}\nEmail: ${formData.email}${phoneStr}\nSubject: ${formData.subject}\n\nMessage:\n${formData.message}`;
+    window.open(
+      `https://wa.me/96179170387?text=${encodeURIComponent(text)}`,
+      "_blank",
+    );
     setSubmitted(true);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const inputClass =
-    'w-full px-4 py-3.5 bg-brand-silver-light border border-brand-silver rounded-xl text-brand-black placeholder:text-brand-gray/60 focus:outline-none focus:bg-white focus:border-brand-red focus:ring-2 focus:ring-brand-red/10 transition-all text-sm';
+    "w-full px-4 py-3.5 bg-brand-silver-light border border-brand-silver rounded-xl text-brand-black placeholder:text-brand-gray/60 focus:outline-none focus:bg-white focus:border-brand-red focus:ring-2 focus:ring-brand-red/10 transition-all text-sm";
 
-  const labelClass = 'block text-[10px] font-bold uppercase tracking-[0.18em] text-brand-black/70 mb-2';
+  const labelClass =
+    "block text-[10px] font-bold uppercase tracking-[0.18em] text-brand-black/70 mb-2";
 
   return (
     <div className="bg-white min-h-screen">
-
       {/* ── Hero Banner ── */}
       <div className="relative bg-brand-black text-white py-14 sm:py-20 overflow-hidden">
         {/* Architectural watermark */}
-        <div aria-hidden className="absolute right-0 bottom-0 select-none pointer-events-none overflow-hidden leading-none">
+        <div
+          aria-hidden
+          className="absolute right-0 bottom-0 select-none pointer-events-none overflow-hidden leading-none"
+        >
           <span className="text-[clamp(60px,14vw,140px)] font-black text-white/[0.028] tracking-tight whitespace-nowrap">
             CONTACT
           </span>
@@ -93,7 +172,14 @@ export default function ContactPage() {
         </div>
 
         {/* Diagonal stripe texture */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '18px 18px' }} />
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)",
+            backgroundSize: "18px 18px",
+          }}
+        />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
@@ -103,7 +189,10 @@ export default function ContactPage() {
             transition={{ duration: 0.5, ease }}
             className="flex items-center gap-1.5 text-xs text-white/40 mb-6"
           >
-            <Link href="/" className="flex items-center gap-1 hover:text-white/70 transition-colors">
+            <Link
+              href="/"
+              className="flex items-center gap-1 hover:text-white/70 transition-colors"
+            >
               <Home className="w-3 h-3" /> Home
             </Link>
             <ChevronRight className="w-3 h-3" />
@@ -118,7 +207,9 @@ export default function ContactPage() {
             className="inline-flex items-center gap-3 border-l-2 border-brand-red pl-3 mb-5"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse flex-shrink-0" />
-            <span className="text-[10px] font-bold tracking-[0.3em] text-brand-red uppercase">We Reply Within 2 Hours</span>
+            <span className="text-[10px] font-bold tracking-[0.3em] text-brand-red uppercase">
+              We Reply Within 2 Hours
+            </span>
           </motion.div>
 
           <motion.h1
@@ -151,8 +242,13 @@ export default function ContactPage() {
               "24/7 WhatsApp",
               "All Lebanon",
             ].map((item, i) => (
-              <span key={i} className="flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                {i > 0 && <span className="w-1 h-1 rounded-full bg-brand-red/60" />}
+              <span
+                key={i}
+                className="flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-white/45"
+              >
+                {i > 0 && (
+                  <span className="w-1 h-1 rounded-full bg-brand-red/60" />
+                )}
                 {item}
               </span>
             ))}
@@ -166,7 +262,6 @@ export default function ContactPage() {
       {/* ── Main Content ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10 items-start">
-
           {/* ── Left: Contact Info Panel ── */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -175,14 +270,19 @@ export default function ContactPage() {
             className="lg:col-span-2"
           >
             <div className="bg-brand-black rounded-2xl overflow-hidden sticky top-24">
-
               {/* Panel top accent */}
               <div className="h-1 bg-brand-red w-full" />
 
               <div className="p-7 sm:p-8">
-                <p className="text-[10px] font-bold text-brand-red uppercase tracking-[0.3em] mb-2">Contact Details</p>
-                <h2 className="text-2xl font-black text-white mb-1">We&apos;re Here For You</h2>
-                <p className="text-white/45 text-sm mb-7">Reach us anytime — we never close.</p>
+                <p className="text-[10px] font-bold text-brand-red uppercase tracking-[0.3em] mb-2">
+                  Contact Details
+                </p>
+                <h2 className="text-2xl font-black text-white mb-1">
+                  We&apos;re Here For You
+                </h2>
+                <p className="text-white/45 text-sm mb-7">
+                  Reach us anytime — we never close.
+                </p>
 
                 <div className="space-y-3">
                   <a
@@ -193,8 +293,12 @@ export default function ContactPage() {
                       <Mail className="h-5 w-5 text-brand-red group-hover:text-white transition-colors duration-300" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">Email</p>
-                      <p className="text-white font-semibold text-sm">skmei.lb@gmail.com</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">
+                        Email
+                      </p>
+                      <p className="text-white font-semibold text-sm">
+                        skmei.lb@gmail.com
+                      </p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/60 ml-auto transition-colors" />
                   </a>
@@ -204,9 +308,15 @@ export default function ContactPage() {
                       <Clock className="h-5 w-5 text-brand-red" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">Availability</p>
-                      <p className="text-white font-semibold text-sm">24 / 7 — Always Available</p>
-                      <p className="text-white/35 text-xs mt-0.5">Chat with us on WhatsApp anytime</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">
+                        Availability
+                      </p>
+                      <p className="text-white font-semibold text-sm">
+                        24 / 7 — Always Available
+                      </p>
+                      <p className="text-white/35 text-xs mt-0.5">
+                        Chat with us on WhatsApp anytime
+                      </p>
                     </div>
                   </div>
 
@@ -215,9 +325,15 @@ export default function ContactPage() {
                       <Truck className="h-5 w-5 text-brand-red" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">Delivery</p>
-                      <p className="text-white font-semibold text-sm">All Lebanon</p>
-                      <p className="text-white/35 text-xs mt-0.5">Fast &amp; reliable shipping nationwide</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">
+                        Delivery
+                      </p>
+                      <p className="text-white font-semibold text-sm">
+                        All Lebanon
+                      </p>
+                      <p className="text-white/35 text-xs mt-0.5">
+                        Fast &amp; reliable shipping nationwide
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -229,7 +345,10 @@ export default function ContactPage() {
                   rel="noopener noreferrer"
                   className="relative mt-7 flex items-center justify-center gap-3 w-full py-4 px-6 bg-brand-red hover:bg-brand-red-dark text-white font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand-red/40 overflow-hidden group"
                 >
-                  <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none"
+                  />
                   {WA_SVG}
                   <span className="relative z-10">Chat on WhatsApp</span>
                 </a>
@@ -246,12 +365,17 @@ export default function ContactPage() {
           >
             {/* Form Card */}
             <div className="bg-white rounded-2xl border border-brand-silver overflow-hidden">
-
               {/* Form header */}
               <div className="px-7 sm:px-8 pt-7 sm:pt-8 pb-6 border-b border-brand-silver">
-                <p className="text-[10px] font-bold text-brand-red uppercase tracking-[0.3em] mb-1">Message Us</p>
-                <h2 className="text-2xl font-black text-brand-black">Send Us a Message</h2>
-                <p className="text-brand-gray text-sm mt-1">Fill the form below and we&apos;ll reply via WhatsApp.</p>
+                <p className="text-[10px] font-bold text-brand-red uppercase tracking-[0.3em] mb-1">
+                  Message Us
+                </p>
+                <h2 className="text-2xl font-black text-brand-black">
+                  Send Us a Message
+                </h2>
+                <p className="text-brand-gray text-sm mt-1">
+                  Fill the form below and we&apos;ll reply via WhatsApp.
+                </p>
               </div>
 
               <div className="px-7 sm:px-8 py-7 sm:py-8">
@@ -269,14 +393,29 @@ export default function ContactPage() {
                       <motion.div
                         initial={{ scale: 0.5, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.1 }}
+                        transition={{
+                          type: "spring",
+                          damping: 12,
+                          stiffness: 200,
+                          delay: 0.1,
+                        }}
                         className="w-20 h-20 rounded-full bg-brand-red flex items-center justify-center mb-5 shadow-lg shadow-brand-red/30"
                       >
-                        <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                        <svg
+                          className="w-10 h-10 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                          viewBox="0 0 24 24"
+                        >
                           <motion.path
                             initial={{ pathLength: 0 }}
                             animate={{ pathLength: 1 }}
-                            transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
+                            transition={{
+                              duration: 0.5,
+                              delay: 0.3,
+                              ease: "easeOut",
+                            }}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             d="M5 13l4 4L19 7"
@@ -297,13 +436,23 @@ export default function ContactPage() {
                         transition={{ duration: 0.4, delay: 0.4, ease }}
                         className="text-brand-gray text-sm max-w-sm mb-7"
                       >
-                        Your message has been forwarded to our WhatsApp. We&apos;ll get back to you within 2 hours.
+                        Your message has been forwarded to our WhatsApp.
+                        We&apos;ll get back to you within 2 hours.
                       </motion.p>
                       <motion.button
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.5, ease }}
-                        onClick={() => { setSubmitted(false); setFormData({ name: '', email: '', subject: '', message: '' }); }}
+                        onClick={() => {
+                          setSubmitted(false);
+                          setFormData({
+                            name: "",
+                            email: "",
+                            phone: "",
+                            subject: "",
+                            message: "",
+                          });
+                        }}
                         className="inline-flex items-center gap-2 px-7 py-3.5 bg-brand-black text-white rounded-xl font-bold hover:bg-brand-red transition-colors active:scale-95 text-sm"
                       >
                         <MessageCircle className="w-4 h-4" />
@@ -326,9 +475,14 @@ export default function ContactPage() {
                             Full Name <span className="text-brand-red">*</span>
                           </label>
                           <input
-                            type="text" id="name" name="name"
-                            value={formData.name} onChange={handleChange} required
-                            className={inputClass} placeholder="Your name"
+                            type="text"
+                            id="name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            required
+                            className={inputClass}
+                            placeholder="Your name"
                           />
                         </div>
                         <div>
@@ -336,11 +490,33 @@ export default function ContactPage() {
                             Email <span className="text-brand-red">*</span>
                           </label>
                           <input
-                            type="email" id="email" name="email"
-                            value={formData.email} onChange={handleChange} required
-                            className={inputClass} placeholder="your@email.com"
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                            className={inputClass}
+                            placeholder="your@email.com"
                           />
                         </div>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>
+                          Phone Number{" "}
+                          <span className="font-normal text-brand-gray/70">
+                            (Optional)
+                          </span>
+                        </label>
+                        <PhoneInputField
+                          value={formData.phone}
+                          onChange={(phone) =>
+                            setFormData((p) => ({ ...p, phone }))
+                          }
+                          variant="light"
+                          placeholder="XX XXX XXX"
+                        />
                       </div>
 
                       <div>
@@ -348,15 +524,24 @@ export default function ContactPage() {
                           Subject <span className="text-brand-red">*</span>
                         </label>
                         <select
-                          id="subject" name="subject"
-                          value={formData.subject} onChange={handleChange} required
+                          id="subject"
+                          name="subject"
+                          value={formData.subject}
+                          onChange={handleChange}
+                          required
                           className={inputClass}
                         >
                           <option value="">Select a topic</option>
                           <option value="Order Inquiry">Order Inquiry</option>
-                          <option value="Product Question">Product Question</option>
-                          <option value="Shipping & Delivery">Shipping &amp; Delivery</option>
-                          <option value="Returns & Exchanges">Returns &amp; Exchanges</option>
+                          <option value="Product Question">
+                            Product Question
+                          </option>
+                          <option value="Shipping & Delivery">
+                            Shipping &amp; Delivery
+                          </option>
+                          <option value="Returns & Exchanges">
+                            Returns &amp; Exchanges
+                          </option>
                           <option value="Warranty">Warranty</option>
                           <option value="Other">Other</option>
                         </select>
@@ -367,8 +552,11 @@ export default function ContactPage() {
                           Message <span className="text-brand-red">*</span>
                         </label>
                         <textarea
-                          id="message" name="message"
-                          value={formData.message} onChange={handleChange} required
+                          id="message"
+                          name="message"
+                          value={formData.message}
+                          onChange={handleChange}
+                          required
                           rows={5}
                           className={`${inputClass} resize-none`}
                           placeholder="How can we help you?"
@@ -379,13 +567,17 @@ export default function ContactPage() {
                         type="submit"
                         className="group relative w-full flex items-center justify-center gap-2 py-4 bg-brand-red hover:bg-brand-red-dark text-white font-black rounded-xl transition-all hover:scale-[1.01] active:scale-95 shadow-lg shadow-brand-red/30 text-base overflow-hidden"
                       >
-                        <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
+                        <span
+                          aria-hidden
+                          className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none"
+                        />
                         Send Message
                         <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                       </button>
 
                       <p className="text-center text-xs text-brand-gray">
-                        Your message will be sent via WhatsApp for a faster response.
+                        Your message will be sent via WhatsApp for a faster
+                        response.
                       </p>
                     </motion.form>
                   )}
@@ -396,8 +588,12 @@ export default function ContactPage() {
             {/* FAQ Accordion */}
             <div className="bg-brand-silver-light rounded-2xl border border-brand-silver overflow-hidden">
               <div className="px-7 sm:px-8 pt-7 pb-3">
-                <p className="text-[10px] font-bold text-brand-red uppercase tracking-[0.3em] mb-1">FAQ</p>
-                <h2 className="text-xl font-black text-brand-black">Frequently Asked Questions</h2>
+                <p className="text-[10px] font-bold text-brand-red uppercase tracking-[0.3em] mb-1">
+                  FAQ
+                </p>
+                <h2 className="text-xl font-black text-brand-black">
+                  Frequently Asked Questions
+                </h2>
               </div>
               <div className="px-7 sm:px-8 pb-4">
                 {FAQS.map((faq, i) => (
@@ -412,7 +608,6 @@ export default function ContactPage() {
               </div>
             </div>
           </motion.div>
-
         </div>
       </div>
     </div>

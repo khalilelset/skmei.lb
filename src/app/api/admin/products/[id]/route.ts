@@ -30,6 +30,7 @@ export async function PATCH(
     if (body.onSale !== undefined) update.on_sale = body.onSale;
     if (body.isBestseller !== undefined) update.is_bestseller = body.isBestseller;
     if (body.isCouple !== undefined) update.is_couple = body.isCouple;
+    if (body.isVisible !== undefined) update.is_visible = body.isVisible;
     if (body.gender !== undefined) update.gender = body.gender ?? null;
     if (body.colors !== undefined) update.colors = body.colors ?? [];
     if (body.priceTiers !== undefined) update.price_tiers = body.priceTiers ?? null;
@@ -50,4 +51,14 @@ export async function PATCH(
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const { error } = await supabaseServer.from('products').delete().eq('id', id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
 }

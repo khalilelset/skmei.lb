@@ -260,6 +260,15 @@ body {
   animation: ping-custom 1s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
+/* ── Marquee (infinite horizontal scroll) ────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
 /* ── Draw line (scaleX reveal) ────────────────────────────────────────────── */
 @keyframes draw-line {
   from { transform: scaleX(0); }

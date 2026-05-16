@@ -1,0 +1,58 @@
+export const LEBANON_AREAS: Record<string, string[]> = {
+  Beirut: [
+    'Achrafieh', 'Badaro', 'Hamra', 'Verdun', 'Ras Beirut', 'Corniche El Mazraa',
+    'Basta', 'Bourj Hammoud', 'Chiyah', 'Dekwaneh', 'Furn El Chebbak',
+    'Geitawi', 'Jdeideh', 'Martyrs Square', 'Mar Elias', 'Mar Mikhael',
+    'Msaytbeh', 'Qoreitem', 'Ramlet El Baida', 'Sanayeh', 'Sodeco',
+    'Tallet El Khayat', 'Zarif',
+  ],
+  'Mount Lebanon': [
+    'Antelias', 'Bsalim', 'Dbayeh', 'Dekwaneh', 'Fanar', 'Jdeideh', 'Mansourieh',
+    'Metn (Naccache)', 'Mtayleb', 'Rabieh', 'Roumieh', 'Sed El Baouchrieh',
+    'Sin El Fil', 'Zalka',
+    'Beit Mery', 'Broummana', 'Baskinta', 'Bikfaya', 'Ainab',
+    'Jounieh', 'Ghazir', 'Adma', 'Bouar', 'Faraya', 'Faqra', 'Jeita', 'Kfardebian', 'Sarba',
+    'Byblos (Jbeil)', 'Amchit', 'Laqlouq',
+    'Batroun', 'Tannourine', 'Douma',
+    'Aley', 'Aramoun', 'Bhamdoun', 'Bchamoun', 'Choueifat', 'Deir El Qamar',
+    'Doha', 'Hadath', 'Jdeideh El Metn', 'Khalde', 'Kfarhbab',
+    'Sofar', 'Yarze',
+    'Baabda', 'Beit El Chaar', 'Damour', 'Jieh', 'Naameh', 'Rmeil',
+  ],
+  'North Lebanon': [
+    'Tripoli', 'Mina', 'Beddawi', 'Qalamoun',
+    'Amioun', 'Barsa', 'Btouratij', 'Kousba', 'Shekka',
+    'Zgharta', 'Ehden', 'Miziara',
+    'Bcharre', 'Bsharri', 'Hasroun', 'Qadisha Valley',
+    'Miniyeh', 'Sir El Dinniyeh',
+    'Enfeh', 'Chekka',
+  ],
+  Akkar: [
+    'Halba', 'Andket', 'Qobayat', 'Berkayel', 'Fnaydeq', 'Mhammara',
+    'Akkar El Atika', 'Rahbe', 'Tal Abbas', 'Wadi Khaled',
+  ],
+  Bekaa: [
+    'Zahle', 'Bar Elias', 'Taalabaya', 'Saadnayel',
+    'Chtaura', 'Taanayel', 'Qabb Elias',
+    'Anjar', 'Deir El Ahmar', 'Yohmor', 'Saghbine', 'Lala',
+    'Rashaya', 'Yanta', 'Khirbet Qanafar',
+  ],
+  'Baalbek-Hermel': [
+    'Baalbek', 'Taalabaya', 'Britel', 'Nabi Othman', 'Nahleh', 'Iaat',
+    'Qsarnaba', 'Sbouba', 'Kherbet Daoud',
+    'Hermel', 'Yammouneh', 'Hawsh El Oumara', 'Aarsal',
+  ],
+  'South Lebanon': [
+    'Saida (Sidon)', 'Darb El Sim', 'Ghaziyeh', 'Hlaliyeh', 'Maghdouche',
+    'Miyeh Miyeh', 'Sarafand',
+    'Jezzine', 'Ain Maarouf', 'Kfarhoune',
+    'Tyre (Sour)', 'Abbasiyeh', 'Deir Qanoun', 'Qana',
+    'Zahrani', 'Kafra', 'Adloun',
+  ],
+  Nabatieh: [
+    'Nabatieh', 'Arnoun', 'Deir Zahrani', 'Kfar Rommane', 'Majdel Selm',
+    'Bint Jbeil', 'Aita El Chaab', 'Houla', 'Kfar Kila', 'Yarun',
+    'Marjeyoun', 'Deir Mimas', 'Ebel El Saqi', 'Qlayaa',
+    'Hasbaya', 'Chebaa', 'Rachaya El Wadi',
+  ],
+};

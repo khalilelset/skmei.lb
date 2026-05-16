@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
         price:    Number(item.price ?? 0),
         quantity: Number(item.quantity ?? 1),
         image:    item.image ? String(item.image) : null,
-        box:      (item.box as { name: string; type: string; price: number } | null) ?? null,
+        box:      (item.box as { code: string; type: string; price: number; image?: string | null } | null) ?? null,
       })),
       subtotal:  Number(subtotal),
       shipping:  Number(shipping),

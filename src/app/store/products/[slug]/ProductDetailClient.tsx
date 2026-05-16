@@ -17,7 +17,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { useToastStore } from "@/store/toastStore";
-import { formatPrice, calculateDiscount, getStockStatus, getTierTotal } from "@/lib/utils";
+import {
+  formatPrice,
+  calculateDiscount,
+  getStockStatus,
+  getTierTotal,
+} from "@/lib/utils";
 import ProductCard from "@/components/store/ProductCard";
 import ReviewSection from "@/components/store/ReviewSection";
 import SectionHeader from "@/components/store/SectionHeader";
@@ -30,7 +35,10 @@ interface Props {
 export default function ProductDetailClient({ slug }: Props) {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [brandWarranty, setBrandWarranty] = useState<{ value: number; unit: string } | null>(null);
+  const [brandWarranty, setBrandWarranty] = useState<{
+    value: number;
+    unit: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -83,17 +91,18 @@ export default function ProductDetailClient({ slug }: Props) {
           setBrandWarranty(data.brandWarranty ?? null);
 
           // Fetch boxes for this product's brand
-          const brand = data.product.brand ?? '';
+          const brand = data.product.brand ?? "";
           fetch(`/api/boxes?brand=${encodeURIComponent(brand)}`)
             .then((r) => r.json())
             .then((boxes: Box[]) => {
               if (Array.isArray(boxes) && boxes.length > 0) {
                 // Standard box always first
                 const sorted = [...boxes].sort((a, b) =>
-                  a.type === 'standard' ? -1 : b.type === 'standard' ? 1 : 0
+                  a.type === "standard" ? -1 : b.type === "standard" ? 1 : 0,
                 );
                 setAvailableBoxes(sorted);
-                const std = sorted.find((b) => b.type === 'standard') ?? sorted[0];
+                const std =
+                  sorted.find((b) => b.type === "standard") ?? sorted[0];
                 setSelectedBox(std);
               }
             })
@@ -161,8 +170,13 @@ export default function ProductDetailClient({ slug }: Props) {
     return (
       <div className="min-h-screen bg-brand-black flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-black text-white mb-4">Product Not Found</h1>
-          <Link href="/store/products" className="text-brand-red hover:text-brand-red-dark font-semibold">
+          <h1 className="text-2xl font-black text-white mb-4">
+            Product Not Found
+          </h1>
+          <Link
+            href="/store/products"
+            className="text-brand-red hover:text-brand-red-dark font-semibold"
+          >
             Back to Products
           </Link>
         </div>
@@ -211,7 +225,7 @@ export default function ProductDetailClient({ slug }: Props) {
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, '0')}`;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
   const handleTimeUpdate = () => {
@@ -239,7 +253,10 @@ export default function ProductDetailClient({ slug }: Props) {
   const showControls = () => {
     setControlsVisible(true);
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
+    controlsTimerRef.current = setTimeout(
+      () => setControlsVisible(false),
+      3000,
+    );
   };
 
   const handleAddToCart = () => {
@@ -259,7 +276,6 @@ export default function ProductDetailClient({ slug }: Props) {
 
   return (
     <div className="min-h-screen bg-brand-black">
-
       {/* Lightbox */}
       <AnimatePresence>
         {lightboxOpen && (
@@ -304,11 +320,20 @@ export default function ProductDetailClient({ slug }: Props) {
       >
         <div className="container mx-auto px-4 py-2.5 flex items-center gap-4">
           <div className="relative w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-white/10 border border-white/15">
-            <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+            <Image
+              src={product.images[0]}
+              alt={product.name}
+              fill
+              className="object-cover"
+            />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{product.name}</p>
-            <p className="text-sm font-semibold text-brand-red">{formatPrice(product.price)}</p>
+            <p className="text-sm font-bold text-white truncate">
+              {product.name}
+            </p>
+            <p className="text-sm font-semibold text-brand-red">
+              {formatPrice(product.price)}
+            </p>
           </div>
           <button
             onClick={handleAddToCart}
@@ -323,15 +348,35 @@ export default function ProductDetailClient({ slug }: Props) {
           >
             {justAdded ? (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
                 Added!
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
                 </svg>
                 {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
               </>
@@ -349,7 +394,7 @@ export default function ProductDetailClient({ slug }: Props) {
       {/* ── Main Dark Section: Breadcrumb + Product ── */}
       <div className="relative overflow-hidden">
         {/* Radial glow — gold for SKMEI, red for others */}
-        {product.brand?.toUpperCase() === 'SKMEI' ? (
+        {product.brand?.toUpperCase() === "SKMEI" ? (
           <>
             <div className="absolute top-0 right-0 w-1/2 h-full bg-brand-red/5 blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-brand-red/3 blur-3xl pointer-events-none" />
@@ -358,24 +403,43 @@ export default function ProductDetailClient({ slug }: Props) {
           <div className="absolute top-0 right-0 w-1/2 h-full bg-brand-red/5 blur-3xl pointer-events-none" />
         )}
         {/* Diagonal stripe texture */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
-          style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '18px 18px' }} />
+        <div
+          className="absolute inset-0 opacity-[0.02] pointer-events-none"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)",
+            backgroundSize: "18px 18px",
+          }}
+        />
 
         {/* Breadcrumb */}
         <div className="relative z-10 container mx-auto px-4 pt-6 pb-2">
           <nav className="flex items-center gap-1.5 text-xs text-white/35 flex-wrap">
-            <Link href="/" className="flex items-center gap-1 hover:text-white/60 transition-colors">
+            <Link
+              href="/"
+              className="flex items-center gap-1 hover:text-white/60 transition-colors"
+            >
               <Home className="w-3 h-3" />
               <span>Home</span>
             </Link>
             <ChevronRight className="w-3 h-3 shrink-0" />
-            <Link href="/store/products" className="hover:text-white/60 transition-colors shrink-0">Products</Link>
+            <Link
+              href="/store/products"
+              className="hover:text-white/60 transition-colors shrink-0"
+            >
+              Products
+            </Link>
             <ChevronRight className="w-3 h-3 shrink-0" />
-            <Link href={`/store/products?category=${product.category}`} className="hover:text-white/60 transition-colors capitalize shrink-0">
+            <Link
+              href={`/store/products?category=${product.category}`}
+              className="hover:text-white/60 transition-colors capitalize shrink-0"
+            >
               {product.category}
             </Link>
             <ChevronRight className="w-3 h-3 shrink-0" />
-            <span className="text-brand-red font-medium truncate">{product.name}</span>
+            <span className="text-brand-red font-medium truncate">
+              {product.name}
+            </span>
           </nav>
         </div>
 
@@ -383,14 +447,15 @@ export default function ProductDetailClient({ slug }: Props) {
         <section className="relative z-10 py-8 lg:py-12">
           <div className="container mx-auto px-4">
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-14">
-
               {/* Images Carousel */}
               <div className="flex flex-col gap-3">
-                <div className={`relative rounded-2xl overflow-hidden bg-[#0d0d0d] shadow-2xl ${
-                  product.brand?.toUpperCase() === 'SKMEI'
-                    ? 'border border-brand-red/20 shadow-brand-red/10'
-                    : 'border border-white/8 shadow-black/60'
-                }`}>
+                <div
+                  className={`relative rounded-2xl overflow-hidden bg-[#0d0d0d] shadow-2xl ${
+                    product.brand?.toUpperCase() === "SKMEI"
+                      ? "border border-brand-red/20 shadow-brand-red/10"
+                      : "border border-white/8 shadow-black/60"
+                  }`}
+                >
                   <div
                     ref={carouselRef}
                     onScroll={handleCarouselScroll}
@@ -402,14 +467,29 @@ export default function ProductDetailClient({ slug }: Props) {
                         key={index}
                         layoutId={`product-img-${index}`}
                         className="relative shrink-0 w-full aspect-square cursor-zoom-in"
-                        onClick={() => { setSelectedImage(index); setLightboxOpen(true); }}
+                        onClick={() => {
+                          setSelectedImage(index);
+                          setLightboxOpen(true);
+                        }}
                       >
                         {failedImages.has(index) ? (
                           <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-white/20">
-                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              className="w-16 h-16"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
-                            <span className="text-xs tracking-wide">Image unavailable</span>
+                            <span className="text-xs tracking-wide">
+                              Image unavailable
+                            </span>
                           </div>
                         ) : (
                           <Image
@@ -419,7 +499,11 @@ export default function ProductDetailClient({ slug }: Props) {
                             sizes="(max-width: 1024px) 100vw, 50vw"
                             className="object-contain"
                             priority={index === 0}
-                            onError={() => setFailedImages((prev) => new Set(prev).add(index))}
+                            onError={() =>
+                              setFailedImages((prev) =>
+                                new Set(prev).add(index),
+                              )
+                            }
                           />
                         )}
                       </motion.div>
@@ -434,13 +518,16 @@ export default function ProductDetailClient({ slug }: Props) {
                       </span>
                     )}
                     {product.isNew && (
-                      <span className="bg-emerald-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">NEW</span>
+                      <span className="bg-emerald-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
+                        NEW
+                      </span>
                     )}
                     {discount > 0 && (
-                      <span className="bg-brand-red text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">-{discount}% OFF</span>
+                      <span className="bg-brand-red text-white text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
+                        -{discount}% OFF
+                      </span>
                     )}
                   </div>
-
 
                   {/* Dot Indicators */}
                   {product.images.length > 1 && (
@@ -450,7 +537,9 @@ export default function ProductDetailClient({ slug }: Props) {
                           key={index}
                           onClick={() => scrollToImage(index)}
                           className={`h-2 rounded-full transition-all duration-300 ${
-                            selectedImage === index ? "bg-white w-5" : "bg-white/40 w-2 hover:bg-white/70"
+                            selectedImage === index
+                              ? "bg-white w-5"
+                              : "bg-white/40 w-2 hover:bg-white/70"
                           }`}
                         />
                       ))}
@@ -473,8 +562,18 @@ export default function ProductDetailClient({ slug }: Props) {
                       >
                         {failedImages.has(index) ? (
                           <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              className="w-5 h-5 text-white/20"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
                           </div>
                         ) : (
@@ -483,7 +582,11 @@ export default function ProductDetailClient({ slug }: Props) {
                             alt={`${product.name} ${index + 1}`}
                             fill
                             className="object-cover"
-                            onError={() => setFailedImages((prev) => new Set(prev).add(index))}
+                            onError={() =>
+                              setFailedImages((prev) =>
+                                new Set(prev).add(index),
+                              )
+                            }
                           />
                         )}
                       </button>
@@ -525,76 +628,108 @@ export default function ProductDetailClient({ slug }: Props) {
                 {/* Price */}
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl font-black text-white">
-                    {formatPrice(getTierTotal(product.priceTiers, product.price, quantity) / quantity)}
+                    {formatPrice(
+                      getTierTotal(
+                        product.priceTiers,
+                        product.price,
+                        quantity,
+                      ) / quantity,
+                    )}
                   </span>
                   {product.originalPrice && (
                     <>
-                      <span className="text-xl text-white/30 line-through">{formatPrice(product.originalPrice)}</span>
+                      <span className="text-xl text-white/30 line-through">
+                        {formatPrice(product.originalPrice)}
+                      </span>
                       <span className="bg-brand-red/15 text-brand-red border border-brand-red/25 rounded-sm px-2 py-0.5 text-xs font-bold">
-                        Save {formatPrice(product.originalPrice - product.price)}
+                        Save{" "}
+                        {formatPrice(product.originalPrice - product.price)}
                       </span>
                     </>
                   )}
                 </div>
 
                 {/* Bundle deal labels */}
-                {product.priceTiers && product.priceTiers.filter((t) => t.qty > 1).length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-5">
-                    {[...product.priceTiers]
-                      .filter((t) => t.qty > 1)
-                      .sort((a, b) => a.qty - b.qty)
-                      .map((tier) => {
-                        const active = quantity === tier.qty;
-                        return (
-                          <button
-                            key={tier.qty}
-                            type="button"
-                            onClick={() => setQuantity(active ? 1 : tier.qty)}
-                            className={`group flex items-center gap-2 px-4 py-2 rounded-full border-2 font-bold text-sm transition-all duration-200 active:scale-95 ${
-                              active
-                                ? 'border-orange-400 bg-orange-400/15 text-orange-300'
-                                : 'border-orange-400/35 bg-orange-400/6 text-orange-400 hover:border-orange-400 hover:bg-orange-400/12'
-                            }`}
-                          >
-                            {active && (
-                              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                            <span>Get {tier.qty} for {formatPrice(tier.price)}</span>
-                            {!active && (
-                              <span className="text-[10px] font-medium text-orange-400/60">
-                                ({formatPrice(tier.price / tier.qty)} each)
+                {product.priceTiers &&
+                  product.priceTiers.filter((t) => t.qty > 1).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {[...product.priceTiers]
+                        .filter((t) => t.qty > 1)
+                        .sort((a, b) => a.qty - b.qty)
+                        .map((tier) => {
+                          const active = quantity === tier.qty;
+                          return (
+                            <button
+                              key={tier.qty}
+                              type="button"
+                              onClick={() => setQuantity(active ? 1 : tier.qty)}
+                              className={`group flex items-center gap-2 px-4 py-2 rounded-full border-2 font-bold text-sm transition-all duration-200 active:scale-95 ${
+                                active
+                                  ? "border-orange-400 bg-orange-400/15 text-orange-300"
+                                  : "border-orange-400/35 bg-orange-400/6 text-orange-400 hover:border-orange-400 hover:bg-orange-400/12"
+                              }`}
+                            >
+                              {active && (
+                                <svg
+                                  className="w-3.5 h-3.5 shrink-0"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                              <span>
+                                Get {tier.qty} for {formatPrice(tier.price)}
                               </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                  </div>
-                )}
+                              {!active && (
+                                <span className="text-[10px] font-medium text-orange-400/60">
+                                  ({formatPrice(tier.price / tier.qty)} each)
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
 
                 {/* Color Combination Display */}
                 {product.colors && product.colors.length > 0 && (
                   <div className="mb-6">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50 block mb-3">Color</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50 block mb-3">
+                      Color
+                    </span>
                     <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-full pl-1 pr-4 py-1">
                       {/* Split swatch */}
                       <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-md flex">
                         {product.colors.length === 1 ? (
-                          <div className="w-full h-full" style={{ backgroundColor: product.colors[0].hex }} />
+                          <div
+                            className="w-full h-full"
+                            style={{ backgroundColor: product.colors[0].hex }}
+                          />
                         ) : (
-                          product.colors.slice(0, 3).map((c, i, arr) => (
-                            <div
-                              key={i}
-                              className="h-full"
-                              style={{ backgroundColor: c.hex, width: `${100 / arr.length}%` }}
-                            />
-                          ))
+                          product.colors
+                            .slice(0, 3)
+                            .map((c, i, arr) => (
+                              <div
+                                key={i}
+                                className="h-full"
+                                style={{
+                                  backgroundColor: c.hex,
+                                  width: `${100 / arr.length}%`,
+                                }}
+                              />
+                            ))
                         )}
                       </div>
                       {/* Combined label */}
                       <span className="text-sm font-semibold text-white/80">
-                        {product.colors.map((c) => c.name).join(' / ')}
+                        {product.colors.map((c) => c.name).join(" / ")}
                       </span>
                     </div>
                   </div>
@@ -607,17 +742,41 @@ export default function ProductDetailClient({ slug }: Props) {
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                       className="px-3 py-2.5 hover:bg-white/10 transition text-white/60 hover:text-white"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20 12H4"
+                        />
                       </svg>
                     </button>
-                    <span className="px-3 py-2.5 font-semibold min-w-8 text-center text-white">{quantity}</span>
+                    <span className="px-3 py-2.5 font-semibold min-w-8 text-center text-white">
+                      {quantity}
+                    </span>
                     <button
-                      onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+                      onClick={() =>
+                        setQuantity((q) => Math.min(product.stock, q + 1))
+                      }
                       className="px-3 py-2.5 hover:bg-white/10 transition text-white/60 hover:text-white"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -626,9 +785,22 @@ export default function ProductDetailClient({ slug }: Props) {
                     disabled={product.stock === 0}
                     className="group relative flex-1 overflow-hidden bg-brand-red text-white py-2.5 rounded-lg font-semibold hover:bg-brand-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-brand-red/30"
                   >
-                    <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none"
+                    />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                      />
                     </svg>
                     {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
                   </button>
@@ -636,12 +808,22 @@ export default function ProductDetailClient({ slug }: Props) {
 
                 {/* Stock Status */}
                 {(() => {
-                  const maxStock = product.brand?.toUpperCase() === 'SKMEI' ? 10 : 20;
-                  const pct = product.stock === 0 ? 0 : Math.round((Math.min(product.stock, maxStock) / maxStock) * 100);
+                  const maxStock =
+                    product.brand?.toUpperCase() === "SKMEI" ? 10 : 20;
+                  const pct =
+                    product.stock === 0
+                      ? 0
+                      : Math.round(
+                          (Math.min(product.stock, maxStock) / maxStock) * 100,
+                        );
                   const isOut = product.stock === 0;
-                  const isLow = !isOut && product.stock < 10;
-                  const fillColor = isOut ? 'bg-white/15' : isLow ? 'bg-orange-500' : 'bg-green-500';
-                  const labelColor = isOut ? 'text-white/35' : isLow ? 'text-orange-400' : 'text-white/70';
+                  const isLow = !isOut && product.stock < 3;
+                  const fillColor = isOut ? "bg-white/15" : "bg-green-500";
+                  const labelColor = isOut
+                    ? "text-white/35"
+                    : isLow
+                      ? "text-orange-400"
+                      : "text-white/70";
                   return (
                     <div className="relative inline-flex items-center justify-center h-10 rounded-full border border-white/10 bg-white/5 overflow-hidden mb-5 px-8 min-w-[160px]">
                       {/* fill bar — slides from left */}
@@ -651,10 +833,14 @@ export default function ProductDetailClient({ slug }: Props) {
                       />
                       {/* label always centered on top */}
                       <span
-                        className={`relative z-10 text-sm font-bold tracking-widest whitespace-nowrap ${isOut ? 'text-white/35' : 'text-white'}`}
-                        style={{ textShadow: isOut ? 'none' : '0 1px 4px rgba(0,0,0,0.4)' }}
+                        className={`relative z-10 text-sm font-bold tracking-widest whitespace-nowrap ${isOut ? "text-white/35" : "text-white"}`}
+                        style={{
+                          textShadow: isOut
+                            ? "none"
+                            : "0 1px 4px rgba(0,0,0,0.4)",
+                        }}
                       >
-                        {isOut ? 'OUT OF STOCK' : 'IN STOCK'}
+                        {isOut ? "OUT OF STOCK" : "IN STOCK"}
                       </span>
                     </div>
                   );
@@ -664,8 +850,12 @@ export default function ProductDetailClient({ slug }: Props) {
                 {availableBoxes.length > 0 && (
                   <div className="mb-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Box Option</span>
-                      <span className={`text-[10px] font-bold text-brand-red bg-brand-red/10 border border-brand-red/20 px-2 py-0.5 rounded-full transition-opacity ${selectedBox && selectedBox.price > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">
+                        Box Option
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold text-brand-red bg-brand-red/10 border border-brand-red/20 px-2 py-0.5 rounded-full transition-opacity ${selectedBox && selectedBox.price > 0 ? "opacity-100" : "opacity-0"}`}
+                      >
                         +{formatPrice(selectedBox?.price ?? 0)} added
                       </span>
                     </div>
@@ -677,8 +867,8 @@ export default function ProductDetailClient({ slug }: Props) {
                           onClick={() => setSelectedBox(box)}
                           className={`group relative flex flex-col items-center gap-1.5 p-1.5 rounded-xl border-2 transition-all duration-200 w-[116px] ${
                             selectedBox?.id === box.id
-                              ? 'border-brand-red bg-brand-red/8 shadow-md shadow-brand-red/20'
-                              : 'border-white/12 bg-white/4 hover:border-white/30'
+                              ? "border-brand-red bg-brand-red/8 shadow-md shadow-brand-red/20"
+                              : "border-white/12 bg-white/4 hover:border-white/30"
                           }`}
                         >
                           {/* 1:1 image */}
@@ -686,39 +876,82 @@ export default function ProductDetailClient({ slug }: Props) {
                             {box.image ? (
                               <>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={box.image} alt={box.code} className="w-full h-full object-cover" />
+                                <img
+                                  src={box.image}
+                                  alt={box.code}
+                                  className="w-full h-full object-cover"
+                                />
                                 {/* Fullscreen trigger — corner icon */}
                                 <div
                                   role="button"
                                   aria-label="View full screen"
-                                  onClick={(e) => { e.stopPropagation(); setBoxImageLightbox(box.image); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setBoxImageLightbox(box.image);
+                                  }}
                                   className="absolute bottom-1 right-1 w-6 h-6 rounded-md bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/80"
                                 >
-                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                  <svg
+                                    className="w-3 h-3 text-white"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                                    />
                                   </svg>
                                 </div>
                               </>
                             ) : (
-                              <svg className="w-7 h-7 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              <svg
+                                className="w-7 h-7 text-white/25"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={1.5}
+                                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                                />
                               </svg>
                             )}
                             {selectedBox?.id === box.id && (
                               <div className="absolute top-1 right-1 w-4 h-4 bg-brand-red rounded-full flex items-center justify-center shadow pointer-events-none">
-                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                <svg
+                                  className="w-2.5 h-2.5 text-white"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={3}
+                                    d="M5 13l4 4L19 7"
+                                  />
                                 </svg>
                               </div>
                             )}
                           </div>
                           {/* Code */}
-                          <span className={`text-[10px] font-semibold text-center leading-tight font-mono ${selectedBox?.id === box.id ? 'text-brand-red' : 'text-white/60'}`}>
+                          <span
+                            className={`text-[10px] font-semibold text-center leading-tight font-mono ${selectedBox?.id === box.id ? "text-brand-red" : "text-white/60"}`}
+                          >
                             {box.code}
                           </span>
                           {/* Price badge */}
-                          <span className={`text-[9px] font-bold ${box.type === 'standard' ? 'text-white/35' : 'text-brand-red'}`}>
-                            {box.price === 0 ? 'Free' : `+${formatPrice(box.price)}`}
+                          <span
+                            className={`text-[9px] font-bold ${box.type === "standard" ? "text-white/35" : "text-brand-red"}`}
+                          >
+                            {box.price === 0
+                              ? "Free"
+                              : `+${formatPrice(box.price)}`}
                           </span>
                         </button>
                       ))}
@@ -743,8 +976,18 @@ export default function ProductDetailClient({ slug }: Props) {
                       className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
                       onClick={() => setBoxImageLightbox(null)}
                     >
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -755,23 +998,44 @@ export default function ProductDetailClient({ slug }: Props) {
                   <div className="flex items-center gap-3 bg-pink-500/10 border border-pink-500/25 rounded-xl px-4 py-3 mb-5">
                     <Heart className="w-5 h-5 text-pink-400 shrink-0 fill-pink-400" />
                     <div>
-                      <p className="text-sm font-bold text-pink-300">His &amp; Hers Couple Set</p>
-                      <p className="text-xs text-white/45">Includes 2 matching watches — one for each</p>
+                      <p className="text-sm font-bold text-pink-300">
+                        His &amp; Hers Couple Set
+                      </p>
+                      <p className="text-xs text-white/45">
+                        Includes 2 matching watches — one for each
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {/* Description */}
-                <p className="text-white/55 mb-6 leading-relaxed text-sm sm:text-base">{product.description}</p>
+                <p className="text-white/55 mb-6 leading-relaxed text-sm sm:text-base">
+                  {product.description}
+                </p>
 
                 {/* Features */}
                 <div className="mb-6">
-                  <h3 className="font-bold text-white mb-3 text-[10px] uppercase tracking-[0.2em]">Key Features</h3>
+                  <h3 className="font-bold text-white mb-3 text-[10px] uppercase tracking-[0.2em]">
+                    Key Features
+                  </h3>
                   <ul className="grid grid-cols-2 gap-2">
                     {product.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2 text-sm text-white/65">
-                        <svg className="w-4 h-4 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <li
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-white/65"
+                      >
+                        <svg
+                          className="w-4 h-4 text-brand-red shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                         {feature}
                       </li>
@@ -786,17 +1050,41 @@ export default function ProductDetailClient({ slug }: Props) {
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                       className="px-4 py-3.5 hover:bg-white/10 transition text-white/50 hover:text-white"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20 12H4"
+                        />
                       </svg>
                     </button>
-                    <span className="px-4 py-3.5 font-bold text-lg text-white min-w-[3rem] text-center">{quantity}</span>
+                    <span className="px-4 py-3.5 font-bold text-lg text-white min-w-[3rem] text-center">
+                      {quantity}
+                    </span>
                     <button
-                      onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+                      onClick={() =>
+                        setQuantity((q) => Math.min(product.stock, q + 1))
+                      }
                       className="px-4 py-3.5 hover:bg-white/10 transition text-white/50 hover:text-white"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -806,9 +1094,22 @@ export default function ProductDetailClient({ slug }: Props) {
                     disabled={product.stock === 0}
                     className="group relative flex-1 overflow-hidden bg-brand-red text-white py-4 rounded-xl font-bold text-base hover:bg-brand-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-brand-red/40 active:scale-95"
                   >
-                    <span aria-hidden className="absolute inset-0 -translate-x-full skew-x-[-12deg] bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 -translate-x-full skew-x-[-12deg] bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none"
+                    />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                      />
                     </svg>
                     Add to Cart
                   </button>
@@ -816,7 +1117,7 @@ export default function ProductDetailClient({ slug }: Props) {
 
                 {/* Trust Badges — brand-aware */}
                 {(() => {
-                  const isSKMEI = product.brand?.toUpperCase() === 'SKMEI';
+                  const isSKMEI = product.brand?.toUpperCase() === "SKMEI";
                   const warrantyLabel = brandWarranty
                     ? `${brandWarranty.value} ${brandWarranty.unit} warranty included`
                     : isSKMEI
@@ -825,7 +1126,9 @@ export default function ProductDetailClient({ slug }: Props) {
                   const badges = [
                     {
                       icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
-                      title: isSKMEI ? "100% Authentic SKMEI" : `${product.brand} Product`,
+                      title: isSKMEI
+                        ? "100% Authentic SKMEI"
+                        : `${product.brand} Product`,
                       desc: warrantyLabel,
                       highlight: isSKMEI,
                     },
@@ -851,15 +1154,36 @@ export default function ProductDetailClient({ slug }: Props) {
                   return (
                     <div className="rounded-2xl border border-white/8 overflow-hidden bg-white/3">
                       {badges.map((badge, i) => (
-                        <div key={i} className={`flex items-center gap-3 px-4 py-3.5 ml-4 border-l-2 ${
-                          badge.highlight ? 'border-amber-400/60' : 'border-brand-red/40'
-                        } ${i < badges.length - 1 ? 'border-b border-white/6' : ''}`}>
-                          <svg className={`w-5 h-5 shrink-0 ${badge.highlight ? 'text-amber-400' : 'text-brand-red'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={badge.icon} />
+                        <div
+                          key={i}
+                          className={`flex items-center gap-3 px-4 py-3.5 ml-4 border-l-2 ${
+                            badge.highlight
+                              ? "border-amber-400/60"
+                              : "border-brand-red/40"
+                          } ${i < badges.length - 1 ? "border-b border-white/6" : ""}`}
+                        >
+                          <svg
+                            className={`w-5 h-5 shrink-0 ${badge.highlight ? "text-amber-400" : "text-brand-red"}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d={badge.icon}
+                            />
                           </svg>
                           <div>
-                            <p className={`text-sm font-bold ${badge.highlight ? 'text-amber-300' : 'text-white'}`}>{badge.title}</p>
-                            <p className="text-xs text-white/45">{badge.desc}</p>
+                            <p
+                              className={`text-sm font-bold ${badge.highlight ? "text-amber-300" : "text-white"}`}
+                            >
+                              {badge.title}
+                            </p>
+                            <p className="text-xs text-white/45">
+                              {badge.desc}
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -870,46 +1194,73 @@ export default function ProductDetailClient({ slug }: Props) {
                 {/* Warranty badge */}
                 {brandWarranty && (
                   <div className="flex items-center gap-2 mt-4 text-sm text-emerald-400">
-                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      />
                     </svg>
-                    <span className="font-semibold">{brandWarranty.value} {brandWarranty.unit} warranty</span>
+                    <span className="font-semibold">
+                      {brandWarranty.value} {brandWarranty.unit} warranty
+                    </span>
                   </div>
                 )}
 
                 {/* SKU */}
                 <p className="text-sm text-white/30 mt-3">
-                  SKU: <span className="text-white/60 font-medium">{product.sku}</span>
+                  SKU:{" "}
+                  <span className="text-white/60 font-medium">
+                    {product.sku}
+                  </span>
                 </p>
               </div>
             </div>
           </div>
         </section>
-
       </div>
 
       {/* ── Specifications — Dark ── */}
       <section className="py-14 bg-[#0d0d0d] relative overflow-hidden">
         {/* Subtle red glow top-left */}
-        <div className="absolute top-0 left-0 w-72 h-72 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at top left, rgba(220,38,38,0.06) 0%, transparent 60%)' }} />
+        <div
+          className="absolute top-0 left-0 w-72 h-72 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at top left, rgba(220,38,38,0.06) 0%, transparent 60%)",
+          }}
+        />
         <div className="relative z-10 container mx-auto px-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">Details</p>
-          <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Specifications</h2>
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">
+            Details
+          </p>
+          <h2 className="text-2xl font-black text-white mb-1 tracking-tight">
+            Specifications
+          </h2>
           <div className="h-px w-10 bg-brand-red mb-8" />
           <div className="rounded-2xl border border-white/8 overflow-hidden">
             <dl>
-              {Object.entries(product.specifications).map(([key, value], index, arr) => (
-                <div
-                  key={key}
-                  className={`flex px-6 py-4 ${index % 2 === 0 ? 'bg-white/3' : 'bg-transparent'} ${index < arr.length - 1 ? 'border-b border-white/6' : ''}`}
-                >
-                  <dt className="font-bold text-sm text-white/55 capitalize w-1/3 border-l-2 border-brand-red/30 pl-3">
-                    {key.replace(/([A-Z])/g, " $1").trim()}
-                  </dt>
-                  <dd className="text-sm text-white/85 flex-1 font-medium">{value}</dd>
-                </div>
-              ))}
+              {Object.entries(product.specifications).map(
+                ([key, value], index, arr) => (
+                  <div
+                    key={key}
+                    className={`flex px-6 py-4 ${index % 2 === 0 ? "bg-white/3" : "bg-transparent"} ${index < arr.length - 1 ? "border-b border-white/6" : ""}`}
+                  >
+                    <dt className="font-bold text-sm text-white/55 capitalize w-1/3 border-l-2 border-brand-red/30 pl-3">
+                      {key.replace(/([A-Z])/g, " $1").trim()}
+                    </dt>
+                    <dd className="text-sm text-white/85 flex-1 font-medium">
+                      {value}
+                    </dd>
+                  </div>
+                ),
+              )}
             </dl>
           </div>
         </div>
@@ -917,23 +1268,31 @@ export default function ProductDetailClient({ slug }: Props) {
 
       {/* ── Video Section — Cinematic ── */}
       {product.videoUrl && (
-        <section ref={videoSectionRef} className="relative bg-black overflow-hidden">
-
+        <section
+          ref={videoSectionRef}
+          className="relative bg-black overflow-hidden"
+        >
           {/* Architectural watermark */}
           <div className="absolute inset-0 flex items-center pointer-events-none select-none overflow-hidden">
-            <span className="text-[clamp(60px,14vw,160px)] font-black leading-none tracking-[-0.04em] whitespace-nowrap pl-6 lg:pl-16"
-              style={{ color: 'rgba(255,255,255,0.022)' }}>
+            <span
+              className="text-[clamp(60px,14vw,160px)] font-black leading-none tracking-[-0.04em] whitespace-nowrap pl-6 lg:pl-16"
+              style={{ color: "rgba(255,255,255,0.022)" }}
+            >
               IN MOTION
             </span>
           </div>
 
           {/* Red ambient glow — right side behind video */}
-          <div className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse 50% 70% at 85% 50%, rgba(220,38,38,0.09) 0%, transparent 65%)' }} />
+          <div
+            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 50% 70% at 85% 50%, rgba(220,38,38,0.09) 0%, transparent 65%)",
+            }}
+          />
 
           <div className="relative z-10 container mx-auto px-4 py-16 lg:py-24">
             <div className="grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-12 lg:gap-20 items-center">
-
               {/* ── Left: Copy ── */}
               <motion.div
                 className="order-2 lg:order-1"
@@ -945,30 +1304,44 @@ export default function ProductDetailClient({ slug }: Props) {
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2.5 border-l-2 border-brand-red pl-3 mb-6">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse shrink-0" />
-                  <span className="text-[10px] font-bold tracking-[0.3em] text-brand-red uppercase">Product Video</span>
+                  <span className="text-[10px] font-bold tracking-[0.3em] text-brand-red uppercase">
+                    Product Video
+                  </span>
                 </div>
 
                 <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-none mb-5">
-                  Watch It<br />
+                  Watch It
+                  <br />
                   <span className="text-brand-red">In Motion</span>
                 </h2>
                 <div className="h-px w-12 bg-brand-red mb-6" />
 
                 <p className="text-white/45 text-base leading-relaxed mb-8 max-w-sm">
-                  Experience every angle, every detail — exactly as it looks and moves on your wrist. No filters, no tricks. Just the watch.
+                  Experience every angle, every detail — exactly as it looks and
+                  moves on your wrist. No filters, no tricks. Just the watch.
                 </p>
 
                 {/* Feature points */}
                 <div className="space-y-3 mb-10">
                   {[
-                    'True-to-life colors & finish',
-                    'Real movement and weight feel',
-                    'See every detail up close',
+                    "True-to-life colors & finish",
+                    "Real movement and weight feel",
+                    "See every detail up close",
                   ].map((point, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <div className="w-5 h-5 rounded-full bg-brand-red/12 border border-brand-red/25 flex items-center justify-center shrink-0">
-                        <svg className="w-2.5 h-2.5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        <svg
+                          className="w-2.5 h-2.5 text-brand-red"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                       </div>
                       <span className="text-sm text-white/55">{point}</span>
@@ -979,7 +1352,9 @@ export default function ProductDetailClient({ slug }: Props) {
                 {/* Product tag */}
                 <div className="inline-flex items-center gap-3 bg-white/4 border border-white/8 rounded-xl px-4 py-3">
                   <div className="w-2 h-2 rounded-full bg-brand-red" />
-                  <span className="text-sm font-bold text-white/70 tracking-wide">{product.name}</span>
+                  <span className="text-sm font-bold text-white/70 tracking-wide">
+                    {product.name}
+                  </span>
                 </div>
 
                 {/* Watermark line */}
@@ -997,17 +1372,30 @@ export default function ProductDetailClient({ slug }: Props) {
                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               >
                 {/* Outer ambient glow ring */}
-                <div className="absolute -inset-6 rounded-[2rem] pointer-events-none"
-                  style={{ background: 'radial-gradient(ellipse at center, rgba(220,38,38,0.15) 0%, transparent 65%)' }} />
+                <div
+                  className="absolute -inset-6 rounded-[2rem] pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse at center, rgba(220,38,38,0.15) 0%, transparent 65%)",
+                  }}
+                />
 
                 {/* Thin red border glow */}
-                <div className="absolute -inset-px rounded-2xl pointer-events-none z-10"
-                  style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.3) 0%, transparent 50%, rgba(220,38,38,0.1) 100%)' }} />
+                <div
+                  className="absolute -inset-px rounded-2xl pointer-events-none z-10"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, rgba(220,38,38,0.3) 0%, transparent 50%, rgba(220,38,38,0.1) 100%)",
+                  }}
+                />
 
                 {/* Player wrapper */}
                 <div
                   className="relative rounded-2xl overflow-hidden bg-[#080808] cursor-pointer"
-                  style={{ boxShadow: '0 0 0 1px rgba(220,38,38,0.12), 0 40px 80px rgba(0,0,0,0.9), 0 0 60px rgba(220,38,38,0.07)' }}
+                  style={{
+                    boxShadow:
+                      "0 0 0 1px rgba(220,38,38,0.12), 0 40px 80px rgba(0,0,0,0.9), 0 0 60px rgba(220,38,38,0.07)",
+                  }}
                   onMouseMove={showControls}
                   onMouseEnter={showControls}
                   onClick={toggleVideoPlay}
@@ -1016,16 +1404,22 @@ export default function ProductDetailClient({ slug }: Props) {
                   <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 pb-8 bg-linear-to-b from-black/80 to-transparent flex items-center justify-between pointer-events-none">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse" />
-                      <span className="text-[9px] font-bold text-white/40 tracking-[0.3em] uppercase">Product Video</span>
+                      <span className="text-[9px] font-bold text-white/40 tracking-[0.3em] uppercase">
+                        Product Video
+                      </span>
                     </div>
                     <button
                       className="pointer-events-auto w-8 h-8 rounded-full bg-black/40 border border-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition"
-                      onClick={(e) => { e.stopPropagation(); toggleVideoMute(); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleVideoMute();
+                      }}
                     >
-                      {isVideoMuted
-                        ? <VolumeX className="w-3.5 h-3.5 text-white/60" />
-                        : <Volume2 className="w-3.5 h-3.5 text-white/60" />
-                      }
+                      {isVideoMuted ? (
+                        <VolumeX className="w-3.5 h-3.5 text-white/60" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5 text-white/60" />
+                      )}
                     </button>
                   </div>
 
@@ -1054,11 +1448,17 @@ export default function ProductDetailClient({ slug }: Props) {
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ duration: 0.3 }}
                         className="absolute inset-0 flex items-center justify-center z-20"
-                        style={{ background: 'radial-gradient(ellipse 60% 60% at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 100%)' }}
+                        style={{
+                          background:
+                            "radial-gradient(ellipse 60% 60% at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 100%)",
+                        }}
                       >
                         <div className="relative flex items-center justify-center">
                           {/* Rings */}
-                          <div className="absolute w-28 h-28 rounded-full border border-white/6 animate-ping" style={{ animationDuration: '3s' }} />
+                          <div
+                            className="absolute w-28 h-28 rounded-full border border-white/6 animate-ping"
+                            style={{ animationDuration: "3s" }}
+                          />
                           <div className="absolute w-20 h-20 rounded-full border border-white/10" />
                           {/* Button */}
                           <div className="relative w-14 h-14 rounded-full bg-brand-red flex items-center justify-center shadow-xl shadow-brand-red/50 hover:scale-110 hover:bg-brand-red-dark transition-all duration-200">
@@ -1070,11 +1470,16 @@ export default function ProductDetailClient({ slug }: Props) {
                   </AnimatePresence>
 
                   {/* Controls — fade on hover/activity */}
-                  <div className={`absolute bottom-0 left-0 right-0 z-30 transition-all duration-300 ${hasVideoStarted && controlsVisible ? 'opacity-100 translate-y-0' : hasVideoStarted ? 'opacity-0 translate-y-1' : 'opacity-0'}`}>
+                  <div
+                    className={`absolute bottom-0 left-0 right-0 z-30 transition-all duration-300 ${hasVideoStarted && controlsVisible ? "opacity-100 translate-y-0" : hasVideoStarted ? "opacity-0 translate-y-1" : "opacity-0"}`}
+                  >
                     {/* Progress bar */}
                     <div
                       ref={progressBarRef}
-                      onClick={(e) => { e.stopPropagation(); handleProgressClick(e); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleProgressClick(e);
+                      }}
                       className="group/bar h-5 flex items-end px-0 cursor-pointer"
                     >
                       <div className="w-full h-0.5 group-hover/bar:h-1 bg-white/15 transition-all duration-150 relative overflow-visible">
@@ -1090,7 +1495,10 @@ export default function ProductDetailClient({ slug }: Props) {
                     {/* Controls row */}
                     <div
                       className="flex items-center gap-3 px-4 pb-4 pt-1"
-                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)' }}
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)",
+                      }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* Play/Pause */}
@@ -1098,10 +1506,11 @@ export default function ProductDetailClient({ slug }: Props) {
                         onClick={toggleVideoPlay}
                         className="w-8 h-8 rounded-full bg-white/10 border border-white/12 backdrop-blur-sm flex items-center justify-center hover:bg-brand-red hover:border-brand-red transition-all"
                       >
-                        {isVideoPlaying
-                          ? <Pause className="w-3.5 h-3.5 text-white fill-white" />
-                          : <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
-                        }
+                        {isVideoPlaying ? (
+                          <Pause className="w-3.5 h-3.5 text-white fill-white" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                        )}
                       </button>
 
                       {/* Time */}
@@ -1120,10 +1529,11 @@ export default function ProductDetailClient({ slug }: Props) {
                         onClick={toggleVideoMute}
                         className="w-8 h-8 rounded-full bg-white/10 border border-white/12 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition"
                       >
-                        {isVideoMuted
-                          ? <VolumeX className="w-3.5 h-3.5 text-white" />
-                          : <Volume2 className="w-3.5 h-3.5 text-white" />
-                        }
+                        {isVideoMuted ? (
+                          <VolumeX className="w-3.5 h-3.5 text-white" />
+                        ) : (
+                          <Volume2 className="w-3.5 h-3.5 text-white" />
+                        )}
                       </button>
 
                       {/* Fullscreen */}
@@ -1154,7 +1564,6 @@ export default function ProductDetailClient({ slug }: Props) {
                   </AnimatePresence>
                 </div>
               </motion.div>
-
             </div>
           </div>
         </section>
@@ -1172,7 +1581,12 @@ export default function ProductDetailClient({ slug }: Props) {
         <section className="py-14 bg-[#080808]">
           <div className="container mx-auto px-4">
             <div className="mb-8">
-              <SectionHeader label="You May Also Like" title="Related Products" align="left" light />
+              <SectionHeader
+                label="You May Also Like"
+                title="Related Products"
+                align="left"
+                light
+              />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
               {relatedProducts.map((p, i) => (
@@ -1181,7 +1595,11 @@ export default function ProductDetailClient({ slug }: Props) {
                   initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{
+                    delay: i * 0.06,
+                    duration: 0.5,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                 >
                   <ProductCard product={p} />
                 </motion.div>

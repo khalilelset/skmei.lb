@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get('search');
   const filter = searchParams.get('filter');
 
-  let query = supabaseServer.from('products').select('*');
+  let query = supabaseServer.from('products').select('*').eq('is_visible', true);
 
   if (category) query = query.eq('category', category);
   if (filter === 'featured') query = query.eq('is_featured', true);

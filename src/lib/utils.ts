@@ -84,6 +84,26 @@ export function getTierTotal(
   return total;
 }
 
+// Format a phone for display — handles DB local format ("70683611") and E.164 ("+96170683611")
+export function formatPhoneDisplay(phone: string): string {
+  if (!phone) return '';
+  const p = phone.trim();
+  if (p.startsWith('+')) {
+    // Insert space after the country code (1–3 digits after +)
+    return p.replace(/^(\+\d{1,3})(\d)/, '$1 $2');
+  }
+  // Assume Lebanese local number stored without prefix
+  return `+961 ${p}`;
+}
+
+// Returns the digits-only string needed for a wa.me link (no + or spaces)
+export function phoneToWaNumber(phone: string): string {
+  if (!phone) return '';
+  const p = phone.trim();
+  if (p.startsWith('+')) return p.slice(1).replace(/\D/g, '');
+  return `961${p.replace(/\D/g, '')}`;
+}
+
 export function getOrderStatusColor(status: string): string {
   const colors: Record<string, string> = {
     pending: "bg-red-100 text-red-800",
