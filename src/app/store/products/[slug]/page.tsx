@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import ProductDetailClient from "./ProductDetailClient";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://skmei.lb";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://skmeilb.com";
 
 async function fetchProduct(slug: string) {
   try {
@@ -35,10 +35,9 @@ export async function generateMetadata({
   const categoryLabel = product.category
     ? product.category.charAt(0).toUpperCase() + product.category.slice(1)
     : "Watch";
-  const description =
-    product.description
-      ? `${product.description.slice(0, 140)}. Buy in Lebanon with free delivery & 1-year warranty.`
-      : `Buy ${product.name} in Lebanon. Authentic SKMEI ${categoryLabel} watch. Free nationwide delivery. 1-year warranty. Best price guaranteed.`;
+  const description = product.description
+    ? `${product.description.slice(0, 140)}. Buy in Lebanon with free delivery & 1-year warranty.`
+    : `Buy ${product.name} in Lebanon. Authentic SKMEI ${categoryLabel} watch. Free nationwide delivery. 1-year warranty. Best price guaranteed.`;
   const image = product.images?.[0];
 
   return {
@@ -62,7 +61,14 @@ export async function generateMetadata({
       url: `https://skmei.lb/store/products/${product.slug}`,
       siteName: "SKMEI.LB",
       images: image
-        ? [{ url: image, width: 800, height: 800, alt: `${title} – SKMEI Lebanon` }]
+        ? [
+            {
+              url: image,
+              width: 800,
+              height: 800,
+              alt: `${title} – SKMEI Lebanon`,
+            },
+          ]
         : undefined,
     },
     twitter: {
@@ -111,7 +117,9 @@ export default async function ProductPage({
           url: `${BASE}/store/products/${product.slug}`,
           priceCurrency: "USD",
           price: product.price,
-          priceValidUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+          priceValidUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
           availability:
             product.stock > 0
               ? "https://schema.org/InStock"
@@ -131,8 +139,18 @@ export default async function ProductPage({
             },
             deliveryTime: {
               "@type": "ShippingDeliveryTime",
-              handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
-              transitTime: { "@type": "QuantitativeValue", minValue: 3, maxValue: 5, unitCode: "DAY" },
+              handlingTime: {
+                "@type": "QuantitativeValue",
+                minValue: 0,
+                maxValue: 1,
+                unitCode: "DAY",
+              },
+              transitTime: {
+                "@type": "QuantitativeValue",
+                minValue: 3,
+                maxValue: 5,
+                unitCode: "DAY",
+              },
             },
             shippingDestination: {
               "@type": "DefinedRegion",
@@ -142,7 +160,8 @@ export default async function ProductPage({
           hasMerchantReturnPolicy: {
             "@type": "MerchantReturnPolicy",
             applicableCountry: "LB",
-            returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+            returnPolicyCategory:
+              "https://schema.org/MerchantReturnFiniteReturnWindow",
             merchantReturnDays: 7,
             returnMethod: "https://schema.org/ReturnByMail",
             returnFees: "https://schema.org/FreeReturn",
@@ -168,7 +187,12 @@ export default async function ProductPage({
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: BASE },
-          { "@type": "ListItem", position: 2, name: "Watches", item: `${BASE}/store/products` },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Watches",
+            item: `${BASE}/store/products`,
+          },
           {
             "@type": "ListItem",
             position: 3,
