@@ -44,24 +44,24 @@ export function OrderConfirmation({ order }: { order: PlacedOrder }) {
           className="text-center mb-8"
         >
           <div className="relative w-36 h-36 mx-auto mb-5 flex items-center justify-center">
-            <div className="absolute w-36 h-36 rounded-full border border-brand-red/20" />
-            <div className="absolute w-28 h-28 rounded-full border border-brand-red/10" />
-            <div className="absolute w-20 h-20 bg-brand-red rounded-full flex items-center justify-center shadow-xl shadow-brand-red/30">
+            <div className="absolute w-36 h-36 rounded-full border border-green-500/20" />
+            <div className="absolute w-28 h-28 rounded-full border border-green-500/10" />
+            <div className="absolute w-20 h-20 bg-green-500 rounded-full flex items-center justify-center shadow-xl shadow-green-500/30">
               <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2.5} />
             </div>
-            <div className="absolute w-36 h-36 rounded-full border border-brand-red/30 animate-ping" style={{ animationIterationCount: 2 }} />
+            <div className="absolute w-36 h-36 rounded-full border border-green-500/30 animate-ping" style={{ animationIterationCount: 2 }} />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight">Order Confirmed!</h1>
-          <p className="text-brand-red font-semibold mb-1">Your watch is on its way</p>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight">Order Placed!</h1>
+          <p className="text-green-500 font-semibold mb-1">We&apos;ve received your order</p>
           <p className="text-white/45 text-sm">
-            Thank you, <span className="font-bold text-white">{order.customerName.split(' ')[0]}</span>! Your order has been received.
+            Thank you, <span className="font-bold text-white">{order.customerName.split(' ')[0]}</span>! We&apos;ll review and confirm it shortly.
           </p>
           <div className="mt-5 h-0.5 max-w-xs mx-auto bg-brand-silver rounded-full overflow-hidden">
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-              className="h-full bg-brand-red origin-left"
+              className="h-full bg-green-500 origin-left"
             />
           </div>
         </motion.div>
@@ -82,7 +82,7 @@ export function OrderConfirmation({ order }: { order: PlacedOrder }) {
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
             { icon: Truck, title: 'Delivery', sub: '3–5 days' },
-            { icon: isWhish ? Wallet : Banknote, title: 'Payment', sub: isWhish ? 'Paid via Whish' : 'Cash on delivery' },
+            { icon: isWhish ? Wallet : Banknote, title: 'Payment', sub: isWhish ? 'Paid via Whish ✓' : 'Cash on delivery' },
             { icon: ShieldCheck, title: 'Warranty', sub: order.warrantyLabel ?? '1-year included' },
           ].map(({ icon: Icon, title, sub }) => (
             <div key={title} className="bg-white/5 rounded-xl pt-0 border border-white/8 text-center overflow-hidden">
@@ -205,7 +205,7 @@ export function OrderConfirmation({ order }: { order: PlacedOrder }) {
           <p className="text-sm text-white/55 leading-relaxed">
             We will contact you at{' '}
             <span className="font-bold text-white">{order.phone}</span>{' '}
-            {isWhish ? 'to arrange delivery.' : 'shortly to confirm your order and arrange delivery.'}
+            {'to confirm your order and arrange delivery.'}
           </p>
         </div>
 

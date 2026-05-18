@@ -85,10 +85,10 @@ function SuccessContent() {
             </div>
             <div className="absolute w-36 h-36 rounded-full border border-green-500/30 animate-ping" style={{ animationIterationCount: 2 }} />
           </div>
-          <h1 className="text-4xl font-black text-white mb-3 tracking-tight">Payment Confirmed!</h1>
-          <p className="text-green-500 font-semibold mb-2">Your Whish payment was successful</p>
+          <h1 className="text-4xl font-black text-white mb-3 tracking-tight">Order Placed!</h1>
+          <p className="text-green-500 font-semibold mb-2">We&apos;ve received your order</p>
           <p className="text-white/50 text-sm leading-relaxed">
-            Thank you for your purchase. Your order has been confirmed and will be processed shortly.
+            Thank you for your purchase. We&apos;ll review your order and contact you shortly to confirm.
           </p>
           {orderId && (
             <p className="text-white/35 text-xs mt-3 font-mono">

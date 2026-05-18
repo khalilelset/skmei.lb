@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
-import { sendOrderEmails, sendStatusChangeEmail } from '@/lib/email';
+import { sendOrderEmails } from '@/lib/email';
 
 // Whish calls this GET endpoint after a payment attempt.
 // Cart data is carried in the signed `cart` + `sig` query params — no staging table needed.
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
       total:          cart.tot as number,
       address:        cart.addr ?? null,
       notes:          cart.notes as string | null,
-      status:         'confirmed',
+      status:         'pending',
       source:         'website',
       payment_method: 'whish',
     })
@@ -75,26 +75,13 @@ export async function GET(req: NextRequest) {
   }));
   await supabaseServer.from('order_items').insert(orderItems);
 
-  // Send admin notification + customer confirmation (non-blocking)
+  // Send admin notification only — customer gets email when admin confirms the order
   const emailItems = (cart.it as Record<string, unknown>[]).map((item) => ({
     name:     String(item.name ?? item.productName ?? ''),
     price:    Number(item.price ?? 0),
     quantity: Number(item.quantity ?? 1),
     image:    item.image ? String(item.image) : null,
   }));
-
-  if (cart.ce) {
-    sendStatusChangeEmail('confirmed', {
-      orderId:       order.id,
-      orderNumber:   order.order_number,
-      customerName:  cart.cn  as string,
-      customerEmail: cart.ce  as string,
-      customerPhone: cart.cp  as string,
-      items:         emailItems,
-      total:         cart.tot as number,
-      address:       cart.addr as Record<string, string> | null,
-    }).catch((err) => console.error('[whish/callback] customer email error:', err));
-  }
 
   sendOrderEmails({
     orderId:       order.id,
