@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
         name: body.name.trim(),
         warranty_value: body.warranty_value ?? null,
         warranty_unit: body.warranty_unit ?? null,
+        defaults: body.defaults ?? null,
       })
       .select()
       .single();

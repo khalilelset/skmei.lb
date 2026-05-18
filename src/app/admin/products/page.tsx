@@ -60,9 +60,20 @@ const emptyForm = {
   specifications: { ...emptySpecs },
 };
 
+interface BrandDefaults {
+  price?: string;
+  costPrice?: string;
+  originalPrice?: string;
+  category?: string;
+  gender?: string;
+  features?: string[];
+  specifications?: Record<string, string>;
+}
+
 interface BrandOption {
   id: string;
   name: string;
+  defaults?: BrandDefaults | null;
 }
 
 export default function ProductsPage() {
@@ -82,6 +93,7 @@ export default function ProductsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [featureInput, setFeatureInput] = useState('');
+  const [defaultsApplied, setDefaultsApplied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
 
@@ -131,6 +143,7 @@ export default function ProductsPage() {
     setEditProduct(null);
     setForm({ ...emptyForm, category: dbCategories[0]?.slug ?? '' });
     setSubmitted(false);
+    setDefaultsApplied(false);
     setDialogOpen(true);
   };
 
@@ -160,6 +173,7 @@ export default function ProductsPage() {
       specifications: { ...emptySpecs, ...(product.specifications ?? {}) },
     });
     setSubmitted(false);
+    setDefaultsApplied(false);
     setDialogOpen(true);
   };
 
@@ -604,7 +618,28 @@ export default function ProductsPage() {
               <TextField
                 fullWidth size="small" select label="Brand *"
                 value={form.brand}
-                onChange={(e) => setForm(f => ({ ...f, brand: e.target.value }))}
+                onChange={(e) => {
+                  const selectedName = e.target.value;
+                  const brand = brands.find(b => b.name === selectedName);
+                  const defs = brand?.defaults;
+                  if (!editProduct && defs) {
+                    setForm(f => ({
+                      ...f,
+                      brand: selectedName,
+                      ...(defs.price !== undefined && { price: defs.price }),
+                      ...(defs.costPrice !== undefined && { costPrice: defs.costPrice }),
+                      ...(defs.originalPrice !== undefined && { originalPrice: defs.originalPrice }),
+                      ...(defs.category !== undefined && { category: defs.category }),
+                      ...(defs.gender !== undefined && { gender: defs.gender as typeof f.gender }),
+                      ...(defs.features !== undefined && { features: [...defs.features] }),
+                      ...(defs.specifications !== undefined && { specifications: { ...emptySpecs, ...defs.specifications } }),
+                    }));
+                    setDefaultsApplied(true);
+                  } else {
+                    setForm(f => ({ ...f, brand: selectedName }));
+                    setDefaultsApplied(false);
+                  }
+                }}
                 error={submitted && !form.brand}
                 helperText={submitted && !form.brand ? 'This field is required' : ''}
               >
@@ -616,6 +651,16 @@ export default function ProductsPage() {
                   <MenuItem disabled value="">No brands — add one in Brands page</MenuItem>
                 )}
               </TextField>
+              {defaultsApplied && (
+                <Box sx={{ mt: 0.75 }}>
+                  <Chip
+                    label="Defaults applied"
+                    size="small"
+                    onDelete={() => setDefaultsApplied(false)}
+                    sx={{ bgcolor: 'rgba(99,102,241,0.12)', color: '#6366F1', fontSize: 11, height: 22, '& .MuiChip-deleteIcon': { color: '#6366F1', fontSize: 14 } }}
+                  />
+                </Box>
+              )}
             </Grid>
 
             {/* Image Upload Section */}
