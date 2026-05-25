@@ -31,6 +31,7 @@ import {
   LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
   ReceiptLong as ReceiptIcon,
+  DeleteOutline as DeleteIcon,
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
@@ -74,6 +75,8 @@ export default function OrdersPage() {
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
   const [inlineUpdating, setInlineUpdating] = useState<Record<string, boolean>>({});
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadOrders = useCallback(() => {
     fetch('/api/admin/orders')
@@ -125,6 +128,16 @@ export default function OrdersPage() {
     loadOrders();
     const waLink = buildWhatsAppLink(selectedOrder, updatingStatus);
     if (waLink) window.open(waLink, '_blank');
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!selectedOrder) return;
+    setIsDeleting(true);
+    await fetch(`/api/admin/orders/${selectedOrder.id}`, { method: 'DELETE' });
+    setIsDeleting(false);
+    setDeleteConfirmOpen(false);
+    setSelectedOrder(null);
+    loadOrders();
   };
 
   const buildWhatsAppLink = (order: Order, status: string) => {
@@ -620,9 +633,18 @@ export default function OrdersPage() {
               </DialogContent>
 
               <DialogActions sx={{ px: 3, py: 2, bgcolor: '#fff', borderTop: '1px solid #f0f0f0', gap: 1 }}>
+                {/* Delete button always visible on the left */}
+                <Button
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  startIcon={<DeleteIcon />}
+                  sx={{ color: '#EF4444', mr: 'auto', fontSize: 13, '&:hover': { bgcolor: 'rgba(239,68,68,0.06)' } }}
+                >
+                  Delete
+                </Button>
+
                 {statusSaved ? (
                   <>
-                    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Box sx={{ width: 20, height: 20, bgcolor: '#22c55e', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                       </Box>
@@ -660,6 +682,27 @@ export default function OrdersPage() {
             </>
           );
         })()}
+      </Dialog>
+
+      {/* Delete confirm dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Delete Order?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This will permanently delete order <strong>{selectedOrder?.orderNumber}</strong>. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteConfirmOpen(false)} sx={{ color: '#6b7280' }} disabled={isDeleting}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleDeleteOrder}
+            disabled={isDeleting}
+            sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: '#DC2626' }, borderRadius: 2, fontWeight: 600 }}
+          >
+            {isDeleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

@@ -8,7 +8,7 @@ const WHISH_BASE    = process.env.WHISH_SANDBOX === 'true'
   : 'https://api.whish.money/itel-service/api';
 const WHISH_CHANNEL = process.env.WHISH_CHANNEL!;
 const WHISH_SECRET  = process.env.WHISH_SECRET!;
-// Send the value exactly as registered with Whish — strip protocol if present
+// Whish registered websiteUrl without protocol — strip https:// if present
 const WHISH_WEBSITE = (process.env.WHISH_WEBSITE_URL ?? '')
   .replace(/^https?:\/\//, '')
   .replace(/\/$/, '');

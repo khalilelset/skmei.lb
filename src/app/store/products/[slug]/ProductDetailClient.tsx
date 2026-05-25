@@ -1432,6 +1432,7 @@ export default function ProductDetailClient({ slug }: Props) {
                       playsInline
                       muted
                       loop
+                      preload="auto"
                       onPlay={() => setIsVideoPlaying(true)}
                       onPause={() => setIsVideoPlaying(false)}
                       onTimeUpdate={handleTimeUpdate}

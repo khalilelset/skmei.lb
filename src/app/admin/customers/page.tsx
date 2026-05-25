@@ -9,6 +9,7 @@ import {
   InputAdornment,
   Chip,
   Avatar,
+  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -26,6 +27,7 @@ import {
   Phone as PhoneIcon,
   ShoppingBag as OrderIcon,
   AccountCircle as AccountIcon,
+  DeleteOutline as DeleteIcon,
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import { formatDate, formatPrice, formatPhoneDisplay, phoneToWaNumber } from '@/lib/utils';
@@ -54,13 +56,27 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [selected, setSelected] = useState<Customer | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
+  const loadCustomers = () => {
     fetch('/api/admin/customers')
       .then((r) => r.json())
       .then((data) => { setCustomers(Array.isArray(data) ? data : []); setIsLoading(false); })
       .catch(() => setIsLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadCustomers(); }, []);
+
+  const handleDeleteCustomer = async () => {
+    if (!selected) return;
+    setIsDeleting(true);
+    await fetch(`/api/admin/customers/${encodeURIComponent(selected.phone)}`, { method: 'DELETE' });
+    setIsDeleting(false);
+    setDeleteConfirmOpen(false);
+    setSelected(null);
+    loadCustomers();
+  };
 
   const filtered = useMemo(() => {
     let list = customers;
@@ -335,7 +351,14 @@ export default function CustomersPage() {
               </Stack>
             </DialogContent>
 
-            <DialogActions>
+            <DialogActions sx={{ gap: 1 }}>
+              <Button
+                onClick={() => setDeleteConfirmOpen(true)}
+                startIcon={<DeleteIcon />}
+                sx={{ color: '#EF4444', mr: 'auto', fontSize: 13, '&:hover': { bgcolor: 'rgba(239,68,68,0.06)' } }}
+              >
+                Delete
+              </Button>
               <Button onClick={() => setSelected(null)}>Close</Button>
               <Button
                 variant="contained"
@@ -351,6 +374,27 @@ export default function CustomersPage() {
           </>
         )}
       </MobileDialog>
+
+      {/* Delete confirm dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Delete Customer?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This will permanently delete <strong>{selected?.name || selected?.phone}</strong> and all their orders. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteConfirmOpen(false)} sx={{ color: '#6b7280' }} disabled={isDeleting}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleDeleteCustomer}
+            disabled={isDeleting}
+            sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: '#DC2626' }, borderRadius: 2, fontWeight: 600 }}
+          >
+            {isDeleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
