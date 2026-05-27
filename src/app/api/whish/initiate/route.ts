@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     const callbackBase = `${origin}/api/whish/callback?cart=${cartB64}&sig=${sig}`;
 
     const whishPayload = {
-      amount:             total,
+      amount:             String(total),
       currency:           'USD',
       invoice:            `Order ${orderId.slice(0, 8).toUpperCase()}`,
       externalId:         Date.now(),
