@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
       console.log(`[whish/initiate] trying websiteUrl: ${JSON.stringify(websiteUrl)}`);
 
       const controller = new AbortController();
-      const timeoutId  = setTimeout(() => controller.abort(), 12_000);
+      const timeoutId  = setTimeout(() => controller.abort(), 30_000);
 
       try {
         const whishRes = await fetch(`${WHISH_BASE}/payment/whish`, {
