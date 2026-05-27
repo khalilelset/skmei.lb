@@ -8,10 +8,15 @@ const WHISH_BASE    = process.env.WHISH_SANDBOX === 'true'
   : 'https://api.whish.money/itel-service/api';
 const WHISH_CHANNEL = process.env.WHISH_CHANNEL!;
 const WHISH_SECRET  = process.env.WHISH_SECRET!;
-// Whish registered websiteUrl without protocol — strip https:// if present
+// Whish registered websiteUrl without protocol — strip https:// and trim any whitespace
 const WHISH_WEBSITE = (process.env.WHISH_WEBSITE_URL ?? '')
+  .trim()
   .replace(/^https?:\/\//, '')
-  .replace(/\/$/, '');
+  .replace(/\/$/, '')
+  .trim();
+
+console.log('[whish/initiate] websiteUrl being sent:', JSON.stringify(WHISH_WEBSITE));
+console.log('[whish/initiate] channel being sent:', JSON.stringify(WHISH_CHANNEL));
 
 const MAX_STRING = 200;
 const MAX_NOTE   = 1000;
@@ -134,48 +139,68 @@ export async function POST(req: NextRequest) {
       failureRedirectUrl: `${origin}/store/checkout/payment/failed?orderId=${orderId}`,
     };
 
-    // ── 4. Call Whish API ────────────────────────────────────────────────
-    const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), 12_000);
+    // ── 4. Call Whish API (3 websiteUrl trials) ─────────────────────────
+    const websiteUrlTrials = [
+      WHISH_WEBSITE,          // e.g. skmeilb.com
+      `www.${WHISH_WEBSITE}`, // e.g. www.skmeilb.com
+      `https://${WHISH_WEBSITE}`, // e.g. https://skmeilb.com
+    ];
 
     let collectUrl: string | null = null;
     let whishErrorDetail = '';
 
-    try {
-      const whishRes = await fetch(`${WHISH_BASE}/payment/whish`, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'channel':      WHISH_CHANNEL,
-          'secret':       WHISH_SECRET,
-          'websiteUrl':   WHISH_WEBSITE,
-          'User-Agent':   'Whish/1.0 (https://whish.money; support@whish.money)',
-        },
-        body: JSON.stringify(whishPayload),
-      });
-      clearTimeout(timeoutId);
+    for (const websiteUrl of websiteUrlTrials) {
+      console.log(`[whish/initiate] trying websiteUrl: ${JSON.stringify(websiteUrl)}`);
 
-      const rawBody = await whishRes.text();
-      console.log('[whish/payment] status:', whishRes.status, 'body:', rawBody);
+      const controller = new AbortController();
+      const timeoutId  = setTimeout(() => controller.abort(), 12_000);
 
-      const parsed = JSON.parse(rawBody) as Record<string, unknown>;
-      if (parsed?.status === true) {
-        const data = parsed?.data as Record<string, unknown> | undefined;
-        collectUrl = (data?.collectUrl as string) ?? null;
-      }
-      if (!collectUrl) {
+      try {
+        const whishRes = await fetch(`${WHISH_BASE}/payment/whish`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'channel':      WHISH_CHANNEL,
+            'secret':       WHISH_SECRET,
+            'websiteUrl':   websiteUrl,
+            'User-Agent':   'Whish/1.0 (https://whish.money; support@whish.money)',
+          },
+          body: JSON.stringify(whishPayload),
+        });
+        clearTimeout(timeoutId);
+
+        const rawBody = await whishRes.text();
+        console.log(`[whish/payment] websiteUrl=${websiteUrl} status:`, whishRes.status, 'body:', rawBody);
+
+        const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+        if (parsed?.status === true) {
+          const data = parsed?.data as Record<string, unknown> | undefined;
+          collectUrl = (data?.collectUrl as string) ?? null;
+          if (collectUrl) {
+            console.log(`[whish/initiate] success with websiteUrl: ${JSON.stringify(websiteUrl)}`);
+            break;
+          }
+        }
+
+        // Only retry on auth error — other errors are not websiteUrl related
+        const code = parsed?.code as string | undefined;
+        if (code !== 'auth.session_not_exist') {
+          whishErrorDetail = rawBody.slice(0, 300);
+          break;
+        }
         whishErrorDetail = rawBody.slice(0, 300);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        const msg = err instanceof Error ? err.message : String(err);
+        whishErrorDetail = msg;
+        console.error('[whish/initiate] fetch error:', msg);
+        break;
       }
-    } catch (err) {
-      clearTimeout(timeoutId);
-      const msg = err instanceof Error ? err.message : String(err);
-      whishErrorDetail = msg;
-      console.error('[whish/initiate] fetch error:', msg);
     }
 
     if (!collectUrl) {
-      console.error('[whish/initiate] aborting. detail:', whishErrorDetail);
+      console.error('[whish/initiate] all trials failed. detail:', whishErrorDetail);
       return NextResponse.json(
         { error: `Payment gateway error: ${whishErrorDetail || 'unknown'}` },
         { status: 502 }
