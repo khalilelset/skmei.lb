@@ -141,9 +141,9 @@ export async function POST(req: NextRequest) {
 
     // ── 4. Call Whish API (3 websiteUrl trials) ─────────────────────────
     const websiteUrlTrials = [
-      WHISH_WEBSITE,          // e.g. skmeilb.com
-      `www.${WHISH_WEBSITE}`, // e.g. www.skmeilb.com
-      `https://${WHISH_WEBSITE}`, // e.g. https://skmeilb.com
+      WHISH_WEBSITE,               // skmeilb.com
+      `www.${WHISH_WEBSITE}`,      // www.skmeilb.com
+      `https://www.${WHISH_WEBSITE}`, // https://www.skmeilb.com
     ];
 
     let collectUrl: string | null = null;
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
       console.log(`[whish/initiate] trying websiteUrl: ${JSON.stringify(websiteUrl)}`);
 
       const controller = new AbortController();
-      const timeoutId  = setTimeout(() => controller.abort(), 30_000);
+      const timeoutId  = setTimeout(() => controller.abort(), 15_000);
 
       try {
         const whishRes = await fetch(`${WHISH_BASE}/payment/whish`, {
@@ -183,19 +183,16 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Only retry on auth error — other errors are not websiteUrl related
-        const code = parsed?.code as string | undefined;
-        if (code !== 'auth.session_not_exist') {
-          whishErrorDetail = rawBody.slice(0, 300);
-          break;
-        }
         whishErrorDetail = rawBody.slice(0, 300);
+        // On success-false but not auth error, no point changing the URL
+        const code = parsed?.code as string | undefined;
+        if (code !== 'auth.session_not_exist') break;
       } catch (err) {
         clearTimeout(timeoutId);
         const msg = err instanceof Error ? err.message : String(err);
         whishErrorDetail = msg;
-        console.error('[whish/initiate] fetch error:', msg);
-        break;
+        console.error(`[whish/initiate] trial failed (${websiteUrl}):`, msg);
+        // Continue to next URL even on timeout
       }
     }
 
