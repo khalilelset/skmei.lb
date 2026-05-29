@@ -1217,67 +1217,6 @@ export default function ProductDetailClient({ slug }: Props) {
         </section>
       </div>
 
-      {/* ── Specifications — Dark ── */}
-      {(() => {
-        const SPEC_LABELS: Record<string, string> = {
-          movement:          'Movement',
-          caseMaterial:      'Case Material',
-          bandMaterial:      'Band Material',
-          caseSize:          'Case Size',
-          caseThickness:     'Case Thickness',
-          bandWidth:         'Band Width',
-          bandLength:        'Band Length',
-          waterResistance:   'Water Resistance',
-          displayType:       'Display Type',
-          features:          'Features',
-          caseShape:         'Case Shape',
-          dialWindowMaterial:'Dial Window Material',
-          warranty:          'Warranty',
-        };
-        const specEntries = Object.entries(product.specifications ?? {}).filter(
-          ([, v]) => v != null && String(v).trim() !== ''
-        );
-        if (specEntries.length === 0) return null;
-        return (
-          <section className="py-14 bg-[#0d0d0d] relative overflow-hidden">
-            {/* Subtle red glow top-left */}
-            <div
-              className="absolute top-0 left-0 w-72 h-72 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(ellipse at top left, rgba(220,38,38,0.06) 0%, transparent 60%)",
-              }}
-            />
-            <div className="relative z-10 container mx-auto px-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">
-                Details
-              </p>
-              <h2 className="text-2xl font-black text-white mb-1 tracking-tight">
-                Specifications
-              </h2>
-              <div className="h-px w-10 bg-brand-red mb-8" />
-              <div className="rounded-2xl border border-white/8 overflow-hidden">
-                <dl>
-                  {specEntries.map(([key, value], index, arr) => (
-                    <div
-                      key={key}
-                      className={`flex px-6 py-4 ${index % 2 === 0 ? "bg-white/3" : "bg-transparent"} ${index < arr.length - 1 ? "border-b border-white/6" : ""}`}
-                    >
-                      <dt className="font-bold text-sm text-white/55 w-1/3 border-l-2 border-brand-red/30 pl-3">
-                        {SPEC_LABELS[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase())}
-                      </dt>
-                      <dd className="text-sm text-white/85 flex-1 font-medium">
-                        {String(value)}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
       {/* ── Video Section — Cinematic ── */}
       {product.videoUrl && (
         <section
@@ -1586,6 +1525,57 @@ export default function ProductDetailClient({ slug }: Props) {
           </div>
         </section>
       )}
+
+      {/* ── Specifications — Dark ── */}
+      {(() => {
+        const SPEC_LABELS: Record<string, string> = {
+          movement:           'Movement',
+          caseMaterial:       'Case Material',
+          bandMaterial:       'Band Material',
+          caseSize:           'Case Size',
+          caseThickness:      'Case Thickness',
+          bandWidth:          'Band Width',
+          bandLength:         'Band Length',
+          waterResistance:    'Water Resistance',
+          displayType:        'Display Type',
+          features:           'Features',
+          caseShape:          'Case Shape',
+          dialWindowMaterial: 'Dial Window Material',
+          warranty:           'Warranty',
+        };
+        const specEntries = Object.entries(product.specifications ?? {}).filter(
+          ([, v]) => v != null && String(v).trim() !== ''
+        );
+        if (specEntries.length === 0) return null;
+        return (
+          <section className="py-14 bg-[#0d0d0d] relative overflow-hidden">
+            <div
+              className="absolute top-0 left-0 w-72 h-72 pointer-events-none"
+              style={{ background: 'radial-gradient(ellipse at top left, rgba(220,38,38,0.06) 0%, transparent 60%)' }}
+            />
+            <div className="relative z-10 container mx-auto px-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">Details</p>
+              <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Specifications</h2>
+              <div className="h-px w-10 bg-brand-red mb-8" />
+              <div className="rounded-2xl border border-white/8 overflow-hidden">
+                <dl>
+                  {specEntries.map(([key, value], index, arr) => (
+                    <div
+                      key={key}
+                      className={`flex px-6 py-4 ${index % 2 === 0 ? 'bg-white/3' : 'bg-transparent'} ${index < arr.length - 1 ? 'border-b border-white/6' : ''}`}
+                    >
+                      <dt className="font-bold text-sm text-white/55 w-1/3 border-l-2 border-brand-red/30 pl-3">
+                        {SPEC_LABELS[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())}
+                      </dt>
+                      <dd className="text-sm text-white/85 flex-1 font-medium text-center">{String(value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── Reviews ── */}
       <ReviewSection
