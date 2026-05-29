@@ -139,65 +139,49 @@ export async function POST(req: NextRequest) {
       failureRedirectUrl: `${origin}/store/checkout/payment/failed?orderId=${orderId}`,
     };
 
-    // ── 4. Call Whish API (3 websiteUrl trials) ─────────────────────────
-    const websiteUrlTrials = [
-      WHISH_WEBSITE,               // skmeilb.com
-      `www.${WHISH_WEBSITE}`,      // www.skmeilb.com
-      `https://www.${WHISH_WEBSITE}`, // https://www.skmeilb.com
-    ];
+    // ── 4. Call Whish API ────────────────────────────────────────────────
+    // Whish confirmed the registered websiteUrl is exactly "skmeilb.com"
+    const websiteUrl = WHISH_WEBSITE || 'skmeilb.com';
+    console.log(`[whish/initiate] websiteUrl: ${JSON.stringify(websiteUrl)}`);
+
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 15_000);
 
     let collectUrl: string | null = null;
     let whishErrorDetail = '';
 
-    for (const websiteUrl of websiteUrlTrials) {
-      console.log(`[whish/initiate] trying websiteUrl: ${JSON.stringify(websiteUrl)}`);
+    try {
+      const whishRes = await fetch(`${WHISH_BASE}/payment/whish`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'channel':      WHISH_CHANNEL,
+          'secret':       WHISH_SECRET,
+          'websiteUrl':   websiteUrl,
+          'User-Agent':   'Whish/1.0 (https://whish.money; support@whish.money)',
+        },
+        body: JSON.stringify(whishPayload),
+      });
+      clearTimeout(timeoutId);
 
-      const controller = new AbortController();
-      const timeoutId  = setTimeout(() => controller.abort(), 15_000);
+      const rawBody = await whishRes.text();
+      console.log(`[whish/payment] status:`, whishRes.status, 'body:', rawBody);
 
-      try {
-        const whishRes = await fetch(`${WHISH_BASE}/payment/whish`, {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-            'channel':      WHISH_CHANNEL,
-            'secret':       WHISH_SECRET,
-            'websiteUrl':   websiteUrl,
-            'User-Agent':   'Whish/1.0 (https://whish.money; support@whish.money)',
-          },
-          body: JSON.stringify(whishPayload),
-        });
-        clearTimeout(timeoutId);
-
-        const rawBody = await whishRes.text();
-        console.log(`[whish/payment] websiteUrl=${websiteUrl} status:`, whishRes.status, 'body:', rawBody);
-
-        const parsed = JSON.parse(rawBody) as Record<string, unknown>;
-        if (parsed?.status === true) {
-          const data = parsed?.data as Record<string, unknown> | undefined;
-          collectUrl = (data?.collectUrl as string) ?? null;
-          if (collectUrl) {
-            console.log(`[whish/initiate] success with websiteUrl: ${JSON.stringify(websiteUrl)}`);
-            break;
-          }
-        }
-
-        whishErrorDetail = rawBody.slice(0, 300);
-        // On success-false but not auth error, no point changing the URL
-        const code = parsed?.code as string | undefined;
-        if (code !== 'auth.session_not_exist') break;
-      } catch (err) {
-        clearTimeout(timeoutId);
-        const msg = err instanceof Error ? err.message : String(err);
-        whishErrorDetail = msg;
-        console.error(`[whish/initiate] trial failed (${websiteUrl}):`, msg);
-        // Continue to next URL even on timeout
+      const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+      if (parsed?.status === true) {
+        const data = parsed?.data as Record<string, unknown> | undefined;
+        collectUrl = (data?.collectUrl as string) ?? null;
       }
+      if (!collectUrl) whishErrorDetail = rawBody.slice(0, 300);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      whishErrorDetail = err instanceof Error ? err.message : String(err);
+      console.error('[whish/initiate] request failed:', whishErrorDetail);
     }
 
     if (!collectUrl) {
-      console.error('[whish/initiate] all trials failed. detail:', whishErrorDetail);
+      console.error('[whish/initiate] failed. detail:', whishErrorDetail);
       return NextResponse.json(
         { error: `Payment gateway error: ${whishErrorDetail || 'unknown'}` },
         { status: 502 }
