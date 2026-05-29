@@ -143,6 +143,13 @@ export async function POST(req: NextRequest) {
     // Whish confirmed the registered websiteUrl is exactly "skmeilb.com"
     const websiteUrl = WHISH_WEBSITE || 'skmeilb.com';
     console.log(`[whish/initiate] websiteUrl: ${JSON.stringify(websiteUrl)}`);
+    console.log('[whish/initiate] payload:', JSON.stringify({
+      ...whishPayload,
+      successCallbackUrl: whishPayload.successCallbackUrl.length + ' chars',
+      failureCallbackUrl: whishPayload.failureCallbackUrl.length + ' chars',
+      successRedirectUrl: whishPayload.successRedirectUrl,
+      failureRedirectUrl: whishPayload.failureRedirectUrl,
+    }));
 
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 15_000);
