@@ -120,11 +120,13 @@ export async function POST(req: NextRequest) {
     const sig     = createHmac('sha256', WHISH_SECRET).update(cartB64).digest('hex');
 
     // ── 3. Build Whish payload ───────────────────────────────────────────
-    const origin =
-      req.headers.get('origin') ??
-      (req.headers.get('x-forwarded-proto') ?? 'https') +
-        '://' +
-        (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000');
+    // Always use the bare domain (no www) so callback URLs match the registered websiteUrl.
+    const origin = process.env.NODE_ENV === 'production'
+      ? 'https://skmeilb.com'
+      : (req.headers.get('origin') ??
+          (req.headers.get('x-forwarded-proto') ?? 'http') +
+            '://' +
+            (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'));
 
     const callbackBase = `${origin}/api/whish/callback?cart=${cartB64}&sig=${sig}`;
 
