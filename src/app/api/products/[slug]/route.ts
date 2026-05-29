@@ -71,61 +71,57 @@ export async function GET(
     }
   }
 
-  // Extract model number from product name (e.g. "9196" from "skmei 9196BKBK")
-  const modelMatch = (data.name as string).match(/\b(\d{3,5})\b/);
-  const modelNumber = modelMatch ? modelMatch[1] : null;
+  // Derive base slug by stripping trailing color code from the last segment.
+  // e.g. "sk-1654bk" → "sk-1654", "sk-1654busi" → "sk-1654"
+  // Only strips when the last segment contains both digits and trailing letters.
+  function getBaseSlug(s: string): string {
+    const parts = s.split('-');
+    const last = parts[parts.length - 1];
+    if (/\d/.test(last) && /[a-z]$/.test(last)) {
+      const stripped = last.replace(/[a-z]+$/, '');
+      return [...parts.slice(0, -1), stripped].join('-');
+    }
+    return s;
+  }
 
-  // Fetch by same category (pool to pick from)
-  const { data: byCat } = await supabaseServer
+  const currentBase = getBaseSlug(slug);
+  const currentColors: string[] = ((data.colors ?? []) as { name: string }[]).map((c) => c.name);
+
+  // Fetch all visible products except this one (generous pool)
+  const { data: pool } = await supabaseServer
     .from('products')
     .select('*')
-    .eq('category', data.category)
     .eq('is_visible', true)
-    .neq('slug', slug)
-    .limit(20);
+    .neq('id', data.id)
+    .limit(300);
 
-  // Fetch by model number if found
-  let byModel: typeof byCat = [];
-  if (modelNumber) {
-    const { data: modelRows } = await supabaseServer
-      .from('products')
-      .select('*')
-      .ilike('name', `%${modelNumber}%`)
-      .neq('slug', slug)
-      .limit(10);
-    byModel = modelRows ?? [];
-  }
-
-  // Merge all candidates, deduplicate by id
-  const seen = new Set<string>();
-  const allCandidates: typeof byCat = [];
-  for (const p of [...(byModel ?? []), ...(byCat ?? [])]) {
-    if (!seen.has(p.id as string)) {
-      seen.add(p.id as string);
-      allCandidates.push(p);
-    }
-  }
-
-  // Score each candidate
-  const currentColors: string[] = ((data.colors ?? []) as { name: string; hex: string }[]).map((c) => c.name);
-  const scored = allCandidates.map((p) => {
+  const scored = (pool ?? []).map((p) => {
     let score = 0;
-    // Same model number — highest priority
-    if (modelNumber && (p.name as string).includes(modelNumber)) score += 10;
-    // Shared colors
-    const pColors: string[] = ((p.colors ?? []) as { name: string; hex: string }[]).map((c) => c.name);
-    const sharedColors = pColors.filter((c) => currentColors.includes(c)).length;
-    score += sharedColors * 3;
-    // Same category
-    if (p.category === data.category) score += 1;
+    // 1st priority: same product, different color (shared base slug)
+    if (getBaseSlug(p.slug as string) === currentBase) score += 100;
+    // 2nd priority: same gender
+    if (data.gender && p.gender === data.gender) score += 10;
+    // 3rd priority: same brand
+    if (data.brand && p.brand === data.brand) score += 7;
+    // 4th priority: same category
+    if (p.category === data.category) score += 5;
+    // 4th priority: same label (new / bestseller / sale)
+    if (
+      (data.is_new && p.is_new) ||
+      (data.is_bestseller && p.is_bestseller) ||
+      (data.on_sale && p.on_sale)
+    ) score += 3;
+    // 5th priority: overlapping colors
+    const pColors: string[] = ((p.colors ?? []) as { name: string }[]).map((c) => c.name);
+    score += currentColors.filter((c) => pColors.includes(c)).length;
     return { p, score };
   });
 
   scored.sort((a, b) => b.score - a.score);
-  const top6 = scored.slice(0, 6).map((s) => s.p);
+  const top4 = scored.slice(0, 4).map((s) => s.p);
 
   const relatedWithReviews = await Promise.all(
-    top6.map(async (p) => {
+    top4.map(async (p) => {
       const { data: rr } = await supabaseServer
         .from('reviews').select('rating').eq('product_id', p.id);
       return mapProduct(p as Record<string, unknown>, rr ?? []);

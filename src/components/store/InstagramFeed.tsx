@@ -34,6 +34,23 @@ export default function InstagramFeed() {
   const slideRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // key: `${postId}_${imgIndex}` → retry count / remount key
+  const [imgRetries, setImgRetries] = useState<Map<string, number>>(new Map());
+  const [imgKeys,   setImgKeys]   = useState<Map<string, number>>(new Map());
+  const [failedImgs, setFailedImgs] = useState<Set<string>>(new Set());
+
+  const handleImgError = (uid: string) => {
+    const retries = imgRetries.get(uid) ?? 0;
+    if (retries < 3) {
+      setImgRetries((prev) => new Map(prev).set(uid, retries + 1));
+      setTimeout(() => {
+        setImgKeys((prev) => new Map(prev).set(uid, (prev.get(uid) ?? 0) + 1));
+      }, 2000 * (retries + 1));
+    } else {
+      setFailedImgs((prev) => new Set(prev).add(uid));
+    }
+  };
+
   useEffect(() => {
     fetch('/api/instagram')
       .then((r) => r.json())
@@ -139,16 +156,27 @@ export default function InstagramFeed() {
                     autoPlay muted loop playsInline preload="auto"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                ) : (
-                  <Image
-                    src={post.images?.[0] ?? ''}
-                    alt={`Post ${index + 1}`}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 640px) 33vw, 25vw"
-                    loading="lazy"
-                  />
-                )}
+                ) : (() => {
+                  const uid = `${post.id}_0`;
+                  return failedImgs.has(uid) ? (
+                    <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <Image
+                      key={imgKeys.get(uid) ?? 0}
+                      src={post.images?.[0] ?? ''}
+                      alt={`Post ${index + 1}`}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      sizes="(max-width: 640px) 33vw, 25vw"
+                      loading="lazy"
+                      onError={() => handleImgError(uid)}
+                    />
+                  );
+                })()}
 
                 {/* Type badge */}
                 {post.type === 'video' && (
@@ -296,11 +324,29 @@ export default function InstagramFeed() {
                     className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scroll-smooth"
                     style={{ scrollbarWidth: 'none' }}
                   >
-                    {slides.map((src, i) => (
-                      <div key={i} className="relative shrink-0 w-full h-full snap-center">
-                        <Image src={src} alt={`slide ${i + 1}`} fill className="object-contain" />
-                      </div>
-                    ))}
+                    {slides.map((src, i) => {
+                      const uid = `${active!.id}_${i}`;
+                      return (
+                        <div key={i} className="relative shrink-0 w-full h-full snap-center">
+                          {failedImgs.has(uid) ? (
+                            <div className="w-full h-full flex items-center justify-center bg-black">
+                              <svg className="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <Image
+                              key={imgKeys.get(uid) ?? 0}
+                              src={src}
+                              alt={`slide ${i + 1}`}
+                              fill
+                              className="object-contain"
+                              onError={() => handleImgError(uid)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   {slides.length > 1 && slideIndex > 0 && (
                     <button

@@ -22,7 +22,7 @@ function streamUpload(
     const stream = cloudinary.uploader.upload_stream(
       options as unknown as Parameters<typeof cloudinary.uploader.upload_stream>[0],
       (error, result) => {
-        if (error) return reject(error);
+        if (error) return reject(new Error(error.message ?? JSON.stringify(error)));
         if (!result) return reject(new Error('No result from Cloudinary'));
         resolve({ secure_url: result.secure_url, public_id: result.public_id });
       },
@@ -78,7 +78,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: result.secure_url, public_id: result.public_id });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = err instanceof Error
+      ? err.message
+      : typeof err === 'object' && err !== null
+        ? JSON.stringify(err)
+        : String(err);
     console.error('Cloudinary upload error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -129,8 +129,9 @@ export default async function HomePage() {
     supabaseServer
       .from('products')
       .select('id, name, slug, price, original_price, images, category, brand, stock, rating, review_count, is_new, on_sale, is_bestseller, is_couple, colors')
-      .or('is_bestseller.eq.true,is_new.eq.true')
-      .limit(12),
+      .eq('is_bestseller', true)
+      .order('created_at', { ascending: false })
+      .limit(8),
     supabaseServer
       .from('products')
       .select('category'),

@@ -1,4 +1,5 @@
 import { Shield, Truck, BadgeCheck, CreditCard } from "lucide-react";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/utils";
 
 export default function FeaturesSection() {
   const features = [
@@ -10,7 +11,7 @@ export default function FeaturesSection() {
     {
       icon: <Truck className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Free Shipping",
-      description: "Free delivery across Lebanon on orders over $50",
+      description: `Free delivery across Lebanon on orders over $${FREE_SHIPPING_THRESHOLD}`,
     },
     {
       icon: <Shield className="w-5 h-5 sm:w-6 sm:h-6" />,

@@ -238,14 +238,6 @@ export default function RootLayout({
         {/* Google Fonts static assets */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
-        {/* ── Preload the hero watch image (above-the-fold, highest priority) ── */}
-        <link
-          rel="preload"
-          as="image"
-          href="https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=600"
-          fetchPriority="high"
-        />
-
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

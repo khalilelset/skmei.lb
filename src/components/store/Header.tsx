@@ -11,6 +11,7 @@ import {
   Zap, Smartphone, Heart, Star, Package, Users, Sun, Flame, Award, Layers, Sparkles,
   type LucideProps,
 } from "lucide-react";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/utils";
 
 type IconComp = React.ComponentType<LucideProps>;
 const ICON_MAP: Record<string, IconComp> = {
@@ -111,7 +112,7 @@ export default function Header() {
           <div className="flex items-center gap-1 px-6">
             <Truck className="w-3 h-3 text-brand-red shrink-0" />
             <span className="text-white/70 text-[10px] font-medium whitespace-nowrap">
-              Free Shipping on Orders Over $50
+              Free Shipping on Orders Over ${FREE_SHIPPING_THRESHOLD}
             </span>
           </div>
           <span className="w-px h-3 bg-white/20 shrink-0" />
@@ -130,7 +131,7 @@ export default function Header() {
               <div className="flex items-center gap-1 px-6">
                 <Truck className="w-3 h-3 text-brand-red shrink-0" />
                 <span className="text-white/70 text-[10px] font-medium whitespace-nowrap">
-                  Free Shipping on Orders Over $50
+                  Free Shipping on Orders Over ${FREE_SHIPPING_THRESHOLD}
                 </span>
               </div>
               <span className="w-px h-3 bg-white/20 shrink-0" />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useProfileStore } from '@/store/profileStore';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, FREE_SHIPPING_THRESHOLD, SHIPPING_COST, getBrandBundleSavings, type BrandWithTiers } from '@/lib/utils';
 import { X, User, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import PhoneInputField, { isValidPhoneNumber } from '@/components/ui/PhoneInputField';
@@ -39,6 +39,11 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [brands, setBrands] = useState<BrandWithTiers[]>([]);
+
+  useEffect(() => {
+    fetch('/api/brands').then(r => r.json()).then(d => setBrands(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
@@ -47,8 +52,10 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
   }, [isOpen]);
 
   const subtotal = getTotalPrice();
-  const shipping = subtotal >= 50 ? 0 : 4;
-  const total = subtotal + shipping;
+  const bundleSavings = getBrandBundleSavings(items, brands);
+  const afterBundleSubtotal = subtotal - bundleSavings;
+  const shipping = afterBundleSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const total = afterBundleSubtotal + shipping;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -92,6 +99,7 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
     });
     msg += `*Order Summary:*\n\n`;
     msg += `Subtotal: ${formatPrice(subtotal)}\n`;
+    if (bundleSavings > 0) msg += `Bundle Offer: -${formatPrice(bundleSavings)}\n`;
     msg += `Shipping: ${shipping === 0 ? 'FREE' : formatPrice(shipping)}\n\n`;
     msg += `*Total: ${formatPrice(total)}*\n\n`;
     msg += `💰 Payment Method: Cash on Delivery\n\n`;
@@ -210,6 +218,12 @@ export default function WhatsAppCheckoutModal({ isOpen, onClose }: WhatsAppCheck
                 <span className="text-white/40">Subtotal</span>
                 <span className="text-white/70">{formatPrice(subtotal)}</span>
               </div>
+              {bundleSavings > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-400">Bundle Offer</span>
+                  <span className="text-green-400 font-medium">−{formatPrice(bundleSavings)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-white/40">Shipping</span>
                 {shipping === 0

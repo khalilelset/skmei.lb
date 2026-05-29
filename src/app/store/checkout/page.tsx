@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { formatPrice, getTierTotal } from '@/lib/utils';
+import { formatPrice, getTierTotal, FREE_SHIPPING_THRESHOLD, SHIPPING_COST, getBrandBundleSavings, type BrandWithTiers } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -39,8 +39,10 @@ export default function CheckoutPage() {
     discount: number;
     maxDiscount: number | null;
     applyOnSale: boolean;
+    brands: string[] | null;
   } | null>(null);
   const [couponError, setCouponError] = useState('');
+  const [brands, setBrands] = useState<BrandWithTiers[]>([]);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -79,6 +81,10 @@ export default function CheckoutPage() {
     } catch { /* silent */ } finally {
       setIsLookingUp(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/brands').then(r => r.json()).then(d => setBrands(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   // On mount: restore saved profile then freshen via API lookup
@@ -124,25 +130,30 @@ export default function CheckoutPage() {
   };
 
   const subtotal = getTotalPrice();
-  const shipping = subtotal >= 50 ? 0 : 4;
+  const bundleSavings = getBrandBundleSavings(items, brands);
+  const afterBundleSubtotal = subtotal - bundleSavings;
+  const shipping = afterBundleSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
 
-  // Coupon: only apply to non-sale items if applyOnSale=false
-  const applyableSubtotal = appliedCoupon && !appliedCoupon.applyOnSale
+  // Coupon: filter by brand restriction and/or sale exclusion
+  const applyableSubtotal = appliedCoupon
     ? items.reduce((sum, i) => {
+        const inBrand = !appliedCoupon.brands || appliedCoupon.brands.includes(i.product.brand ?? '');
         const isSale = !!i.product.originalPrice;
-        return isSale ? sum : sum + (i.product.price + (i.selectedBox?.price ?? 0)) * i.quantity;
+        if (!inBrand) return sum;
+        if (!appliedCoupon.applyOnSale && isSale) return sum;
+        return sum + getTierTotal(i.product.priceTiers, i.product.price, i.quantity) + (i.selectedBox?.price ?? 0) * i.quantity;
       }, 0)
-    : subtotal;
+    : afterBundleSubtotal;
 
-  const rawDiscount = appliedCoupon ? (applyableSubtotal * appliedCoupon.discount) / 100 : 0;
+  const rawDiscount = appliedCoupon ? (Math.max(0, applyableSubtotal) * appliedCoupon.discount) / 100 : 0;
   const discountAmount = appliedCoupon
     ? appliedCoupon.maxDiscount != null
       ? Math.min(rawDiscount, appliedCoupon.maxDiscount)
       : rawDiscount
     : 0;
 
-  const rawTotal = subtotal + shipping - discountAmount;
-  const total = appliedCoupon ? Math.ceil(rawTotal * 2) / 2 : rawTotal;
+  const rawTotal = afterBundleSubtotal + shipping - discountAmount;
+  const total = (appliedCoupon || bundleSavings > 0) ? Math.ceil(rawTotal * 2) / 2 : rawTotal;
   const totalItems = getTotalItems();
 
   const handleApplyCoupon = async () => {
@@ -156,7 +167,7 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (data.valid) {
-        setAppliedCoupon({ code: data.code, discount: data.discount, maxDiscount: data.maxDiscount ?? null, applyOnSale: data.applyOnSale ?? true });
+        setAppliedCoupon({ code: data.code, discount: data.discount, maxDiscount: data.maxDiscount ?? null, applyOnSale: data.applyOnSale ?? true, brands: data.brands ?? null });
         setCouponError('');
       } else {
         setCouponError(data.error || 'Invalid coupon code. Please try again.');
@@ -258,7 +269,7 @@ export default function CheckoutPage() {
       items:          orderItems,
       subtotal,
       shipping,
-      discount:       discountAmount,
+      discount:       discountAmount + bundleSavings,
       coupon_code:    appliedCoupon?.code ?? null,
       total,
       address:        { street: formData.street, area: formData.area, city: formData.city },
@@ -649,6 +660,12 @@ export default function CheckoutPage() {
                     <span>Subtotal ({totalItems} items)</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
+                  {bundleSavings > 0 && (
+                    <div className="flex justify-between text-sm text-green-400 font-medium">
+                      <span>Bundle Offer</span>
+                      <span>−{formatPrice(bundleSavings)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm text-white/60">
                     <span>Shipping</span>
                     <span className={shipping === 0 ? 'text-brand-red font-bold' : ''}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
@@ -657,9 +674,10 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-sm text-brand-red font-medium">
                       <span>
                         Discount ({appliedCoupon.discount}%
-                        {appliedCoupon.maxDiscount != null && `, max ${formatPrice(appliedCoupon.maxDiscount)}`})
+                        {appliedCoupon.maxDiscount != null && `, max ${formatPrice(appliedCoupon.maxDiscount)}`}
+                        {appliedCoupon.brands && ` · ${appliedCoupon.brands.join(', ')} only`})
                       </span>
-                      <span>-{formatPrice(discountAmount)}</span>
+                      <span>−{formatPrice(discountAmount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-black text-white pt-3 border-t border-white/10">

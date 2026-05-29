@@ -52,5 +52,10 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: [
+    '/admin/:path*',
+    // Exclude /api/admin/upload* — those routes do their own auth checks and
+    // running them through middleware would truncate large file uploads at 10 MB.
+    '/api/admin/((?!upload).*)',
+  ],
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -16,6 +16,7 @@ import {
   Stack,
   Collapse,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,10 +26,12 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   AutoAwesome as DefaultsIcon,
+  VideoLibrary as VideoIcon,
 } from '@mui/icons-material';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
 import MobileDialog from '@/components/admin/MobileDialog';
+import { uploadVideoDirectly } from '@/lib/uploadVideo';
 
 interface BrandDefaults {
   price?: string;
@@ -36,7 +39,10 @@ interface BrandDefaults {
   originalPrice?: string;
   category?: string;
   gender?: string;
+  description?: string;
+  videoUrl?: string;
   features?: string[];
+  priceTiers?: { qty: string; price: string }[];
   specifications?: Record<string, string>;
 }
 
@@ -57,20 +63,34 @@ const WARRANTY_UNITS = [
 ];
 
 const SPEC_FIELDS = [
-  { key: 'movement',        label: 'Movement' },
-  { key: 'caseMaterial',    label: 'Case Material' },
-  { key: 'bandMaterial',    label: 'Band Material' },
-  { key: 'dialColor',       label: 'Dial Color' },
-  { key: 'caseSize',        label: 'Case Size' },
-  { key: 'waterResistance', label: 'Water Resistance' },
-  { key: 'warranty',        label: 'Warranty' },
+  { key: 'movement',           label: 'Movement' },
+  { key: 'caseMaterial',       label: 'Case Material' },
+  { key: 'bandMaterial',       label: 'Band Material' },
+  { key: 'caseSize',           label: 'Case Size' },
+  { key: 'caseThickness',      label: 'Case Thickness' },
+  { key: 'bandWidth',          label: 'Band Width' },
+  { key: 'bandLength',         label: 'Band Length' },
+  { key: 'waterResistance',    label: 'Water Resistance' },
+  { key: 'displayType',        label: 'Display Type' },
+  { key: 'features',           label: 'Features' },
+  { key: 'caseShape',          label: 'Case Shape' },
+  { key: 'dialWindowMaterial', label: 'Dial Window Material' },
+  { key: 'warranty',           label: 'Warranty' },
 ];
 
 const emptyDefaults: BrandDefaults = {
   price: '', costPrice: '', originalPrice: '',
   category: '', gender: '',
+  description: '',
+  videoUrl: '',
   features: [],
-  specifications: { movement: '', caseMaterial: '', bandMaterial: '', dialColor: '', caseSize: '', waterResistance: '', warranty: '' },
+  priceTiers: [],
+  specifications: {
+    movement: '', caseMaterial: '', bandMaterial: '',
+    caseSize: '', caseThickness: '', bandWidth: '', bandLength: '',
+    waterResistance: '', displayType: '', features: '',
+    caseShape: '', dialWindowMaterial: '', warranty: '',
+  },
 };
 
 export default function BrandsPage() {
@@ -91,6 +111,8 @@ export default function BrandsPage() {
   const [defaults, setDefaults] = useState<BrandDefaults>({ ...emptyDefaults, features: [], specifications: { ...emptyDefaults.specifications } });
   const [featureInput, setFeatureInput] = useState('');
   const [categories, setCategories] = useState<{ slug: string; name: string }[]>([]);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const brandVideoRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     setIsLoading(true);
@@ -109,7 +131,7 @@ export default function BrandsPage() {
       .catch(() => {});
   }, []);
 
-  const resetDefaults = () => setDefaults({ ...emptyDefaults, features: [], specifications: { ...emptyDefaults.specifications } });
+  const resetDefaults = () => setDefaults({ ...emptyDefaults, features: [], priceTiers: [], specifications: { ...emptyDefaults.specifications } });
 
   const openCreate = () => {
     setEditId(null);
@@ -137,7 +159,10 @@ export default function BrandsPage() {
         originalPrice:  d.originalPrice ?? '',
         category:       d.category      ?? '',
         gender:         d.gender        ?? '',
+        description:    d.description   ?? '',
+        videoUrl:       d.videoUrl      ?? '',
         features:       d.features      ?? [],
+        priceTiers:     (d.priceTiers   ?? []).map((t) => ({ qty: String(t.qty), price: String(t.price) })),
         specifications: { ...emptyDefaults.specifications, ...(d.specifications ?? {}) },
       });
       setShowDefaults(true);
@@ -162,11 +187,25 @@ export default function BrandsPage() {
   const removeFeature = (i: number) =>
     setDefaults((d) => ({ ...d, features: (d.features ?? []).filter((_, idx) => idx !== i) }));
 
+  const handleBrandVideoSelected = async (file: File) => {
+    if (brandVideoRef.current) brandVideoRef.current.value = '';
+    setIsUploadingVideo(true);
+    try {
+      const url = await uploadVideoDirectly(file, 'brand-defaults/videos');
+      setDefaults((d) => ({ ...d, videoUrl: url }));
+    } catch (err) {
+      console.error('Brand video upload failed:', err);
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
   const buildDefaultsPayload = (): BrandDefaults | null => {
     const hasAny =
       defaults.price || defaults.costPrice || defaults.originalPrice ||
-      defaults.category || defaults.gender ||
+      defaults.category || defaults.gender || defaults.description || defaults.videoUrl ||
       (defaults.features ?? []).length > 0 ||
+      (defaults.priceTiers ?? []).length > 0 ||
       Object.values(defaults.specifications ?? {}).some(Boolean);
     if (!hasAny) return null;
     return {
@@ -175,7 +214,11 @@ export default function BrandsPage() {
       originalPrice:  defaults.originalPrice || undefined,
       category:       defaults.category      || undefined,
       gender:         defaults.gender        || undefined,
+      description:    defaults.description   || undefined,
+      videoUrl:       defaults.videoUrl      || undefined,
       features:       (defaults.features ?? []).length > 0 ? defaults.features : undefined,
+      priceTiers:     (defaults.priceTiers ?? []).filter((t) => t.qty && t.price).length > 0
+        ? (defaults.priceTiers ?? []).filter((t) => t.qty && t.price) : undefined,
       specifications: Object.values(defaults.specifications ?? {}).some(Boolean)
         ? defaults.specifications : undefined,
     };
@@ -421,6 +464,61 @@ export default function BrandsPage() {
                     </TextField>
                   </Box>
 
+                  {/* Description */}
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 1 }}>
+                    Description
+                  </Typography>
+                  <TextField
+                    fullWidth size="small" multiline minRows={3} label="Description"
+                    placeholder="Default product description..."
+                    value={defaults.description ?? ''}
+                    onChange={(e) => setDefaults((d) => ({ ...d, description: e.target.value }))}
+                  />
+
+                  {/* Video */}
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 1 }}>
+                    Video
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5 }}>
+                    Shared across all products of this brand — upload once, applies to all.
+                  </Typography>
+                  <input
+                    ref={brandVideoRef}
+                    type="file"
+                    accept="video/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => { if (e.target.files?.[0]) handleBrandVideoSelected(e.target.files[0]); }}
+                  />
+                  {defaults.videoUrl ? (
+                    <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.12)', bgcolor: '#000', aspectRatio: '3/4', maxWidth: 180 }}>
+                      <video src={defaults.videoUrl} controls style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }} />
+                      <IconButton size="small"
+                        onClick={() => setDefaults((d) => ({ ...d, videoUrl: '' }))}
+                        sx={{ position: 'absolute', top: 6, right: 6, bgcolor: 'rgba(0,0,0,0.6)', color: 'white', '&:hover': { bgcolor: '#DC2626' } }}>
+                        <CloseIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Box>
+                  ) : (
+                    <Box
+                      component="label"
+                      sx={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        gap: 1, width: 220, height: 110, cursor: isUploadingVideo ? 'default' : 'pointer',
+                        border: '2px dashed', borderColor: isUploadingVideo ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.23)',
+                        borderRadius: 2, fontSize: 12, color: isUploadingVideo ? 'rgba(0,0,0,0.26)' : 'text.secondary',
+                        transition: 'all 0.2s',
+                        '&:hover': isUploadingVideo ? {} : { borderColor: '#DC2626', color: '#DC2626', bgcolor: 'rgba(220,38,38,0.02)' },
+                      }}
+                    >
+                      {isUploadingVideo
+                        ? <CircularProgress size={24} sx={{ color: '#DC2626' }} />
+                        : <><VideoIcon sx={{ fontSize: 28 }} /><span>Upload Brand Video</span></>
+                      }
+                      <input type="file" accept="video/*" disabled={isUploadingVideo} style={{ display: 'none' }}
+                        onChange={(e) => { if (e.target.files?.[0]) handleBrandVideoSelected(e.target.files[0]); }} />
+                    </Box>
+                  )}
+
                   {/* Features */}
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 1 }}>
                     Features
@@ -441,6 +539,46 @@ export default function BrandsPage() {
                       ))}
                     </Box>
                   )}
+
+                  {/* Bundle Pricing */}
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 1 }}>
+                    Bundle Pricing
+                  </Typography>
+                  {(defaults.priceTiers ?? []).map((tier, i) => (
+                    <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <TextField
+                        size="small" type="number" label="Qty" sx={{ width: 90 }}
+                        value={tier.qty}
+                        onChange={(e) => setDefaults((d) => ({
+                          ...d,
+                          priceTiers: (d.priceTiers ?? []).map((t, idx) => idx === i ? { ...t, qty: e.target.value } : t),
+                        }))}
+                        inputProps={{ min: 1, step: 1 }}
+                      />
+                      <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>units for</Typography>
+                      <TextField
+                        size="small" type="number" label="Total ($)" sx={{ width: 110 }}
+                        value={tier.price}
+                        onChange={(e) => setDefaults((d) => ({
+                          ...d,
+                          priceTiers: (d.priceTiers ?? []).map((t, idx) => idx === i ? { ...t, price: e.target.value } : t),
+                        }))}
+                        inputProps={{ min: 0, step: 0.01 }}
+                      />
+                      <IconButton size="small"
+                        onClick={() => setDefaults((d) => ({ ...d, priceTiers: (d.priceTiers ?? []).filter((_, idx) => idx !== i) }))}
+                        sx={{ color: '#EF4444' }}>
+                        <CloseIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  <Button
+                    size="small" variant="outlined" startIcon={<AddIcon />}
+                    onClick={() => setDefaults((d) => ({ ...d, priceTiers: [...(d.priceTiers ?? []), { qty: '', price: '' }] }))}
+                    sx={{ borderColor: 'rgba(0,0,0,0.23)', color: 'text.secondary', alignSelf: 'flex-start', '&:hover': { borderColor: '#DC2626', color: '#DC2626' } }}
+                  >
+                    Add Tier
+                  </Button>
 
                   {/* Specifications */}
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -467,7 +605,7 @@ export default function BrandsPage() {
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
-            disabled={isSaving || !name.trim()}
+            disabled={isSaving || isUploadingVideo || !name.trim()}
             onClick={handleSave}
             sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}
           >

@@ -21,6 +21,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Allow the admin upload route to receive large video files (up to 200 MB)
+  middlewareClientMaxBodySize: '250mb',
   async headers() {
     return [
       {
@@ -31,6 +33,8 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    loader: 'custom',
+    loaderFile: './src/lib/imageLoader.ts',
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },

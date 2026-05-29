@@ -22,6 +22,7 @@ import {
   calculateDiscount,
   getStockStatus,
   getTierTotal,
+  getOptimizedVideoUrl,
 } from "@/lib/utils";
 import ProductCard from "@/components/store/ProductCard";
 import ReviewSection from "@/components/store/ReviewSection";
@@ -47,7 +48,9 @@ export default function ProductDetailClient({ slug }: Props) {
   const [availableBoxes, setAvailableBoxes] = useState<Box[]>([]);
   const [selectedBox, setSelectedBox] = useState<Box | undefined>(undefined);
   const [boxImageLightbox, setBoxImageLightbox] = useState<string | null>(null);
-  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
+  const [imgRetries, setImgRetries] = useState<Map<number, number>>(new Map());
+  const [imgKeys, setImgKeys] = useState<Map<number, number>>(new Map());
   const [stickyVisible, setStickyVisible] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -57,6 +60,7 @@ export default function ProductDetailClient({ slug }: Props) {
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { addItem } = useCartStore();
   const showToast = useToastStore((s) => s.show);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -123,6 +127,16 @@ export default function ProductDetailClient({ slug }: Props) {
     observer.observe(el);
     return () => observer.disconnect();
   }, [product]);
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
+  }, []);
 
   useEffect(() => {
     const section = videoSectionRef.current;
@@ -257,6 +271,20 @@ export default function ProductDetailClient({ slug }: Props) {
       () => setControlsVisible(false),
       3000,
     );
+  };
+
+  const handleImageLoad = (index: number) => {
+    setLoadedImages((prev) => new Set(prev).add(index));
+  };
+
+  const handleImageError = (index: number) => {
+    const retries = imgRetries.get(index) ?? 0;
+    if (retries >= 8) return;
+    const delay = Math.min(2000 * Math.pow(1.5, retries), 30000);
+    setImgRetries((prev) => new Map(prev).set(index, retries + 1));
+    setTimeout(() => {
+      setImgKeys((prev) => new Map(prev).set(index, (prev.get(index) ?? 0) + 1));
+    }, delay);
   };
 
   const handleAddToCart = () => {
@@ -472,40 +500,20 @@ export default function ProductDetailClient({ slug }: Props) {
                           setLightboxOpen(true);
                         }}
                       >
-                        {failedImages.has(index) ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-white/20">
-                            <svg
-                              className="w-16 h-16"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <span className="text-xs tracking-wide">
-                              Image unavailable
-                            </span>
-                          </div>
-                        ) : (
-                          <Image
-                            src={image}
-                            alt={`${product.name} ${index + 1}`}
-                            fill
-                            sizes="(max-width: 1024px) 100vw, 50vw"
-                            className="object-contain"
-                            priority={index === 0}
-                            onError={() =>
-                              setFailedImages((prev) =>
-                                new Set(prev).add(index),
-                              )
-                            }
-                          />
+                        {!loadedImages.has(index) && (
+                          <div className="absolute inset-0 bg-white/5 animate-pulse rounded-lg" />
                         )}
+                        <Image
+                          key={imgKeys.get(index) ?? 0}
+                          src={image}
+                          alt={`${product.name} ${index + 1}`}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          className={`object-contain transition-opacity duration-300 ${loadedImages.has(index) ? 'opacity-100' : 'opacity-0'}`}
+                          priority={index === 0}
+                          onLoad={() => handleImageLoad(index)}
+                          onError={() => handleImageError(index)}
+                        />
                       </motion.div>
                     ))}
                   </div>
@@ -560,35 +568,18 @@ export default function ProductDetailClient({ slug }: Props) {
                             : "border-white/15 hover:border-brand-red/50 hover:scale-105"
                         }`}
                       >
-                        {failedImages.has(index) ? (
-                          <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                            <svg
-                              className="w-5 h-5 text-white/20"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                        ) : (
-                          <Image
-                            src={image}
-                            alt={`${product.name} ${index + 1}`}
-                            fill
-                            className="object-cover"
-                            onError={() =>
-                              setFailedImages((prev) =>
-                                new Set(prev).add(index),
-                              )
-                            }
-                          />
+                        {!loadedImages.has(index) && (
+                          <div className="absolute inset-0 bg-white/5 animate-pulse" />
                         )}
+                        <Image
+                          key={imgKeys.get(index) ?? 0}
+                          src={image}
+                          alt={`${product.name} ${index + 1}`}
+                          fill
+                          className={`object-cover transition-opacity duration-300 ${loadedImages.has(index) ? 'opacity-100' : 'opacity-0'}`}
+                          onLoad={() => handleImageLoad(index)}
+                          onError={() => handleImageError(index)}
+                        />
                       </button>
                     ))}
                   </div>
@@ -1227,44 +1218,65 @@ export default function ProductDetailClient({ slug }: Props) {
       </div>
 
       {/* ── Specifications — Dark ── */}
-      <section className="py-14 bg-[#0d0d0d] relative overflow-hidden">
-        {/* Subtle red glow top-left */}
-        <div
-          className="absolute top-0 left-0 w-72 h-72 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse at top left, rgba(220,38,38,0.06) 0%, transparent 60%)",
-          }}
-        />
-        <div className="relative z-10 container mx-auto px-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">
-            Details
-          </p>
-          <h2 className="text-2xl font-black text-white mb-1 tracking-tight">
-            Specifications
-          </h2>
-          <div className="h-px w-10 bg-brand-red mb-8" />
-          <div className="rounded-2xl border border-white/8 overflow-hidden">
-            <dl>
-              {Object.entries(product.specifications).map(
-                ([key, value], index, arr) => (
-                  <div
-                    key={key}
-                    className={`flex px-6 py-4 ${index % 2 === 0 ? "bg-white/3" : "bg-transparent"} ${index < arr.length - 1 ? "border-b border-white/6" : ""}`}
-                  >
-                    <dt className="font-bold text-sm text-white/55 capitalize w-1/3 border-l-2 border-brand-red/30 pl-3">
-                      {key.replace(/([A-Z])/g, " $1").trim()}
-                    </dt>
-                    <dd className="text-sm text-white/85 flex-1 font-medium">
-                      {value}
-                    </dd>
-                  </div>
-                ),
-              )}
-            </dl>
-          </div>
-        </div>
-      </section>
+      {(() => {
+        const SPEC_LABELS: Record<string, string> = {
+          movement:          'Movement',
+          caseMaterial:      'Case Material',
+          bandMaterial:      'Band Material',
+          caseSize:          'Case Size',
+          caseThickness:     'Case Thickness',
+          bandWidth:         'Band Width',
+          bandLength:        'Band Length',
+          waterResistance:   'Water Resistance',
+          displayType:       'Display Type',
+          features:          'Features',
+          caseShape:         'Case Shape',
+          dialWindowMaterial:'Dial Window Material',
+          warranty:          'Warranty',
+        };
+        const specEntries = Object.entries(product.specifications ?? {}).filter(
+          ([, v]) => v != null && String(v).trim() !== ''
+        );
+        if (specEntries.length === 0) return null;
+        return (
+          <section className="py-14 bg-[#0d0d0d] relative overflow-hidden">
+            {/* Subtle red glow top-left */}
+            <div
+              className="absolute top-0 left-0 w-72 h-72 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at top left, rgba(220,38,38,0.06) 0%, transparent 60%)",
+              }}
+            />
+            <div className="relative z-10 container mx-auto px-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-red mb-2">
+                Details
+              </p>
+              <h2 className="text-2xl font-black text-white mb-1 tracking-tight">
+                Specifications
+              </h2>
+              <div className="h-px w-10 bg-brand-red mb-8" />
+              <div className="rounded-2xl border border-white/8 overflow-hidden">
+                <dl>
+                  {specEntries.map(([key, value], index, arr) => (
+                    <div
+                      key={key}
+                      className={`flex px-6 py-4 ${index % 2 === 0 ? "bg-white/3" : "bg-transparent"} ${index < arr.length - 1 ? "border-b border-white/6" : ""}`}
+                    >
+                      <dt className="font-bold text-sm text-white/55 w-1/3 border-l-2 border-brand-red/30 pl-3">
+                        {SPEC_LABELS[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase())}
+                      </dt>
+                      <dd className="text-sm text-white/85 flex-1 font-medium">
+                        {String(value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── Video Section — Cinematic ── */}
       {product.videoUrl && (
@@ -1427,8 +1439,7 @@ export default function ProductDetailClient({ slug }: Props) {
                   <div className="aspect-[3/4]">
                     <video
                       ref={videoRef}
-                      src={product.videoUrl}
-                      className="w-full h-full object-cover"
+                      className={`w-full h-full ${isFullscreen ? 'object-contain bg-black' : 'object-cover'}`}
                       playsInline
                       muted
                       loop
@@ -1437,7 +1448,13 @@ export default function ProductDetailClient({ slug }: Props) {
                       onPause={() => setIsVideoPlaying(false)}
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
-                    />
+                    >
+                      {/* Cloudinary serves the right format (WebM/MP4) per browser via f_auto.
+                          Each source targets a viewport breakpoint so mobile gets a small file. */}
+                      <source src={getOptimizedVideoUrl(product.videoUrl!, 480)}  media="(max-width: 480px)" />
+                      <source src={getOptimizedVideoUrl(product.videoUrl!, 768)}  media="(max-width: 768px)" />
+                      <source src={getOptimizedVideoUrl(product.videoUrl!, 1280)} />
+                    </video>
                   </div>
 
                   {/* Center play button — shows before start */}
@@ -1589,7 +1606,7 @@ export default function ProductDetailClient({ slug }: Props) {
                 light
               />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               {relatedProducts.map((p, i) => (
                 <motion.div
                   key={p.id}

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { useProfileStore } from '@/store/profileStore';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, FREE_SHIPPING_THRESHOLD, SHIPPING_COST, getBrandBundleSavings, type BrandWithTiers } from '@/lib/utils';
 import Image from 'next/image';
 import { ArrowLeft, User, MapPin, ShieldCheck, Minus, Plus, Trash2 } from 'lucide-react';
 import PhoneInputField, { isValidPhoneNumber } from '@/components/ui/PhoneInputField';
@@ -34,10 +34,17 @@ export default function WhatsAppCheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [brands, setBrands] = useState<BrandWithTiers[]>([]);
+
+  useEffect(() => {
+    fetch('/api/brands').then(r => r.json()).then(d => setBrands(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
 
   const subtotal = getTotalPrice();
-  const shipping = subtotal >= 50 ? 0 : 4;
-  const total = subtotal + shipping;
+  const bundleSavings = getBrandBundleSavings(items, brands);
+  const afterBundleSubtotal = subtotal - bundleSavings;
+  const shipping = afterBundleSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const total = afterBundleSubtotal + shipping;
 
   useEffect(() => {
     if (items.length === 0) router.replace('/store/products');
@@ -85,6 +92,7 @@ export default function WhatsAppCheckoutPage() {
     });
     msg += `*Order Summary:*\n\n`;
     msg += `Subtotal: ${formatPrice(subtotal)}\n`;
+    if (bundleSavings > 0) msg += `Bundle Offer: -${formatPrice(bundleSavings)}\n`;
     msg += `Shipping: ${shipping === 0 ? 'FREE' : formatPrice(shipping)}\n\n`;
     msg += `*Total: ${formatPrice(total)}*\n\n`;
     msg += `💰 Payment Method: Cash on Delivery\n\n`;
@@ -122,7 +130,7 @@ export default function WhatsAppCheckoutPage() {
         items: orderItems,
         subtotal,
         shipping,
-        discount: 0,
+        discount: bundleSavings,
         total,
         address: { full: formData.address },
         source: 'whatsapp',
@@ -308,6 +316,12 @@ export default function WhatsAppCheckoutPage() {
                   <span className="text-white/40">Subtotal</span>
                   <span className="text-white/70 font-medium">{formatPrice(subtotal)}</span>
                 </div>
+                {bundleSavings > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-400">Bundle Offer</span>
+                    <span className="text-green-400 font-medium">−{formatPrice(bundleSavings)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-white/40">Shipping</span>
                   {shipping === 0
@@ -315,9 +329,9 @@ export default function WhatsAppCheckoutPage() {
                     : <span className="text-white/70 font-medium">{formatPrice(shipping)}</span>
                   }
                 </div>
-                {subtotal < 50 && (
+                {afterBundleSubtotal < FREE_SHIPPING_THRESHOLD && (
                   <p className="text-xs text-white/25">
-                    Add <span className="text-brand-red font-semibold">{formatPrice(50 - subtotal)}</span> for free shipping
+                    Add <span className="text-brand-red font-semibold">{formatPrice(FREE_SHIPPING_THRESHOLD - afterBundleSubtotal)}</span> for free shipping
                   </p>
                 )}
                 <div className="flex justify-between items-center pt-3 border-t border-white/8">

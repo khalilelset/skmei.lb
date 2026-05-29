@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabaseServer
       .from('coupons')
-      .select('code, discount, active, expires_at, max_discount, apply_on_sale')
+      .select('code, discount, active, expires_at, max_discount, apply_on_sale, brands')
       .eq('code', code.trim().toUpperCase())
       .single();
 
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       discount: data.discount,
       maxDiscount: data.max_discount ?? null,
       applyOnSale: data.apply_on_sale ?? true,
+      brands: Array.isArray(data.brands) && data.brands.length > 0 ? data.brands : null,
     });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

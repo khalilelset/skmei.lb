@@ -16,7 +16,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { code, discount, expires_at, max_discount, apply_on_sale } = await req.json();
+    const { code, discount, expires_at, max_discount, apply_on_sale, brands } = await req.json();
 
     if (!code || !discount) {
       return NextResponse.json({ error: 'code and discount are required' }, { status: 400 });
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
         expires_at: expires_at || null,
         max_discount: max_discount != null && max_discount !== '' ? Number(max_discount) : null,
         apply_on_sale: apply_on_sale ?? true,
+        brands: Array.isArray(brands) && brands.length > 0 ? brands : null,
       })
       .select()
       .single();

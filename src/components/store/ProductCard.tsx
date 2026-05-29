@@ -39,8 +39,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const isOOS = product.stock === 0;
 
   return (
-    <Link href={`/store/products/${product.slug}`} className="group block">
-      <div className={`rounded-xl sm:rounded-2xl shadow-sm transition-all duration-300 overflow-hidden border ${
+    <Link href={`/store/products/${product.slug}`} className="group block h-full">
+      <div className={`h-full flex flex-col rounded-xl sm:rounded-2xl shadow-sm transition-all duration-300 overflow-hidden border ${
         isOOS
           ? 'bg-[#0e0e0e] border-white/5 hover:border-white/12'
           : 'bg-[#111] border-white/8 hover:shadow-xl hover:border-brand-red/30'
@@ -101,7 +101,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Content */}
-        <div className="p-3 sm:p-4">
+        <div className="p-3 sm:p-4 flex flex-col flex-1">
           <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-wide mb-1 ${isOOS ? 'text-white/30' : 'text-brand-red'}`}>
             {product.category}
           </p>
@@ -126,29 +126,20 @@ export default function ProductCard({ product }: ProductCardProps) {
             <span className={`text-[10px] sm:text-xs ${isOOS ? 'text-white/20' : 'text-gray-400'}`}>({product.reviewCount ?? 0})</span>
           </div>
 
-          {/* Price */}
+          {/* Spacer — pushes price+button to bottom */}
+          <div className="flex-1" />
+
+          {/* Price row */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-baseline gap-1.5">
-                <span className={`text-base sm:text-lg font-bold ${isOOS ? 'text-white/25 line-through' : 'text-white'}`}>
-                  {formatPrice(product.price)}
+            <div className="flex items-baseline gap-1.5">
+              <span className={`text-base sm:text-lg font-bold ${isOOS ? 'text-white/25 line-through' : 'text-white'}`}>
+                {formatPrice(product.price)}
+              </span>
+              {product.originalPrice && !isOOS && (
+                <span className="text-xs sm:text-sm text-gray-400 line-through">
+                  {formatPrice(product.originalPrice)}
                 </span>
-                {product.originalPrice && !isOOS && (
-                  <span className="text-xs sm:text-sm text-gray-400 line-through">
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                )}
-              </div>
-              {/* Bundle deal badge */}
-              {!isOOS && (() => {
-                const tier = product.priceTiers?.filter((t) => t.qty > 1).sort((a, b) => a.qty - b.qty)[0];
-                if (!tier) return null;
-                return (
-                  <span className="text-[9px] sm:text-[10px] font-black text-orange-400 bg-orange-400/10 border border-orange-400/25 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
-                    {tier.qty} for {formatPrice(tier.price)}
-                  </span>
-                );
-              })()}
+              )}
             </div>
 
             {/* Color dots — dimmed when OOS */}
@@ -168,6 +159,21 @@ export default function ProductCard({ product }: ProductCardProps) {
               </div>
             )}
           </div>
+
+          {/* Bundle pricing tiers — all shown */}
+          {!isOOS && (() => {
+            const tiers = (product.priceTiers ?? []).filter((t) => t.qty > 1).sort((a, b) => a.qty - b.qty);
+            if (tiers.length === 0) return null;
+            return (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {tiers.map((tier, i) => (
+                  <span key={i} className="text-[9px] sm:text-[10px] font-black text-orange-400 bg-orange-400/10 border border-orange-400/25 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
+                    {tier.qty} for {formatPrice(tier.price)}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Add to Cart / OOS */}
           {!isOOS ? (

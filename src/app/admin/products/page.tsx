@@ -21,14 +21,17 @@ import {
   MenuItem,
   Slider,
 } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon, Favorite as CoupleIcon, DeleteOutline as DeleteIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon, Favorite as CoupleIcon, DeleteOutline as DeleteIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon, Link as LinkIcon } from '@mui/icons-material';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
+import { uploadVideoDirectly } from '@/lib/uploadVideo';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
 import MobileDialog from '@/components/admin/MobileDialog';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, generateProductSlug } from '@/lib/utils';
 import type { Product, ProductColor } from '@/types';
 
 function getStockLabel(stock: number): 'in-stock' | 'low-stock' | 'out-of-stock' {
@@ -45,7 +48,9 @@ const stockColors = {
 
 const emptySpecs = {
   movement: '', caseMaterial: '', bandMaterial: '',
-  dialColor: '', caseSize: '', waterResistance: '', warranty: '',
+  caseSize: '', caseThickness: '', bandWidth: '', bandLength: '',
+  waterResistance: '', displayType: '', features: '',
+  caseShape: '', dialWindowMaterial: '', warranty: '',
 };
 
 const emptyForm = {
@@ -66,7 +71,10 @@ interface BrandDefaults {
   originalPrice?: string;
   category?: string;
   gender?: string;
+  description?: string;
+  videoUrl?: string;
   features?: string[];
+  priceTiers?: { qty: string; price: string }[];
   specifications?: Record<string, string>;
 }
 
@@ -92,10 +100,10 @@ export default function ProductsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [videoInputMode, setVideoInputMode] = useState<'upload' | 'url'>('upload');
   const [featureInput, setFeatureInput] = useState('');
   const [defaultsApplied, setDefaultsApplied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoFileRef = useRef<HTMLInputElement>(null);
 
   // Crop dialog state
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -144,6 +152,7 @@ export default function ProductsPage() {
     setForm({ ...emptyForm, category: dbCategories[0]?.slug ?? '' });
     setSubmitted(false);
     setDefaultsApplied(false);
+    setVideoInputMode('upload');
     setDialogOpen(true);
   };
 
@@ -174,6 +183,7 @@ export default function ProductsPage() {
     });
     setSubmitted(false);
     setDefaultsApplied(false);
+    setVideoInputMode(product.videoUrl ? 'url' : 'upload');
     setDialogOpen(true);
   };
 
@@ -198,7 +208,7 @@ export default function ProductsPage() {
     setCropSrc(null);
     try {
       const blob = await getCroppedImg(cropSrc, croppedAreaPixels);
-      const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, '-') || 'temp';
+      const slug = form.slug || generateProductSlug(form.name, form.brand) || 'temp';
       const fd = new FormData();
       fd.append('file', blob, 'image.jpg');
       fd.append('slug', slug);
@@ -225,16 +235,13 @@ export default function ProductsPage() {
   };
 
   const handleVideoSelected = async (file: File) => {
-    if (videoFileRef.current) videoFileRef.current.value = '';
     setIsUploadingVideo(true);
     try {
-      const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, '-') || 'temp';
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('slug', slug);
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.url) setForm(f => ({ ...f, videoUrl: data.url }));
+      const slug = form.slug || generateProductSlug(form.name, form.brand) || 'temp';
+      const url = await uploadVideoDirectly(file, `products/${slug}/videos`);
+      setForm(f => ({ ...f, videoUrl: url }));
+    } catch (err) {
+      console.error('Video upload failed:', err);
     } finally {
       setIsUploadingVideo(false);
     }
@@ -246,13 +253,13 @@ export default function ProductsPage() {
     setIsSaving(true);
     const payload = {
       name: form.name,
-      slug: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'),
+      slug: form.slug || generateProductSlug(form.name, form.brand),
       description: form.description,
       price: parseFloat(form.price) || 0,
       costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
       originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : undefined,
       category: form.category,
-      sku: form.slug || form.name.toLowerCase().replace(/\s+/g, '-'),
+      sku: form.slug || generateProductSlug(form.name, form.brand),
       stock: parseInt(form.stock) || 0,
       images: form.images,
       features: form.features,
@@ -500,7 +507,7 @@ export default function ProductsPage() {
           <Grid container spacing={2}>
             {([
               { label: 'Product Name *', key: 'name', required: true },
-              { label: 'Slug (auto-generated if empty)', key: 'slug' },
+              { label: 'Slug', key: 'slug' },
               { label: 'Sale Price ($) *', key: 'price', type: 'number', required: true },
               { label: 'My Cost Price ($)', key: 'costPrice', type: 'number' },
               { label: 'Original Price ($)', key: 'originalPrice', type: 'number' },
@@ -508,6 +515,7 @@ export default function ProductsPage() {
             ] as { label: string; key: string; type?: string; required?: boolean }[]).map(({ label, key, type, required }) => {
               const val = form[key as keyof typeof emptyForm] as string;
               const hasError = submitted && !!required && !val.trim();
+              const autoSlug = key === 'slug' && !val && form.name ? generateProductSlug(form.name, form.brand) : '';
               return (
                 <Grid key={key} size={{ xs: 12, sm: 6 }}>
                   <TextField
@@ -515,7 +523,7 @@ export default function ProductsPage() {
                     value={val}
                     onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
                     error={hasError}
-                    helperText={hasError ? 'This field is required' : ''}
+                    helperText={hasError ? 'This field is required' : autoSlug ? `Auto: ${autoSlug}` : ''}
                   />
                 </Grid>
               );
@@ -631,7 +639,10 @@ export default function ProductsPage() {
                       ...(defs.originalPrice !== undefined && { originalPrice: defs.originalPrice }),
                       ...(defs.category !== undefined && { category: defs.category }),
                       ...(defs.gender !== undefined && { gender: defs.gender as typeof f.gender }),
+                      ...(defs.description !== undefined && { description: defs.description }),
+                      ...(defs.videoUrl !== undefined && { videoUrl: defs.videoUrl }),
                       ...(defs.features !== undefined && { features: [...defs.features] }),
+                      ...(defs.priceTiers !== undefined && { priceTiers: defs.priceTiers.map((t) => ({ qty: String(t.qty), price: String(t.price) })) }),
                       ...(defs.specifications !== undefined && { specifications: { ...emptySpecs, ...defs.specifications } }),
                     }));
                     setDefaultsApplied(true);
@@ -725,20 +736,38 @@ export default function ProductsPage() {
               )}
             </Grid>
 
-            {/* Video Upload Section */}
+            {/* Video Section */}
             <Grid size={12}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>Product Video <Typography component="span" variant="caption" color="text.secondary">(optional — shown on product page)</Typography></Typography>
-              <input ref={videoFileRef} type="file" accept="video/*" disabled={isUploadingVideo} style={{ display: 'none' }}
-                onChange={(e) => { if (e.target.files?.[0]) handleVideoSelected(e.target.files[0]); }} />
-              {form.videoUrl ? (
-                <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.12)', bgcolor: '#000', aspectRatio: '3/4', maxWidth: 200 }}>
-                  <video src={form.videoUrl} controls style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }} />
-                  <IconButton size="small" onClick={() => setForm(f => ({ ...f, videoUrl: '' }))}
-                    sx={{ position: 'absolute', top: 6, right: 6, bgcolor: 'rgba(0,0,0,0.6)', color: 'white', '&:hover': { bgcolor: '#DC2626' } }}>
-                    <CloseIcon sx={{ fontSize: 14 }} />
-                  </IconButton>
-                </Box>
-              ) : (
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                Product Video{' '}
+                <Typography component="span" variant="caption" color="text.secondary">(optional — shown on product page)</Typography>
+              </Typography>
+
+              {/* Mode toggle */}
+              <ToggleButtonGroup
+                value={videoInputMode}
+                exclusive
+                onChange={(_, v) => { if (v) { setVideoInputMode(v); setForm(f => ({ ...f, videoUrl: '' })); } }}
+                size="small"
+                sx={{ mb: 1.5, '& .MuiToggleButton-root': { textTransform: 'none', fontSize: 12, px: 1.5, py: 0.5 }, '& .Mui-selected': { color: '#DC2626 !important', borderColor: '#DC2626 !important', bgcolor: 'rgba(220,38,38,0.06) !important' } }}
+              >
+                <ToggleButton value="upload"><VideoIcon sx={{ fontSize: 16, mr: 0.5 }} />Upload</ToggleButton>
+                <ToggleButton value="url"><LinkIcon sx={{ fontSize: 16, mr: 0.5 }} />URL</ToggleButton>
+              </ToggleButtonGroup>
+
+              {/* URL mode */}
+              {videoInputMode === 'url' && !form.videoUrl && (
+                <TextField
+                  fullWidth size="small" placeholder="https://res.cloudinary.com/..."
+                  label="Video URL"
+                  onBlur={(e) => { const v = e.target.value.trim(); if (v) setForm(f => ({ ...f, videoUrl: v })); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) setForm(f => ({ ...f, videoUrl: v })); } }}
+                  sx={{ maxWidth: 400 }}
+                />
+              )}
+
+              {/* Upload mode */}
+              {videoInputMode === 'upload' && !form.videoUrl && (
                 <label style={{ cursor: isUploadingVideo ? 'default' : 'pointer' }}>
                   <Box component="span" sx={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -753,6 +782,17 @@ export default function ProductsPage() {
                   <input type="file" accept="video/*" disabled={isUploadingVideo} style={{ display: 'none' }}
                     onChange={(e) => { if (e.target.files?.[0]) handleVideoSelected(e.target.files[0]); }} />
                 </label>
+              )}
+
+              {/* Preview (both modes) */}
+              {form.videoUrl && (
+                <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.12)', bgcolor: '#000', aspectRatio: '3/4', maxWidth: 200 }}>
+                  <video src={form.videoUrl} controls style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }} />
+                  <IconButton size="small" onClick={() => setForm(f => ({ ...f, videoUrl: '' }))}
+                    sx={{ position: 'absolute', top: 6, right: 6, bgcolor: 'rgba(0,0,0,0.6)', color: 'white', '&:hover': { bgcolor: '#DC2626' } }}>
+                    <CloseIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Box>
               )}
             </Grid>
 
@@ -821,13 +861,19 @@ export default function ProductsPage() {
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5, mt: 1 }}>Specifications</Typography>
               <Box sx={{ border: '1px solid rgba(0,0,0,0.12)', borderRadius: 2, overflow: 'hidden' }}>
                 {([
-                  { key: 'movement',       label: 'Movement' },
-                  { key: 'caseMaterial',   label: 'Case Material' },
-                  { key: 'bandMaterial',   label: 'Band Material' },
-                  { key: 'dialColor',      label: 'Dial Color' },
-                  { key: 'caseSize',       label: 'Case Size' },
-                  { key: 'waterResistance',label: 'Water Resistance' },
-                  { key: 'warranty',       label: 'Warranty' },
+                  { key: 'movement',          label: 'Movement' },
+                  { key: 'caseMaterial',      label: 'Case Material' },
+                  { key: 'bandMaterial',      label: 'Band Material' },
+                  { key: 'caseSize',          label: 'Case Size' },
+                  { key: 'caseThickness',     label: 'Case Thickness' },
+                  { key: 'bandWidth',         label: 'Band Width' },
+                  { key: 'bandLength',        label: 'Band Length' },
+                  { key: 'waterResistance',   label: 'Water Resistance' },
+                  { key: 'displayType',       label: 'Display Type' },
+                  { key: 'features',          label: 'Features' },
+                  { key: 'caseShape',         label: 'Case Shape' },
+                  { key: 'dialWindowMaterial',label: 'Dial Window Material' },
+                  { key: 'warranty',          label: 'Warranty' },
                 ] as { key: keyof typeof emptySpecs; label: string }[]).map(({ key, label }, i, arr) => (
                   <Box key={key} sx={{
                     display: 'flex', alignItems: 'center',
@@ -846,7 +892,7 @@ export default function ProductsPage() {
                       <TextField
                         fullWidth size="small" variant="standard"
                         placeholder={`Enter ${label.toLowerCase()}...`}
-                        value={form.specifications[key]}
+                        value={form.specifications[key] ?? ''}
                         onChange={(e) => setForm(f => ({
                           ...f,
                           specifications: { ...f.specifications, [key]: e.target.value },
@@ -874,7 +920,10 @@ export default function ProductsPage() {
                   { name: 'Silver',     hex: '#C0C0C0' },
                   { name: 'Gold',       hex: '#D4AF37' },
                   { name: 'Rose Gold',  hex: '#B76E79' },
+                  { name: 'Rose',       hex: '#FF007F' },
+                  { name: 'Pink',       hex: '#EC4899' },
                   { name: 'Red',        hex: '#DC2626' },
+                  { name: 'Navy',       hex: '#1E3A5F' },
                   { name: 'Blue',       hex: '#1D4ED8' },
                   { name: 'Light Blue', hex: '#60A5FA' },
                   { name: 'Aqua',       hex: '#06B6D4' },

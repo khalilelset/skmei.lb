@@ -13,11 +13,12 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/utils";
 
 const features = [
   { icon: Shield,     title: "100% Authentic",       desc: "Every watch we sell is genuine SKMEI. We are an authorized dealer with direct sourcing from the manufacturer." },
   { icon: Award,      title: "1-Year Warranty",       desc: "All our Skmei watches come with a full 1-year warranty. Your purchase is protected and we stand behind every product." },
-  { icon: Truck,      title: "Free Shipping",         desc: "Enjoy free shipping on orders over $50. We deliver across Lebanon with fast and reliable service." },
+  { icon: Truck,      title: "Free Shipping",         desc: `Enjoy free shipping on orders over $${FREE_SHIPPING_THRESHOLD}. We deliver across Lebanon with fast and reliable service.` },
   { icon: Clock,      title: "Fast Delivery",         desc: "Quick processing and delivery so you can enjoy your new watch as soon as possible." },
   { icon: ImagePlay,  title: "Real Photos & Videos",  desc: "We provide actual size information, real photos, and videos for any item — so you know exactly what you are getting before you buy." },
   { icon: Star,       title: "Best Prices",           desc: "Competitive pricing on all our watches. Get the best value for authentic SKMEI timepieces in Lebanon." },

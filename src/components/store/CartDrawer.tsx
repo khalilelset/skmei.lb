@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X, ShoppingBag, Minus, Plus, Trash2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
-import { formatPrice, getTierTotal } from "@/lib/utils";
+import { formatPrice, getTierTotal, FREE_SHIPPING_THRESHOLD, SHIPPING_COST, getBrandBundleSavings, type BrandWithTiers } from "@/lib/utils";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -20,6 +20,12 @@ export default function CartDrawer() {
     getTotalPrice,
     getTotalItems,
   } = useCartStore();
+
+  const [brands, setBrands] = useState<BrandWithTiers[]>([]);
+
+  useEffect(() => {
+    fetch('/api/brands').then(r => r.json()).then(d => setBrands(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -200,12 +206,14 @@ export default function CartDrawer() {
                 {/* Free shipping progress */}
                 {(() => {
                   const subtotal = getTotalPrice();
-                  const shipping = subtotal >= 50 ? 0 : 4;
-                  const remaining = 50 - subtotal;
-                  const progress = Math.min((subtotal / 50) * 100, 100);
+                  const bundleSavings = getBrandBundleSavings(items, brands);
+                  const effectiveSubtotal = subtotal - bundleSavings;
+                  const shipping = effectiveSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+                  const remaining = FREE_SHIPPING_THRESHOLD - effectiveSubtotal;
+                  const progress = Math.min((effectiveSubtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
                   return (
                     <>
-                      {subtotal < 50 ? (
+                      {effectiveSubtotal < FREE_SHIPPING_THRESHOLD ? (
                         <div>
                           <p className="text-xs text-white/40 mb-2">
                             <span className="text-brand-red font-bold">{formatPrice(remaining)}</span> away from free shipping
@@ -229,6 +237,12 @@ export default function CartDrawer() {
                           <span>Subtotal</span>
                           <span>{formatPrice(subtotal)}</span>
                         </div>
+                        {bundleSavings > 0 && (
+                          <div className="flex justify-between text-sm text-green-400">
+                            <span>Bundle Offer</span>
+                            <span>−{formatPrice(bundleSavings)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-white/45 text-sm">
                           <span>Shipping</span>
                           <span className={shipping === 0 ? "text-brand-red font-semibold" : ""}>
@@ -237,7 +251,7 @@ export default function CartDrawer() {
                         </div>
                         <div className="flex justify-between font-black text-white text-base pt-2.5 border-t border-white/10">
                           <span>Total</span>
-                          <span>{formatPrice(subtotal + shipping)}</span>
+                          <span>{formatPrice(effectiveSubtotal + shipping)}</span>
                         </div>
                       </div>
                     </>

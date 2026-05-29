@@ -6,11 +6,12 @@ import Image from 'next/image';
 import {
   Box, Typography, Paper, Button, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, Grid, IconButton, Tooltip, Chip, CircularProgress, Slider, MenuItem,
+  ToggleButtonGroup, ToggleButton,
 } from '@mui/material';
 import {
   Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon,
   CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon,
-  VideoFile as VideoIcon,
+  VideoFile as VideoIcon, Link as LinkIcon,
 } from '@mui/icons-material';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
@@ -18,6 +19,7 @@ import { getCroppedImg } from '@/lib/cropImage';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import TableSkeleton from '@/components/admin/TableSkeleton';
 import MobileDialog from '@/components/admin/MobileDialog';
+import { uploadVideoDirectly } from '@/lib/uploadVideo';
 
 interface InstagramPost {
   id: string;
@@ -55,6 +57,7 @@ export default function InstagramPage() {
   // Upload states
   const [isUploadingImg, setIsUploadingImg] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [videoInputMode, setVideoInputMode] = useState<'upload' | 'url'>('upload');
   const imgFileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
 
@@ -74,9 +77,10 @@ export default function InstagramPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const openCreate = () => { setEditId(null); setForm(emptyForm); setDialogOpen(true); };
+  const openCreate = () => { setEditId(null); setForm(emptyForm); setVideoInputMode('upload'); setDialogOpen(true); };
   const openEdit = (post: InstagramPost) => {
     setEditId(post.id);
+    setVideoInputMode(post.videoSrc ? 'url' : 'upload');
     setForm({
       type: post.type,
       images: post.images ?? [],
@@ -103,17 +107,15 @@ export default function InstagramPage() {
     if (imgFileRef.current) imgFileRef.current.value = '';
   };
 
-  // Upload video directly (no crop)
+  // Upload video directly to Cloudinary (bypasses server — no timeout)
   const handleVideoSelected = async (file: File) => {
     if (videoFileRef.current) videoFileRef.current.value = '';
     setIsUploadingVideo(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      fd.append('slug', 'instagram');
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.url) setForm(f => ({ ...f, videoSrc: data.url }));
+      const url = await uploadVideoDirectly(file, 'instagram/videos');
+      setForm(f => ({ ...f, videoSrc: url }));
+    } catch (err) {
+      console.error('Instagram video upload failed:', err);
     } finally {
       setIsUploadingVideo(false);
     }
@@ -302,36 +304,80 @@ export default function InstagramPage() {
               </Grid>
             )}
 
-            {/* VIDEO upload */}
+            {/* VIDEO — URL or Upload */}
             {form.type === 'video' && (
               <>
                 <Grid size={12}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>Video File</Typography>
-                  {form.videoSrc ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 2, bgcolor: '#f9fafb' }}>
-                      <VideoIcon sx={{ color: '#ef4444' }} />
-                      <Typography variant="body2" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Video uploaded ✓</Typography>
-                      <IconButton size="small" onClick={() => setForm(f => ({ ...f, videoSrc: '' }))} sx={{ color: 'text.secondary' }}><CloseIcon fontSize="small" /></IconButton>
-                    </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>Video</Typography>
+                    <ToggleButtonGroup
+                      value={videoInputMode}
+                      exclusive
+                      size="small"
+                      onChange={(_, v) => { if (v) { setVideoInputMode(v); setForm(f => ({ ...f, videoSrc: '' })); } }}
+                    >
+                      <ToggleButton value="upload" sx={{ px: 1.5, fontSize: 11, gap: 0.5 }}>
+                        <UploadIcon sx={{ fontSize: 14 }} /> Upload
+                      </ToggleButton>
+                      <ToggleButton value="url" sx={{ px: 1.5, fontSize: 11, gap: 0.5 }}>
+                        <LinkIcon sx={{ fontSize: 14 }} /> URL
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+
+                  {videoInputMode === 'url' ? (
+                    /* ── URL input ── */
+                    <TextField
+                      fullWidth size="small" label="Video URL"
+                      placeholder="https://res.cloudinary.com/... or any direct video URL"
+                      value={form.videoSrc}
+                      onChange={(e) => setForm(f => ({ ...f, videoSrc: e.target.value }))}
+                      InputProps={{
+                        startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                        endAdornment: form.videoSrc ? (
+                          <IconButton size="small" onClick={() => setForm(f => ({ ...f, videoSrc: '' }))}><CloseIcon sx={{ fontSize: 16 }} /></IconButton>
+                        ) : null,
+                      }}
+                    />
                   ) : (
-                    <label style={{ cursor: isUploadingVideo ? 'default' : 'pointer', display: 'block' }}>
-                      <input ref={videoFileRef} type="file" accept="video/*" disabled={isUploadingVideo}
-                        style={{ display: 'none' }}
-                        onChange={(e) => { if (e.target.files?.[0]) handleVideoSelected(e.target.files[0]); }} />
-                      <Box sx={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        gap: 1, py: 3, border: '2px dashed', borderColor: 'rgba(0,0,0,0.2)', borderRadius: 2,
-                        color: 'text.secondary', transition: 'all 0.2s',
-                        '&:hover': { borderColor: '#ef4444', color: '#ef4444' },
-                      }}>
-                        {isUploadingVideo ? <CircularProgress size={24} sx={{ color: '#ef4444' }} /> : (
-                          <><VideoIcon sx={{ fontSize: 32 }} /><Typography variant="body2" fontWeight={600}>Click to upload video</Typography></>
-                        )}
+                    /* ── File upload ── */
+                    form.videoSrc ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 2, bgcolor: '#f9fafb' }}>
+                        <VideoIcon sx={{ color: '#ef4444' }} />
+                        <Typography variant="body2" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          Video uploaded ✓
+                        </Typography>
+                        <IconButton size="small" onClick={() => setForm(f => ({ ...f, videoSrc: '' }))} sx={{ color: 'text.secondary' }}>
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
                       </Box>
-                    </label>
+                    ) : (
+                      <label style={{ cursor: isUploadingVideo ? 'default' : 'pointer', display: 'block' }}>
+                        <input ref={videoFileRef} type="file" accept="video/*" disabled={isUploadingVideo}
+                          style={{ display: 'none' }}
+                          onChange={(e) => { if (e.target.files?.[0]) handleVideoSelected(e.target.files[0]); }} />
+                        <Box sx={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          gap: 1, py: 3, border: '2px dashed', borderColor: 'rgba(0,0,0,0.2)', borderRadius: 2,
+                          color: 'text.secondary', transition: 'all 0.2s',
+                          '&:hover': isUploadingVideo ? {} : { borderColor: '#ef4444', color: '#ef4444' },
+                        }}>
+                          {isUploadingVideo
+                            ? <CircularProgress size={24} sx={{ color: '#ef4444' }} />
+                            : <><VideoIcon sx={{ fontSize: 32 }} /><Typography variant="body2" fontWeight={600}>Click to upload video</Typography></>
+                          }
+                        </Box>
+                      </label>
+                    )
+                  )}
+
+                  {/* Preview when URL is set */}
+                  {form.videoSrc && (
+                    <Box sx={{ mt: 1.5, borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)', bgcolor: '#000', aspectRatio: '1 / 1', position: 'relative' }}>
+                      <video src={form.videoSrc} controls muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', objectFit: 'contain' }} />
+                    </Box>
                   )}
                 </Grid>
-
               </>
             )}
 

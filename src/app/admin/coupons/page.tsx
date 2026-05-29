@@ -17,6 +17,11 @@ import {
   IconButton,
   Tooltip,
   InputAdornment,
+  MenuItem,
+  OutlinedInput,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,6 +40,7 @@ interface Coupon {
   expires_at: string | null;
   max_discount: number | null;
   apply_on_sale: boolean;
+  brands: string[] | null;
   created_at: string;
 }
 
@@ -44,6 +50,7 @@ const emptyForm = {
   expires_at: '',
   max_discount: '',
   apply_on_sale: true,
+  brands: [] as string[],
 };
 
 function isExpired(coupon: Coupon): boolean {
@@ -56,6 +63,7 @@ function formatDate(iso: string) {
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [brandOptions, setBrandOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -69,6 +77,13 @@ export default function CouponsPage() {
   }, []);
 
   useEffect(() => { loadCoupons(); }, [loadCoupons]);
+
+  useEffect(() => {
+    fetch('/api/admin/brands')
+      .then(r => r.json())
+      .then((data: { name: string }[]) => setBrandOptions(Array.isArray(data) ? data.map(b => b.name) : []))
+      .catch(() => {});
+  }, []);
 
   const handleToggleActive = async (coupon: Coupon) => {
     await fetch(`/api/admin/coupons/${coupon.id}`, {
@@ -88,21 +103,30 @@ export default function CouponsPage() {
   const handleCreate = async () => {
     if (!form.code || !form.discount) return;
     setIsSaving(true);
-    await fetch('/api/admin/coupons', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code: form.code,
-        discount: Number(form.discount),
-        expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
-        max_discount: form.max_discount !== '' ? Number(form.max_discount) : null,
-        apply_on_sale: form.apply_on_sale,
-      }),
-    });
-    setIsSaving(false);
-    setDialogOpen(false);
-    setForm(emptyForm);
-    loadCoupons();
+    try {
+      const res = await fetch('/api/admin/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: form.code,
+          discount: Number(form.discount),
+          expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+          max_discount: form.max_discount !== '' ? Number(form.max_discount) : null,
+          apply_on_sale: form.apply_on_sale,
+          brands: form.brands.length > 0 ? form.brands : null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to create coupon: ${(err as { error?: string }).error ?? res.statusText}`);
+        return;
+      }
+      setDialogOpen(false);
+      setForm(emptyForm);
+      loadCoupons();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const activeCount  = coupons.filter((c) => c.active && !isExpired(c)).length;
@@ -138,6 +162,26 @@ export default function CouponsPage() {
           )}
         </Box>
       ),
+    },
+    {
+      id: 'brands',
+      label: 'Applies To',
+      minWidth: 130,
+      align: 'center',
+      sortable: false,
+      format: (value) => {
+        const brands = value as string[] | null;
+        if (!brands || brands.length === 0) {
+          return <Chip label="All Brands" size="small" sx={{ bgcolor: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 600, fontSize: 11 }} />;
+        }
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {brands.map(b => (
+              <Chip key={b} label={b} size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontWeight: 600, fontSize: 10 }} />
+            ))}
+          </Box>
+        );
+      },
     },
     {
       id: 'apply_on_sale',
@@ -252,7 +296,7 @@ export default function CouponsPage() {
           )}
         </Box>
         {isLoading ? (
-          <TableSkeleton columns={6} rows={6} />
+          <TableSkeleton columns={7} rows={6} />
         ) : (
           <DataTable columns={columns} data={coupons} emptyMessage="No coupons found. Create one above." />
         )}
@@ -310,6 +354,35 @@ export default function CouponsPage() {
               />
             </Grid>
 
+            {/* Brand restriction */}
+            <Grid size={12}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Applies To (brands)</InputLabel>
+                <Select
+                  multiple
+                  value={form.brands}
+                  onChange={(e) => setForm(f => ({ ...f, brands: e.target.value as string[] }))}
+                  input={<OutlinedInput label="Applies To (brands)" />}
+                  renderValue={(selected) =>
+                    (selected as string[]).length === 0
+                      ? <em style={{ color: '#9CA3AF' }}>All brands</em>
+                      : (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(selected as string[]).map(b => <Chip key={b} label={b} size="small" />)}
+                        </Box>
+                      )
+                  }
+                >
+                  {brandOptions.map(name => (
+                    <MenuItem key={name} value={name}>{name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Leave empty to apply to all brands
+              </Typography>
+            </Grid>
+
             {/* Expiry date */}
             <Grid size={12}>
               <TextField
@@ -360,6 +433,7 @@ export default function CouponsPage() {
                   <Typography variant="caption" color="text.secondary">
                     {form.discount}% off
                     {form.max_discount && ` · up to $${form.max_discount}`}
+                    {form.brands.length > 0 && ` · ${form.brands.join(', ')} only`}
                     {!form.apply_on_sale && ' · excludes sale items'}
                     {form.expires_at && ` · expires ${new Date(form.expires_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
                   </Typography>

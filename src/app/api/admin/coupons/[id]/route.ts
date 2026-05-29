@@ -16,6 +16,7 @@ export async function PATCH(
     if (body.expires_at !== undefined) update.expires_at = body.expires_at || null;
     if (body.max_discount !== undefined) update.max_discount = body.max_discount != null && body.max_discount !== '' ? Number(body.max_discount) : null;
     if (body.apply_on_sale !== undefined) update.apply_on_sale = body.apply_on_sale;
+    if (body.brands !== undefined) update.brands = Array.isArray(body.brands) && body.brands.length > 0 ? body.brands : null;
 
     const { error } = await supabaseServer
       .from('coupons')

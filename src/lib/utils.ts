@@ -5,6 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const FREE_SHIPPING_THRESHOLD = Number(process.env.NEXT_PUBLIC_FREE_SHIPPING_THRESHOLD ?? 50);
+
+/**
+ * Rewrites a Cloudinary video URL to add server-side transformations.
+ * Cloudinary resizes/re-encodes the video before delivery, so the browser
+ * only downloads a file sized for the actual display width — not the original.
+ *
+ * q_auto   — automatic quality (removes unnecessary data without visible loss)
+ * f_auto   — automatic format (WebM for Chrome/Firefox, MP4 for Safari)
+ * w_{max}  — cap pixel width so mobile devices get a small file
+ * vc_auto  — automatic video codec selection
+ */
+export function getOptimizedVideoUrl(url: string, maxWidth = 1280): string {
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+  // Insert transformation params after /upload/
+  return url.replace(
+    '/video/upload/',
+    `/video/upload/q_auto,f_auto,vc_auto,w_${maxWidth}/`,
+  );
+}
+export const SHIPPING_COST = Number(process.env.NEXT_PUBLIC_SHIPPING_COST ?? 4);
+
 export function formatPrice(price: number, currency: string = "USD"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -32,6 +54,24 @@ export function generateSlug(text: string): string {
     .replace(/\s+/g, "-")
     .replace(/--+/g, "-")
     .trim();
+}
+
+export function generateProductSlug(name: string, brandName?: string | null): string {
+  const slugify = (s: string) =>
+    s.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+
+  if (brandName) {
+    const brandLower = brandName.toLowerCase();
+    const nameLower = name.toLowerCase().trimStart();
+    if (nameLower.startsWith(brandLower)) {
+      const remainder = name.slice(brandName.length).trim();
+      if (remainder) {
+        const prefix = brandLower.slice(0, 2);
+        return `${prefix}-${slugify(remainder)}`;
+      }
+    }
+  }
+  return slugify(name);
 }
 
 export function calculateDiscount(
@@ -82,6 +122,41 @@ export function getTierTotal(
   }
   total += remaining * basePrice;
   return total;
+}
+
+export interface BrandWithTiers {
+  name: string;
+  defaults?: { priceTiers?: { qty: string; price: string }[] } | null;
+}
+
+export function getBrandBundleSavings(
+  items: { product: { brand?: string | null; price: number; priceTiers?: { qty: number; price: number }[] | null }; quantity: number }[],
+  brands: BrandWithTiers[],
+): number {
+  const groups = new Map<string, { totalQty: number; existingCost: number }>();
+  for (const item of items) {
+    const brandName = item.product.brand;
+    if (!brandName) continue;
+    const prev = groups.get(brandName) ?? { totalQty: 0, existingCost: 0 };
+    const itemCost = getTierTotal(item.product.priceTiers, item.product.price, item.quantity);
+    groups.set(brandName, { totalQty: prev.totalQty + item.quantity, existingCost: prev.existingCost + itemCost });
+  }
+
+  let savings = 0;
+  for (const [brandName, group] of groups) {
+    const brand = brands.find((b) => b.name === brandName);
+    const rawTiers = brand?.defaults?.priceTiers;
+    if (!rawTiers || rawTiers.length === 0) continue;
+    const tiers = rawTiers
+      .map((t) => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
+      .filter((t) => t.qty > 0 && t.price > 0);
+    if (tiers.length === 0) continue;
+    const avgPrice = group.existingCost / group.totalQty;
+    const bundleCost = getTierTotal(tiers, avgPrice, group.totalQty);
+    const saved = group.existingCost - bundleCost;
+    if (saved > 0) savings += saved;
+  }
+  return savings;
 }
 
 // Format a phone for display — handles DB local format ("70683611") and E.164 ("+96170683611")
