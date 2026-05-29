@@ -4,11 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { useProfileStore } from '@/store/profileStore';
-import { formatPrice, FREE_SHIPPING_THRESHOLD, SHIPPING_COST, getBrandBundleSavings, type BrandWithTiers } from '@/lib/utils';
+import { formatPrice, FREE_SHIPPING_THRESHOLD, SHIPPING_COST, getBrandBundleSavings, getTierTotal, type BrandWithTiers } from '@/lib/utils';
 import Image from 'next/image';
-import { ArrowLeft, User, MapPin, ShieldCheck, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, MapPin, ShieldCheck, Minus, Plus, Trash2, Tag, X } from 'lucide-react';
 import PhoneInputField, { isValidPhoneNumber } from '@/components/ui/PhoneInputField';
 import { formatPhoneDisplay } from '@/lib/utils';
+
+interface AppliedCoupon {
+  code: string;
+  discount: number;
+  maxDiscount: number | null;
+  applyOnSale: boolean;
+  brands: string[] | null;
+}
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -35,6 +43,10 @@ export default function WhatsAppCheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [brands, setBrands] = useState<BrandWithTiers[]>([]);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   useEffect(() => {
     fetch('/api/brands').then(r => r.json()).then(d => setBrands(Array.isArray(d) ? d : [])).catch(() => {});
@@ -43,8 +55,42 @@ export default function WhatsAppCheckoutPage() {
   const subtotal = getTotalPrice();
   const bundleSavings = getBrandBundleSavings(items, brands);
   const afterBundleSubtotal = subtotal - bundleSavings;
-  const shipping = afterBundleSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  const total = afterBundleSubtotal + shipping;
+
+  const applyableSubtotal = appliedCoupon
+    ? items.reduce((sum, i) => {
+        const inBrand = !appliedCoupon.brands || appliedCoupon.brands.includes(i.product.brand ?? '');
+        const isSale = !!i.product.originalPrice;
+        if (!inBrand) return sum;
+        if (!appliedCoupon.applyOnSale && isSale) return sum;
+        return sum + getTierTotal(i.product.priceTiers, i.product.price, i.quantity) + (i.selectedBox?.price ?? 0) * i.quantity;
+      }, 0)
+    : afterBundleSubtotal;
+
+  const rawDiscount = appliedCoupon ? (Math.max(0, applyableSubtotal) * appliedCoupon.discount) / 100 : 0;
+  const discountAmount = appliedCoupon?.maxDiscount ? Math.min(rawDiscount, appliedCoupon.maxDiscount) : rawDiscount;
+
+  const shipping = (afterBundleSubtotal - discountAmount) >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const total = afterBundleSubtotal - discountAmount + shipping;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode.trim(), cartTotal: afterBundleSubtotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCouponError(data.error ?? 'Invalid coupon'); return; }
+      setAppliedCoupon({ code: data.code, discount: data.discount, maxDiscount: data.maxDiscount ?? null, applyOnSale: data.applyOnSale ?? true, brands: data.brands ?? null });
+      setCouponCode('');
+    } catch { setCouponError('Failed to apply coupon'); }
+    finally { setIsApplyingCoupon(false); }
+  };
+
+  const removeCoupon = () => { setAppliedCoupon(null); setCouponError(''); };
 
   useEffect(() => {
     if (items.length === 0) router.replace('/store/products');
@@ -93,6 +139,7 @@ export default function WhatsAppCheckoutPage() {
     msg += `*Order Summary:*\n\n`;
     msg += `Subtotal: ${formatPrice(subtotal)}\n`;
     if (bundleSavings > 0) msg += `Bundle Offer: -${formatPrice(bundleSavings)}\n`;
+    if (appliedCoupon && discountAmount > 0) msg += `Coupon (${appliedCoupon.code}): -${formatPrice(discountAmount)}\n`;
     msg += `Shipping: ${shipping === 0 ? 'FREE' : formatPrice(shipping)}\n\n`;
     msg += `*Total: ${formatPrice(total)}*\n\n`;
     msg += `💰 Payment Method: Cash on Delivery\n\n`;
@@ -130,7 +177,8 @@ export default function WhatsAppCheckoutPage() {
         items: orderItems,
         subtotal,
         shipping,
-        discount: bundleSavings,
+        discount: bundleSavings + discountAmount,
+        coupon_code: appliedCoupon?.code ?? null,
         total,
         address: { full: formData.address },
         source: 'whatsapp',
@@ -222,6 +270,45 @@ export default function WhatsAppCheckoutPage() {
                   error={errors.phone}
                   variant="dark"
                 />
+              </div>
+
+              {/* Coupon */}
+              <div>
+                <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
+                  Coupon Code
+                </label>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-green-400" />
+                      <span className="text-sm font-bold text-green-400 tracking-widest">{appliedCoupon.code}</span>
+                      <span className="text-xs text-green-400/70">−{formatPrice(discountAmount)}</span>
+                    </div>
+                    <button type="button" onClick={removeCoupon} className="text-white/30 hover:text-white transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
+                      placeholder="Enter coupon code"
+                      className="flex-1 px-4 py-3 bg-white/6 border border-white/10 rounded-xl text-white placeholder:text-white/25 focus:outline-none focus:border-white/30 text-sm font-mono tracking-widest uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={isApplyingCoupon || !couponCode.trim()}
+                      className="px-4 py-3 bg-white/8 border border-white/10 rounded-xl text-white/70 hover:text-white hover:bg-white/12 transition text-sm font-bold disabled:opacity-40"
+                    >
+                      {isApplyingCoupon ? '…' : 'Apply'}
+                    </button>
+                  </div>
+                )}
+                {couponError && <p className="text-brand-red text-xs mt-1.5">{couponError}</p>}
               </div>
 
               {/* Submit */}
@@ -320,6 +407,12 @@ export default function WhatsAppCheckoutPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-green-400">Bundle Offer</span>
                     <span className="text-green-400 font-medium">−{formatPrice(bundleSavings)}</span>
+                  </div>
+                )}
+                {appliedCoupon && discountAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-400 flex items-center gap-1"><Tag className="w-3 h-3" />{appliedCoupon.code}</span>
+                    <span className="text-green-400 font-medium">−{formatPrice(discountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
