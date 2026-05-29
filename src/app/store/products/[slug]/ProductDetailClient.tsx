@@ -1562,7 +1562,7 @@ export default function ProductDetailClient({ slug }: Props) {
                   {specEntries.map(([key, value], index, arr) => (
                     <div
                       key={key}
-                      className={`flex px-6 py-4 ${index % 2 === 0 ? 'bg-white/3' : 'bg-transparent'} ${index < arr.length - 1 ? 'border-b border-white/6' : ''}`}
+                      className={`flex gap-2 px-6 py-4 ${index % 2 === 0 ? 'bg-white/3' : 'bg-transparent'} ${index < arr.length - 1 ? 'border-b border-white/6' : ''}`}
                     >
                       <dt className="font-bold text-sm text-white/55 w-1/3 border-l-2 border-brand-red/30 pl-3">
                         {SPEC_LABELS[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())}
