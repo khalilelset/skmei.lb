@@ -21,8 +21,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Allow the admin upload route to receive large video files (up to 200 MB)
-  middlewareClientMaxBodySize: '250mb',
   async headers() {
     return [
       {
