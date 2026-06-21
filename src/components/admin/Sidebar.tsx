@@ -29,6 +29,7 @@ import {
   Reviews as ReviewsIcon,
   Storefront as BrandIcon,
   CardGiftcard as BoxIcon,
+  WbSunny as SunglassesIcon,
 } from '@mui/icons-material';
 
 interface SidebarProps {
@@ -49,8 +50,9 @@ const NAV_GROUPS = [
     label: 'Commerce',
     items: [
       { text: 'Orders',     icon: <OrdersIcon fontSize="small" />,   href: '/admin/orders' },
-      { text: 'Products',   icon: <ProductsIcon fontSize="small" />, href: '/admin/products' },
-      { text: 'Customers',  icon: <CustomersIcon fontSize="small" />, href: '/admin/customers' },
+      { text: 'Products',    icon: <ProductsIcon fontSize="small" />,    href: '/admin/products' },
+      { text: 'Sunglasses', icon: <SunglassesIcon fontSize="small" />, href: '/admin/sunglasses' },
+      { text: 'Customers',  icon: <CustomersIcon fontSize="small" />,  href: '/admin/customers' },
       { text: 'Coupons',    icon: <CouponsIcon fontSize="small" />,  href: '/admin/coupons' },
       { text: 'Categories', icon: <CategoryIcon fontSize="small" />, href: '/admin/categories' },
       { text: 'Brands',     icon: <BrandIcon fontSize="small" />,    href: '/admin/brands' },

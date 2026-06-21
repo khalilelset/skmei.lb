@@ -48,7 +48,6 @@ export default function ProductDetailClient({ slug }: Props) {
   const [availableBoxes, setAvailableBoxes] = useState<Box[]>([]);
   const [selectedBox, setSelectedBox] = useState<Box | undefined>(undefined);
   const [boxImageLightbox, setBoxImageLightbox] = useState<string | null>(null);
-  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
   const [imgRetries, setImgRetries] = useState<Map<number, number>>(new Map());
   const [imgKeys, setImgKeys] = useState<Map<number, number>>(new Map());
   const [stickyVisible, setStickyVisible] = useState(false);
@@ -273,10 +272,6 @@ export default function ProductDetailClient({ slug }: Props) {
     );
   };
 
-  const handleImageLoad = (index: number) => {
-    setLoadedImages((prev) => new Set(prev).add(index));
-  };
-
   const handleImageError = (index: number) => {
     const retries = imgRetries.get(index) ?? 0;
     if (retries >= 8) return;
@@ -352,6 +347,7 @@ export default function ProductDetailClient({ slug }: Props) {
               src={product.images[0]}
               alt={product.name}
               fill
+              sizes="40px"
               className="object-cover"
             />
           </div>
@@ -478,7 +474,7 @@ export default function ProductDetailClient({ slug }: Props) {
               {/* Images Carousel */}
               <div className="flex flex-col gap-3">
                 <div
-                  className={`relative rounded-2xl overflow-hidden bg-[#0d0d0d] shadow-2xl ${
+                  className={`relative rounded-2xl overflow-hidden bg-[#0d0d0d] shadow-2xl aspect-square ${
                     product.brand?.toUpperCase() === "SKMEI"
                       ? "border border-brand-red/20 shadow-brand-red/10"
                       : "border border-white/8 shadow-black/60"
@@ -487,7 +483,7 @@ export default function ProductDetailClient({ slug }: Props) {
                   <div
                     ref={carouselRef}
                     onScroll={handleCarouselScroll}
-                    className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth aspect-square"
+                    className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory scroll-smooth"
                     style={{ scrollbarWidth: "none" }}
                   >
                     {product.images.filter(Boolean).map((image, index) => (
@@ -500,18 +496,14 @@ export default function ProductDetailClient({ slug }: Props) {
                           setLightboxOpen(true);
                         }}
                       >
-                        {!loadedImages.has(index) && (
-                          <div className="absolute inset-0 bg-white/5 animate-pulse rounded-lg" />
-                        )}
                         <Image
                           key={imgKeys.get(index) ?? 0}
                           src={image}
                           alt={`${product.name} ${index + 1}`}
                           fill
-                          sizes="(max-width: 1024px) 100vw, 50vw"
-                          className={`object-contain transition-opacity duration-300 ${loadedImages.has(index) ? 'opacity-100' : 'opacity-0'}`}
+                          sizes="(max-width: 1024px) calc(100vw - 2rem), (max-width: 1280px) calc(50vw - 3rem), 600px"
+                          className="object-contain"
                           priority={index === 0}
-                          onLoad={() => handleImageLoad(index)}
                           onError={() => handleImageError(index)}
                         />
                       </motion.div>
@@ -568,16 +560,13 @@ export default function ProductDetailClient({ slug }: Props) {
                             : "border-white/15 hover:border-brand-red/50 hover:scale-105"
                         }`}
                       >
-                        {!loadedImages.has(index) && (
-                          <div className="absolute inset-0 bg-white/5 animate-pulse" />
-                        )}
                         <Image
                           key={imgKeys.get(index) ?? 0}
                           src={image}
                           alt={`${product.name} ${index + 1}`}
                           fill
-                          className={`object-cover transition-opacity duration-300 ${loadedImages.has(index) ? 'opacity-100' : 'opacity-0'}`}
-                          onLoad={() => handleImageLoad(index)}
+                          sizes="80px"
+                          className="object-cover"
                           onError={() => handleImageError(index)}
                         />
                       </button>

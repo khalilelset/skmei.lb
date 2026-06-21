@@ -7,7 +7,7 @@ import { useCartStore } from "@/store/cartStore";
 import {
   ShoppingBag, Search, Menu, X, User, ChevronDown, ChevronRight,
   Timer, Clock, Activity, Watch, Gem, Truck, Shield,
-  Tag, Info, Phone,
+  Tag, Info, Phone, Glasses,
   Zap, Smartphone, Heart, Star, Package, Users, Sun, Flame, Award, Layers, Sparkles,
   type LucideProps,
 } from "lucide-react";
@@ -54,6 +54,11 @@ export default function Header() {
       submenu: dbCategories.length > 0
         ? dbCategories.map((c) => ({ name: c.name, href: `/store/products?category=${c.slug}`, slug: c.slug, icon: c.icon }))
         : undefined,
+    },
+    {
+      name: "Sunglasses",
+      href: "/store/sunglasses",
+      icon: <Glasses className="w-4 h-4" />,
     },
     ...staticNavigation,
   ];
@@ -250,7 +255,7 @@ export default function Header() {
             </button>
             <Link
               href="/account"
-              className="hidden lg:flex p-2 text-white/70 hover:text-white transition-colors"
+              className="flex p-2 text-white/70 hover:text-white transition-colors"
               aria-label="Account"
             >
               <User className="h-5 w-5 sm:h-6 sm:w-6" />

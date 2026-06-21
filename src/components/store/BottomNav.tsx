@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Home, Store, Search, ShoppingBag, User, X } from 'lucide-react';
+import { Home, Store, Search, ShoppingBag, Glasses, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 
 export default function BottomNav() {
@@ -104,6 +104,18 @@ export default function BottomNav() {
             <span className="text-[10px] font-medium">Search</span>
           </button>
 
+          {/* Sunglasses */}
+          <Link
+            href="/store/sunglasses"
+            onClick={() => { closeCart(); closeMobileMenu(); }}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+              isActive('/store/sunglasses') && !cartOpen ? 'text-brand-red' : 'text-white/40'
+            }`}
+          >
+            <Glasses className="w-6 h-6" />
+            <span className="text-[10px] font-medium">Glasses</span>
+          </Link>
+
           {/* Cart */}
           <button
             onClick={() => { closeMobileMenu(); cartOpen ? closeCart() : openCart(); }}
@@ -121,18 +133,6 @@ export default function BottomNav() {
             </div>
             <span className="text-[10px] font-medium">Cart</span>
           </button>
-
-          {/* Account */}
-          <Link
-            href="/account"
-            onClick={() => { closeCart(); closeMobileMenu(); }}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
-              isActive('/account') && !cartOpen ? 'text-brand-red' : 'text-white/40'
-            }`}
-          >
-            <User className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Account</span>
-          </Link>
 
         </div>
         {/* Safe area for iPhone notch */}

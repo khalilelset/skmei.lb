@@ -51,6 +51,39 @@ export interface ProductSpecifications {
   [key: string]: string;
 }
 
+// Sunglasses Types
+export interface SunglassesVariant {
+  id: string;
+  colorName: string;
+  colorHex: string;
+  images: string[];
+  videoUrl?: string | null;
+}
+
+export interface Sunglasses {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  brand: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  gender?: 'men' | 'women' | 'unisex';
+  isNew?: boolean;
+  isBestseller?: boolean;
+  onSale?: boolean;
+  isVisible?: boolean;
+  features: string[];
+  specifications: Record<string, string>;
+  variants: SunglassesVariant[];
+  videoUrl?: string | null;
+  rating: number;
+  reviewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Category Types
 export interface Category {
   id: string;

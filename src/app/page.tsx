@@ -7,9 +7,11 @@ import BestsellingSection from "@/components/store/BestsellingSection";
 import CategoryImage from "@/components/store/CategoryImage";
 import HomeProductGrid from "@/components/store/HomeProductGrid";
 import SectionHeader from "@/components/store/SectionHeader";
+import HomeSunglassesSection from "@/components/store/HomeSunglassesSection";
 import { supabaseServer } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ChevronRight, ArrowRight } from "lucide-react";
+import type { Sunglasses } from "@/types";
 
 const SITE_URL = "https://skmei.lb";
 
@@ -125,7 +127,7 @@ const faqSchema = {
 };
 
 export default async function HomePage() {
-  const [{ data: bestsellers }, { data: productRows }, { data: categoryRows }] = await Promise.all([
+  const [{ data: bestsellers }, { data: productRows }, { data: categoryRows }, { data: sunglassesRows }, { data: sectionSetting }] = await Promise.all([
     supabaseServer
       .from('products')
       .select('id, name, slug, price, original_price, images, category, brand, stock, rating, review_count, is_new, on_sale, is_bestseller, is_couple, colors')
@@ -139,7 +141,41 @@ export default async function HomePage() {
       .from('categories')
       .select('id, name, slug, image')
       .order('sort_order', { ascending: true }),
+    supabaseServer
+      .from('sunglasses')
+      .select('*')
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(4),
+    supabaseServer
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'sunglasses_section_visible')
+      .maybeSingle(),
   ]);
+
+  const homeSunglasses: Sunglasses[] = (sunglassesRows ?? []).map(row => ({
+    id:            row.id as string,
+    name:          row.name as string,
+    slug:          row.slug as string,
+    description:   (row.description as string) ?? '',
+    brand:         (row.brand as string) ?? '',
+    price:         Number(row.price),
+    originalPrice: row.original_price ? Number(row.original_price) : undefined,
+    stock:         Number(row.stock ?? 0),
+    gender:        row.gender as Sunglasses['gender'],
+    isNew:         row.is_new as boolean,
+    isBestseller:  row.is_bestseller as boolean,
+    onSale:        row.on_sale as boolean,
+    isVisible:     row.is_visible as boolean,
+    features:      Array.isArray(row.features) ? row.features as string[] : [],
+    specifications: (row.specifications as Record<string, string>) ?? {},
+    variants:      Array.isArray(row.variants) ? row.variants as Sunglasses['variants'] : [],
+    rating:        Number(row.rating ?? 0),
+    reviewCount:   Number(row.review_count ?? 0),
+    createdAt:     row.created_at as string,
+    updatedAt:     row.updated_at as string,
+  }));
 
   const featuredProducts = (bestsellers ?? []).map((row) => ({
     id: row.id as string,
@@ -272,6 +308,11 @@ export default async function HomePage() {
 
         </div>
       </section>}
+
+      {/* ── Sunglasses Section ── */}
+      {homeSunglasses.length > 0 && sectionSetting?.value !== false && (
+        <HomeSunglassesSection sunglasses={homeSunglasses} />
+      )}
 
       {/* Bestselling Timepieces */}
       <BestsellingSection products={featuredProducts} />

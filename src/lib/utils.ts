@@ -190,3 +190,35 @@ export function getOrderStatusColor(status: string): string {
   };
   return colors[status] || "bg-gray-100 text-gray-800";
 }
+
+// Maps a Sunglasses item + selected variant into the Product shape so the
+// existing cart, checkout, and order flow work with no changes.
+import type { Sunglasses, Product } from '@/types';
+export function sunglassesToProduct(sg: Sunglasses, variantId?: string): Product {
+  const variant = (variantId ? sg.variants.find(v => v.id === variantId) : null) ?? sg.variants[0];
+  return {
+    id: sg.id,
+    name: variant ? `${sg.name} – ${variant.colorName}` : sg.name,
+    slug: sg.slug,
+    description: sg.description,
+    price: sg.price,
+    originalPrice: sg.originalPrice,
+    images: variant?.images ?? [],
+    videoUrl: variant?.videoUrl ?? null,
+    category: 'sunglasses',
+    brand: sg.brand,
+    stock: sg.stock,
+    features: sg.features,
+    specifications: sg.specifications as import('@/types').ProductSpecifications,
+    gender: sg.gender,
+    isNew: sg.isNew,
+    onSale: sg.onSale,
+    isBestseller: sg.isBestseller,
+    colors: sg.variants.map(v => ({ name: v.colorName, hex: v.colorHex })),
+    rating: sg.rating,
+    reviewCount: sg.reviewCount,
+    sku: '',
+    createdAt: sg.createdAt,
+    updatedAt: sg.updatedAt,
+  };
+}

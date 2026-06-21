@@ -31,19 +31,17 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    loader: 'custom',
-    loaderFile: './src/lib/imageLoader.ts',
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },
-      // Supabase storage buckets
       { protocol: "https", hostname: "*.supabase.co" },
       { protocol: "https", hostname: "*.supabase.in" },
     ],
     formats: ['image/avif', 'image/webp'],
-    // Limit image sizes to prevent abuse
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Cache each optimized image for 30 days — stays within Vercel's 1K/month free limit
+    minimumCacheTTL: 2592000,
   },
   // Limit request body size (5mb default, we keep it)
   experimental: {

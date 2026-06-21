@@ -1,10 +1,13 @@
 "use client";
 
+"use client";
+
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/store/ProductCard";
+import SunglassesCard from "@/components/store/SunglassesCard";
 import { SkeletonGrid } from "@/components/store/SkeletonProductCard";
-import { Product, ProductFilters } from "@/types";
+import { Product, ProductFilters, Sunglasses } from "@/types";
 import { SlidersHorizontal, X, ChevronDown, ChevronRight, Home, Heart } from "lucide-react";
 import Link from "next/link";
 
@@ -19,6 +22,7 @@ function ProductsContent() {
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ id: string; slug: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sunglassesResults, setSunglassesResults] = useState<Sunglasses[]>([]);
   const [filters, setFilters] = useState<ProductFilters>({
     category: categoryParam || undefined,
     sortBy: "newest",
@@ -50,6 +54,15 @@ function ProductsContent() {
       })
       .catch(() => setIsLoading(false));
   }, []);
+
+  // When searching, also fetch matching sunglasses
+  useEffect(() => {
+    if (!searchParam) { setSunglassesResults([]); return; }
+    fetch(`/api/sunglasses?search=${encodeURIComponent(searchParam)}`)
+      .then(r => r.json())
+      .then(data => setSunglassesResults(Array.isArray(data) ? data : []))
+      .catch(() => setSunglassesResults([]));
+  }, [searchParam]);
 
   const filteredProducts = useMemo(() => {
     let result = [...allProducts];
@@ -411,6 +424,22 @@ function ProductsContent() {
                   <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
                   Clear Filters
                 </button>
+              </div>
+            )}
+
+            {/* Sunglasses search results — only shown when searching */}
+            {searchParam && sunglassesResults.length > 0 && (
+              <div className="mt-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px flex-1 bg-white/8" />
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40">Also in Sunglasses</p>
+                  <div className="h-px flex-1 bg-white/8" />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {sunglassesResults.map((sg) => (
+                    <SunglassesCard key={sg.id} sunglasses={sg} />
+                  ))}
+                </div>
               </div>
             )}
           </div>
