@@ -212,7 +212,7 @@ export default function SunglassesDetailClient({ sunglasses, related, initialCol
             >
               {images.map((img, index) => (
                 <div
-                  key={imgKeys.get(index) ?? index}
+                  key={`${index}-${imgKeys.get(index) ?? 0}`}
                   className="relative shrink-0 w-full aspect-square snap-start cursor-zoom-in bg-white/5"
                   onClick={() => { setSelectedImage(index); setLightboxOpen(true); }}
                 >

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -27,6 +27,14 @@ export default function HomeSunglassesSection({ sunglasses }: { sunglasses: Sung
   const isInView    = useInView(sectionRef, { once: true, amount: 0.1 });
   const [mouse, setMouse]           = useState({ x: 0.5, y: 0.5 });
   const [tickerPaused, setPaused]   = useState(false);
+  const [tickerDuration, setTickerDuration] = useState(36);
+
+  useEffect(() => {
+    const update = () => setTickerDuration(window.innerWidth < 640 ? 10 : 36);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
   const watermarkX       = useTransform(scrollYProgress, [0, 1], ['8%', '-18%']);
@@ -58,8 +66,9 @@ export default function HomeSunglassesSection({ sunglasses }: { sunglasses: Sung
         <div className="absolute inset-y-0 right-0 w-16 bg-linear-to-l from-[#0d0d0d] to-transparent z-10 pointer-events-none" />
 
         <motion.div
+          key={tickerDuration}
           animate={{ x: tickerPaused ? undefined : ['0%', '-50%'] }}
-          transition={{ duration: 36, ease: 'linear', repeat: Infinity, repeatType: 'loop' }}
+          transition={{ duration: tickerDuration, ease: 'linear', repeat: Infinity, repeatType: 'loop' }}
           className="flex items-center whitespace-nowrap py-4"
         >
           {TRACK.map((item, i) => (
