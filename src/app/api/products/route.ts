@@ -45,7 +45,9 @@ export async function GET(req: NextRequest) {
   if (filter === 'sale') query = query.not('original_price', 'is', null);
   if (search) query = query.ilike('name', `%${search}%`);
 
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -34,6 +34,7 @@ export async function PATCH(
     if (body.gender !== undefined) update.gender = body.gender ?? null;
     if (body.colors !== undefined) update.colors = body.colors ?? [];
     if (body.priceTiers !== undefined) update.price_tiers = body.priceTiers ?? null;
+    if (body.sortOrder !== undefined) update.sort_order = Number(body.sortOrder);
     if (body.rating !== undefined) update.rating = Number(body.rating);
     if (body.reviewCount !== undefined) update.review_count = Number(body.reviewCount);
     update.updated_at = new Date().toISOString();

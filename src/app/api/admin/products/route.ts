@@ -29,6 +29,7 @@ function mapProduct(row: Record<string, unknown>) {
     gender: row.gender,
     colors: row.colors ?? [],
     rating: Number(row.rating),
+    sortOrder: Number(row.sort_order ?? 0),
     reviewCount: row.review_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -39,6 +40,7 @@ export async function GET() {
   const { data, error } = await supabaseServer
     .from('products')
     .select('*')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -75,6 +77,7 @@ export async function POST(req: NextRequest) {
       gender: body.gender ?? null,
       colors: body.colors ?? [],
       price_tiers: body.priceTiers ?? null,
+      sort_order: Number(body.sortOrder ?? 0),
       rating: Number(body.rating ?? 0),
       review_count: Number(body.reviewCount ?? 0),
     };

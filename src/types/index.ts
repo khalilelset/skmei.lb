@@ -34,6 +34,7 @@ export interface Product {
   gender?: 'men' | 'women' | 'unisex';
   isCouple?: boolean;
   colors?: ProductColor[];
+  sortOrder?: number;
   rating: number;
   reviewCount: number;
   createdAt: string;

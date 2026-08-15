@@ -21,7 +21,7 @@ import {
   MenuItem,
   Slider,
 } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon, Favorite as CoupleIcon, DeleteOutline as DeleteIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon, Link as LinkIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, Close as CloseIcon, CloudUpload as UploadIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, FiberNew as NewIcon, LocalOffer as SaleIcon, Star as BestsellerIcon, VideoFile as VideoIcon, Favorite as CoupleIcon, DeleteOutline as DeleteIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon, Link as LinkIcon, DragIndicator as DragIndicatorIcon, Sort as SortIcon } from '@mui/icons-material';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Cropper from 'react-easy-crop';
@@ -55,7 +55,7 @@ const emptySpecs = {
 
 const emptyForm = {
   name: '', slug: '', description: '', price: '', costPrice: '', originalPrice: '',
-  category: '', stock: '', images: [] as string[],
+  category: '', stock: '', sortOrder: '0', images: [] as string[],
   features: [] as string[],
   videoUrl: '',
   brand: '',
@@ -104,6 +104,13 @@ export default function ProductsPage() {
   const [featureInput, setFeatureInput] = useState('');
   const [defaultsApplied, setDefaultsApplied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reorder mode
+  const [reorderMode, setReorderMode] = useState(false);
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   // Crop dialog state
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -179,6 +186,7 @@ export default function ProductsPage() {
       brand: product.brand ?? '',
       colors: product.colors ?? [],
       priceTiers: (product.priceTiers ?? []).map((t) => ({ qty: String(t.qty), price: String(t.price) })),
+      sortOrder: String(product.sortOrder ?? 0),
       specifications: { ...emptySpecs, ...(product.specifications ?? {}) },
     });
     setSubmitted(false);
@@ -276,6 +284,7 @@ export default function ProductsPage() {
         .filter((t) => t.qty && t.price && parseFloat(t.qty) > 0 && parseFloat(t.price) > 0)
         .map((t) => ({ qty: parseInt(t.qty), price: parseFloat(t.price) }))
         .sort((a, b) => a.qty - b.qty),
+      sortOrder: parseInt(form.sortOrder) || 0,
       specifications: form.specifications,
     };
 
@@ -305,6 +314,43 @@ export default function ProductsPage() {
     setIsDeleting(false);
     setDeleteConfirm(false);
     setDialogOpen(false);
+    loadProducts();
+  };
+
+  const enterReorderMode = () => {
+    const sorted = [...products].sort((a, b) => {
+      const ao = a.sortOrder ?? 0, bo = b.sortOrder ?? 0;
+      return ao !== bo ? ao - bo : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    setLocalProducts(sorted);
+    setReorderMode(true);
+  };
+
+  const exitReorderMode = () => {
+    setReorderMode(false);
+    setDragFrom(null);
+    setDragOver(null);
+  };
+
+  const handleReorderDrop = (toIndex: number) => {
+    if (dragFrom === null || dragFrom === toIndex) return;
+    const list = [...localProducts];
+    const [item] = list.splice(dragFrom, 1);
+    list.splice(toIndex, 0, item);
+    setLocalProducts(list);
+    setDragFrom(null);
+    setDragOver(null);
+  };
+
+  const handleSaveOrder = async () => {
+    setIsSavingOrder(true);
+    await fetch('/api/admin/products/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: localProducts.map((p, i) => ({ id: p.id, sortOrder: i })) }),
+    });
+    setIsSavingOrder(false);
+    setReorderMode(false);
     loadProducts();
   };
 
@@ -443,59 +489,128 @@ export default function ProductsPage() {
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>Products Management</Typography>
           <Typography variant="body2" color="text.secondary">Manage your watch inventory and catalog</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
-          sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, flexShrink: 0 }}>
-          Add Product
-        </Button>
-      </Box>
-
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <TextField
-          fullWidth
-          placeholder="Search by product name or SKU..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
-          sx={{ mb: 3 }}
-        />
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          {categoryOptions.map((cat) => (
-            <Chip
-              key={cat.value}
-              label={cat.label}
-              onClick={() => setSelectedCategory(cat.value)}
-              variant={selectedCategory === cat.value ? 'filled' : 'outlined'}
-              sx={{
-                bgcolor: selectedCategory === cat.value ? '#DC2626' : 'transparent',
-                color: selectedCategory === cat.value ? 'white' : 'text.primary',
-                borderColor: selectedCategory === cat.value ? '#DC2626' : 'rgba(0,0,0,0.23)',
-                '&:hover': { bgcolor: selectedCategory === cat.value ? '#B91C1C' : 'rgba(220,38,38,0.04)' },
-              }}
-            />
-          ))}
-        </Stack>
-      </Paper>
-
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            {isLoading ? 'Loading...' : `Showing ${filteredProducts.length} of ${products.length} products`}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {(['in-stock', 'low-stock', 'out-of-stock'] as const).map((s) => (
-              <Chip key={s} size="small"
-                label={`${products.filter(p => getStockLabel(p.stock) === s).length} ${s.replace('-', ' ')}`}
-                sx={{ bgcolor: stockColors[s].bg, color: stockColors[s].text, fontWeight: 600, textTransform: 'capitalize' }}
-              />
-            ))}
-          </Box>
+        <Box sx={{ display: 'flex', gap: 1.5, flexShrink: 0 }}>
+          {reorderMode ? (
+            <>
+              <Button variant="outlined" onClick={exitReorderMode}
+                sx={{ borderColor: 'rgba(0,0,0,0.23)', color: 'text.secondary' }}>
+                Cancel
+              </Button>
+              <Button variant="contained" onClick={handleSaveOrder} disabled={isSavingOrder}
+                sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+                {isSavingOrder ? 'Saving…' : 'Save Order'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outlined" startIcon={<SortIcon />} onClick={enterReorderMode}
+                sx={{ borderColor: '#DC2626', color: '#DC2626', '&:hover': { bgcolor: 'rgba(220,38,38,0.04)', borderColor: '#B91C1C' } }}>
+                Reorder
+              </Button>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
+                sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+                Add Product
+              </Button>
+            </>
+          )}
         </Box>
-        {isLoading ? (
-          <TableSkeleton columns={6} rows={8} />
-        ) : (
-          <DataTable columns={columns} data={filteredProducts} onRowClick={openEdit} emptyMessage="No products found." />
-        )}
       </Box>
+
+      {reorderMode ? (
+        <Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Drag rows to reorder. Products appear in this order in the store. Click <strong>Save Order</strong> when done.
+          </Typography>
+          <Paper sx={{ overflow: 'hidden' }}>
+            {localProducts.map((product, index) => (
+              <Box
+                key={product.id}
+                draggable
+                onDragStart={() => setDragFrom(index)}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(index); }}
+                onDrop={() => handleReorderDrop(index)}
+                onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 2,
+                  px: 2, py: 1.25,
+                  borderBottom: '1px solid rgba(0,0,0,0.06)',
+                  bgcolor: dragOver === index ? 'rgba(220,38,38,0.07)' : dragFrom === index ? 'rgba(0,0,0,0.03)' : 'white',
+                  cursor: 'grab', userSelect: 'none',
+                  transition: 'background-color 0.1s',
+                  '&:last-child': { borderBottom: 'none' },
+                }}
+              >
+                <DragIndicatorIcon sx={{ color: '#C4C4C4', flexShrink: 0 }} />
+                <Typography sx={{ width: 26, fontSize: 11, fontWeight: 700, color: '#C4C4C4', flexShrink: 0, textAlign: 'right' }}>
+                  {index + 1}
+                </Typography>
+                <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden', bgcolor: '#f3f4f6' }}>
+                  {product.images?.[0] && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={product.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )}
+                </Box>
+                <Typography sx={{ flex: 1, fontWeight: 600, fontSize: '0.875rem' }} noWrap>
+                  {product.name}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>
+                  {product.brand}
+                </Typography>
+              </Box>
+            ))}
+          </Paper>
+        </Box>
+      ) : (
+        <>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <TextField
+              fullWidth
+              placeholder="Search by product name or SKU..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
+              sx={{ mb: 3 }}
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {categoryOptions.map((cat) => (
+                <Chip
+                  key={cat.value}
+                  label={cat.label}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  variant={selectedCategory === cat.value ? 'filled' : 'outlined'}
+                  sx={{
+                    bgcolor: selectedCategory === cat.value ? '#DC2626' : 'transparent',
+                    color: selectedCategory === cat.value ? 'white' : 'text.primary',
+                    borderColor: selectedCategory === cat.value ? '#DC2626' : 'rgba(0,0,0,0.23)',
+                    '&:hover': { bgcolor: selectedCategory === cat.value ? '#B91C1C' : 'rgba(220,38,38,0.04)' },
+                  }}
+                />
+              ))}
+            </Stack>
+          </Paper>
+
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                {isLoading ? 'Loading...' : `Showing ${filteredProducts.length} of ${products.length} products`}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {(['in-stock', 'low-stock', 'out-of-stock'] as const).map((s) => (
+                  <Chip key={s} size="small"
+                    label={`${products.filter(p => getStockLabel(p.stock) === s).length} ${s.replace('-', ' ')}`}
+                    sx={{ bgcolor: stockColors[s].bg, color: stockColors[s].text, fontWeight: 600, textTransform: 'capitalize' }}
+                  />
+                ))}
+              </Box>
+            </Box>
+            {isLoading ? (
+              <TableSkeleton columns={6} rows={8} />
+            ) : (
+              <DataTable columns={columns} data={filteredProducts} onRowClick={openEdit} emptyMessage="No products found." />
+            )}
+          </Box>
+        </>
+      )}
 
       {/* Add / Edit Dialog */}
       <MobileDialog open={dialogOpen} onClose={() => { setDialogOpen(false); setSubmitted(false); }} maxWidth="sm" fullWidth>
@@ -512,6 +627,7 @@ export default function ProductsPage() {
               { label: 'My Cost Price ($)', key: 'costPrice', type: 'number' },
               { label: 'Original Price ($)', key: 'originalPrice', type: 'number' },
               { label: 'Stock *', key: 'stock', type: 'number', required: true },
+              { label: 'Display Order (0 = first)', key: 'sortOrder', type: 'number' },
             ] as { label: string; key: string; type?: string; required?: boolean }[]).map(({ label, key, type, required }) => {
               const val = form[key as keyof typeof emptyForm] as string;
               const hasError = submitted && !!required && !val.trim();
