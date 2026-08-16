@@ -27,6 +27,8 @@ import {
   CloudUpload as UploadIcon,
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
+  DragIndicator as DragIndicatorIcon,
+  Sort as SortIcon,
 } from '@mui/icons-material';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
@@ -93,6 +95,13 @@ export default function CategoriesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reorder mode
+  const [reorderMode, setReorderMode] = useState(false);
+  const [localCategories, setLocalCategories] = useState<Category[]>([]);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   // Crop state
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -185,6 +194,40 @@ export default function CategoriesPage() {
     load();
   };
 
+  const enterReorderMode = () => {
+    const sorted = [...categories].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    setLocalCategories(sorted);
+    setReorderMode(true);
+  };
+
+  const exitReorderMode = () => {
+    setReorderMode(false);
+    setDragFrom(null);
+    setDragOver(null);
+  };
+
+  const handleReorderDrop = (toIndex: number) => {
+    if (dragFrom === null || dragFrom === toIndex) return;
+    const list = [...localCategories];
+    const [item] = list.splice(dragFrom, 1);
+    list.splice(toIndex, 0, item);
+    setLocalCategories(list);
+    setDragFrom(null);
+    setDragOver(null);
+  };
+
+  const handleSaveOrder = async () => {
+    setIsSavingOrder(true);
+    await fetch('/api/admin/categories/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: localCategories.map((c, i) => ({ id: c.id, sortOrder: i })) }),
+    });
+    setIsSavingOrder(false);
+    setReorderMode(false);
+    load();
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this category? This cannot be undone.')) return;
     await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
@@ -271,26 +314,88 @@ export default function CategoriesPage() {
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Categories</Typography>
           <Typography variant="body1" color="text.secondary">Manage the watch categories shown in the store</Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={openCreate}
-          sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}
-        >
-          Add Category
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          {reorderMode ? (
+            <>
+              <Button variant="outlined" onClick={exitReorderMode}
+                sx={{ borderColor: 'rgba(0,0,0,0.23)', color: 'text.secondary' }}>
+                Cancel
+              </Button>
+              <Button variant="contained" onClick={handleSaveOrder} disabled={isSavingOrder}
+                sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+                {isSavingOrder ? 'Saving…' : 'Save Order'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outlined" startIcon={<SortIcon />} onClick={enterReorderMode}
+                sx={{ borderColor: '#DC2626', color: '#DC2626', '&:hover': { bgcolor: 'rgba(220,38,38,0.04)', borderColor: '#B91C1C' } }}>
+                Reorder
+              </Button>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}
+                sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>
+                Add Category
+              </Button>
+            </>
+          )}
+        </Box>
       </Box>
 
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {categories.length} categor{categories.length !== 1 ? 'ies' : 'y'} · sorted by Order field
-        </Typography>
-        {isLoading ? (
-          <TableSkeleton columns={5} rows={6} />
-        ) : (
-          <DataTable columns={columns} data={categories} emptyMessage="No categories yet. Add one above." />
-        )}
-      </Paper>
+      {reorderMode ? (
+        <Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Drag rows to reorder. Categories appear in this order in the store. Click <strong>Save Order</strong> when done.
+          </Typography>
+          <Paper sx={{ overflow: 'hidden' }}>
+            {localCategories.map((cat, index) => (
+              <Box
+                key={cat.id}
+                draggable
+                onDragStart={() => setDragFrom(index)}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(index); }}
+                onDrop={() => handleReorderDrop(index)}
+                onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 2,
+                  px: 2, py: 1.25,
+                  borderBottom: '1px solid rgba(0,0,0,0.06)',
+                  bgcolor: dragOver === index ? 'rgba(220,38,38,0.07)' : dragFrom === index ? 'rgba(0,0,0,0.03)' : 'white',
+                  cursor: 'grab', userSelect: 'none',
+                  transition: 'background-color 0.1s',
+                  '&:last-child': { borderBottom: 'none' },
+                }}
+              >
+                <DragIndicatorIcon sx={{ color: '#C4C4C4', flexShrink: 0 }} />
+                <Typography sx={{ width: 26, fontSize: 11, fontWeight: 700, color: '#C4C4C4', flexShrink: 0, textAlign: 'right' }}>
+                  {index + 1}
+                </Typography>
+                <Box sx={{ width: 36, height: 48, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: '#f3f4f6', position: 'relative' }}>
+                  {cat.image ? (
+                    <Image src={cat.image} alt="" fill style={{ objectFit: 'cover' }} sizes="36px" />
+                  ) : null}
+                </Box>
+                <Typography sx={{ flex: 1, fontWeight: 600, fontSize: '0.875rem', color: '#DC2626' }} noWrap>
+                  {cat.name}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0, fontFamily: 'monospace' }}>
+                  {cat.slug}
+                </Typography>
+              </Box>
+            ))}
+          </Paper>
+        </Box>
+      ) : (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {categories.length} categor{categories.length !== 1 ? 'ies' : 'y'} · sorted by Order field
+          </Typography>
+          {isLoading ? (
+            <TableSkeleton columns={5} rows={6} />
+          ) : (
+            <DataTable columns={columns} data={categories} emptyMessage="No categories yet. Add one above." />
+          )}
+        </Paper>
+      )}
 
       {/* Add / Edit Dialog */}
       <MobileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>

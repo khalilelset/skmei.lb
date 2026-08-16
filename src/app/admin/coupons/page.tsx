@@ -22,6 +22,7 @@ import {
   Select,
   FormControl,
   InputLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -68,6 +69,8 @@ export default function CouponsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Coupon | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadCoupons = useCallback(() => {
     fetch('/api/admin/coupons')
@@ -94,9 +97,12 @@ export default function CouponsPage() {
     loadCoupons();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this coupon? This cannot be undone.')) return;
-    await fetch(`/api/admin/coupons/${id}`, { method: 'DELETE' });
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    await fetch(`/api/admin/coupons/${deleteTarget.id}`, { method: 'DELETE' });
+    setIsDeleting(false);
+    setDeleteTarget(null);
     loadCoupons();
   };
 
@@ -256,11 +262,11 @@ export default function CouponsPage() {
       minWidth: 70,
       align: 'center',
       sortable: false,
-      format: (value) => (
+      format: (_, row: Coupon) => (
         <Tooltip title="Delete coupon">
           <IconButton
             size="small"
-            onClick={(e) => { e.stopPropagation(); handleDelete(value as string); }}
+            onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }}
             sx={{ color: '#EF4444', '&:hover': { bgcolor: 'rgba(239,68,68,0.1)' } }}
           >
             <DeleteIcon fontSize="small" />
@@ -452,6 +458,40 @@ export default function CouponsPage() {
             sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}
           >
             {isSaving ? 'Creating...' : 'Create Coupon'}
+          </Button>
+        </DialogActions>
+      </MobileDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <MobileDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>Delete Coupon</Typography>
+          <Button onClick={() => setDeleteTarget(null)} sx={{ minWidth: 'auto', color: 'text.secondary' }}>
+            <CloseIcon />
+          </Button>
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 1 }}>
+            Are you sure you want to delete coupon{' '}
+            <Typography component="span" sx={{ fontWeight: 700, color: '#DC2626', fontFamily: 'monospace', letterSpacing: 1 }}>
+              {deleteTarget?.code}
+            </Typography>
+            ?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteTarget(null)} disabled={isDeleting}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+            sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: '#DC2626' } }}
+          >
+            {isDeleting ? 'Deleting…' : 'Delete'}
           </Button>
         </DialogActions>
       </MobileDialog>

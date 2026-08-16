@@ -9,6 +9,7 @@ import {
 import {
   TrendingUp, TrendingDown, AttachMoney, LocalShipping,
   ShoppingCart, Inventory2, ArrowUpward, ArrowDownward,
+  Public, Devices, Language,
 } from '@mui/icons-material';
 import {
   ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid,
@@ -80,6 +81,13 @@ interface KPIs {
 interface CustomRangeKpis {
   totalRevenue: number; totalOrders: number; totalGrossProfit: number;
   grossMargin: number; avgOrderValue: number; deliveryRate: number;
+}
+
+interface VercelStats {
+  active:        boolean;
+  projectName?:  string;
+  dashboardUrl?: string | null;
+  speedUrl?:     string | null;
 }
 
 interface AnalyticsData {
@@ -284,6 +292,15 @@ export default function AnalyticsPage() {
   const [customTo,   setCustomTo]     = useState('');
   const [customKpis, setCustomKpis]   = useState<CustomRangeKpis | null>(null);
   const [customLoading, setCustomLoading] = useState(false);
+  const [vsData, setVsData] = useState<VercelStats | null>(null);
+  const [vsLoading, setVsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/admin/vercel-stats')
+      .then((r) => r.json())
+      .then((d) => { setVsData(d); setVsLoading(false); })
+      .catch(() => setVsLoading(false));
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/analytics')
@@ -963,6 +980,78 @@ export default function AnalyticsPage() {
           </Table>
         </Box>
       </Card>
+
+      {/* ── Visitor Analytics (Vercel) ──────────────────────────────────────── */}
+      <Box sx={{ mt: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Public sx={{ fontSize: 20, color: T.blue }} />
+          <Typography fontWeight={700} fontSize={15}>Visitor Analytics</Typography>
+          <Chip label="Vercel" size="small"
+            sx={{ height: 18, fontSize: 10, bgcolor: T.blueSoft, color: T.blue, fontWeight: 700, letterSpacing: 0.3 }} />
+        </Box>
+
+        <Card>
+          <Box sx={{ p: 3 }}>
+            {vsLoading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <CircularProgress size={16} thickness={4} sx={{ color: T.blue }} />
+                <Typography variant="caption" color="text.secondary">Checking status…</Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={3}>
+                {/* Analytics status */}
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: T.green, mt: 0.7, flexShrink: 0 }} />
+                    <Box>
+                      <Typography fontWeight={600} fontSize={13}>Web Analytics — Active</Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.3 }}>
+                        Tracking pageviews, visitors, countries, devices and browsers on every page of your store.
+                      </Typography>
+                      {vsData?.dashboardUrl && (
+                        <Box component="a" href={vsData.dashboardUrl} target="_blank" rel="noopener noreferrer"
+                          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 1,
+                            fontSize: 12, fontWeight: 600, color: T.blue, textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline' } }}>
+                          Open Analytics Dashboard →
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Speed Insights status */}
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: T.green, mt: 0.7, flexShrink: 0 }} />
+                    <Box>
+                      <Typography fontWeight={600} fontSize={13}>Speed Insights — Active</Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.3 }}>
+                        Measuring Core Web Vitals (LCP, FCP, CLS, TTFB) for real users on every page.
+                      </Typography>
+                      {vsData?.speedUrl && (
+                        <Box component="a" href={vsData.speedUrl} target="_blank" rel="noopener noreferrer"
+                          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 1,
+                            fontSize: 12, fontWeight: 600, color: T.blue, textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline' } }}>
+                          Open Speed Insights →
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <Divider />
+                  <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 1.5 }}>
+                    Vercel does not provide a public API to read analytics data — all visitor metrics (countries, devices, browsers, top pages) are available directly in the Vercel dashboard via the links above.
+                  </Typography>
+                </Grid>
+              </Grid>
+            )}
+          </Box>
+        </Card>
+      </Box>
 
     </Box>
   );

@@ -44,11 +44,19 @@ export async function uploadVideoDirectly(file: File, folder: string): Promise<s
     `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
     { method: 'POST', body: fd },
   );
-  const data = await uploadRes.json() as { secure_url?: string; resource_type?: string; error?: { message: string; http_code?: number } };
+
+  // Parse response safely — Cloudinary occasionally returns non-JSON on network errors
+  const rawText = await uploadRes.text();
+  let data: { secure_url?: string; resource_type?: string; error?: { message?: string; http_code?: number } | string } = {};
+  try { data = JSON.parse(rawText); } catch { /* not JSON */ }
+
   if (!uploadRes.ok || !data.secure_url) {
-    const msg = data.error?.message ?? 'Cloudinary upload failed';
-    console.error('[uploadVideo] Cloudinary error:', data.error);
-    throw new Error(msg);
+    const errObj  = data.error;
+    const cloudMsg = typeof errObj === 'string'
+      ? errObj
+      : errObj?.message ?? '';
+    const diagnosis = `HTTP ${uploadRes.status} — ${cloudMsg || rawText.slice(0, 300) || '(empty response)'}`;
+    throw new Error(`Cloudinary upload failed: ${diagnosis}`);
   }
-  return data.secure_url;
+  return data.secure_url as string;
 }

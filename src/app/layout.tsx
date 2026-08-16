@@ -3,6 +3,7 @@ import { Montserrat, Noto_Sans, Cinzel, Pacifico } from "next/font/google";
 import "./globals.css";
 import StoreLayout from "@/components/StoreLayout";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -253,6 +254,7 @@ export default function RootLayout({
       <body className="antialiased bg-brand-black font-montserrat" suppressHydrationWarning>
         <StoreLayout>{children}</StoreLayout>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
