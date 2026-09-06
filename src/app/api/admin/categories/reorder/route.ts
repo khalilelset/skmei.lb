@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +14,11 @@ export async function POST(req: NextRequest) {
       );
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Bust ISR cache so the website reflects the new order immediately
+    revalidatePath('/');
+    revalidatePath('/store/products');
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

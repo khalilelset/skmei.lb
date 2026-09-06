@@ -35,7 +35,11 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
     return () => clearInterval(timer);
   }, [inView, target]);
 
-  return <span ref={ref}>{count}{suffix}</span>;
+  return (
+    <span ref={ref} style={{ fontVariantNumeric: 'tabular-nums', display: 'inline-block', minWidth: '3ch' }}>
+      {count}{suffix}
+    </span>
+  );
 }
 
 const WORDS_LINE1 = ["Discover", "Your"];

@@ -15,6 +15,7 @@ import {
   ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, LabelList,
+  LineChart, Line,
 } from 'recharts';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -83,11 +84,13 @@ interface CustomRangeKpis {
   grossMargin: number; avgOrderValue: number; deliveryRate: number;
 }
 
-interface VercelStats {
-  active:        boolean;
-  projectName?:  string;
-  dashboardUrl?: string | null;
-  speedUrl?:     string | null;
+interface VisitorStats {
+  total:     number;
+  daily:     { date: string; pageviews: number }[];
+  countries: { key: string; count: number }[];
+  devices:   { key: string; count: number }[];
+  browsers:  { key: string; count: number }[];
+  pages:     { key: string; count: number }[];
 }
 
 interface AnalyticsData {
@@ -292,11 +295,11 @@ export default function AnalyticsPage() {
   const [customTo,   setCustomTo]     = useState('');
   const [customKpis, setCustomKpis]   = useState<CustomRangeKpis | null>(null);
   const [customLoading, setCustomLoading] = useState(false);
-  const [vsData, setVsData] = useState<VercelStats | null>(null);
+  const [vsData, setVsData] = useState<VisitorStats | null>(null);
   const [vsLoading, setVsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/admin/vercel-stats')
+    fetch('/api/admin/analytics/visitors')
       .then((r) => r.json())
       .then((d) => { setVsData(d); setVsLoading(false); })
       .catch(() => setVsLoading(false));
@@ -981,76 +984,180 @@ export default function AnalyticsPage() {
         </Box>
       </Card>
 
-      {/* ── Visitor Analytics (Vercel) ──────────────────────────────────────── */}
+      {/* ── Visitor Analytics ───────────────────────────────────────────────── */}
       <Box sx={{ mt: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <Public sx={{ fontSize: 20, color: T.blue }} />
           <Typography fontWeight={700} fontSize={15}>Visitor Analytics</Typography>
-          <Chip label="Vercel" size="small"
-            sx={{ height: 18, fontSize: 10, bgcolor: T.blueSoft, color: T.blue, fontWeight: 700, letterSpacing: 0.3 }} />
+          <Chip label="Last 30 days" size="small"
+            sx={{ height: 18, fontSize: 10, bgcolor: T.blueSoft, color: T.blue, fontWeight: 600 }} />
         </Box>
 
-        <Card>
-          <Box sx={{ p: 3 }}>
-            {vsLoading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <CircularProgress size={16} thickness={4} sx={{ color: T.blue }} />
-                <Typography variant="caption" color="text.secondary">Checking status…</Typography>
-              </Box>
-            ) : (
-              <Grid container spacing={3}>
-                {/* Analytics status */}
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: T.green, mt: 0.7, flexShrink: 0 }} />
-                    <Box>
-                      <Typography fontWeight={600} fontSize={13}>Web Analytics — Active</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.3 }}>
-                        Tracking pageviews, visitors, countries, devices and browsers on every page of your store.
-                      </Typography>
-                      {vsData?.dashboardUrl && (
-                        <Box component="a" href={vsData.dashboardUrl} target="_blank" rel="noopener noreferrer"
-                          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 1,
-                            fontSize: 12, fontWeight: 600, color: T.blue, textDecoration: 'none',
-                            '&:hover': { textDecoration: 'underline' } }}>
-                          Open Analytics Dashboard →
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
-                </Grid>
+        {vsLoading && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 3 }}>
+            <CircularProgress size={18} thickness={4} sx={{ color: T.blue }} />
+            <Typography variant="caption" color="text.secondary">Loading visitor data…</Typography>
+          </Box>
+        )}
 
-                {/* Speed Insights status */}
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: T.green, mt: 0.7, flexShrink: 0 }} />
-                    <Box>
-                      <Typography fontWeight={600} fontSize={13}>Speed Insights — Active</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.3 }}>
-                        Measuring Core Web Vitals (LCP, FCP, CLS, TTFB) for real users on every page.
-                      </Typography>
-                      {vsData?.speedUrl && (
-                        <Box component="a" href={vsData.speedUrl} target="_blank" rel="noopener noreferrer"
-                          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 1,
-                            fontSize: 12, fontWeight: 600, color: T.blue, textDecoration: 'none',
-                            '&:hover': { textDecoration: 'underline' } }}>
-                          Open Speed Insights →
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
-                </Grid>
+        {!vsLoading && vsData && (() => {
+          const { total, daily, countries, devices, browsers, pages } = vsData;
+          const noData = total === 0;
 
-                <Grid size={{ xs: 12 }}>
-                  <Divider />
-                  <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 1.5 }}>
-                    Vercel does not provide a public API to read analytics data — all visitor metrics (countries, devices, browsers, top pages) are available directly in the Vercel dashboard via the links above.
+          if (noData) return (
+            <Card>
+              <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Language sx={{ color: 'text.disabled', fontSize: 28 }} />
+                <Box>
+                  <Typography fontWeight={600} fontSize={13}>No visits recorded yet</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Visitors will appear here automatically as people browse your store. Make sure the site is deployed.
                   </Typography>
+                </Box>
+              </Box>
+            </Card>
+          );
+
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const todayPv  = daily.find(d => d.date === todayStr)?.pageviews ?? 0;
+          const maxPv    = Math.max(...daily.map(d => d.pageviews), 1);
+
+          return (
+            <Box>
+              {/* KPI row */}
+              <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <KpiCard icon={<Public sx={{ fontSize: 18 }} />} label="Total Page Visits" value={total.toLocaleString()} accent={T.blue} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <KpiCard icon={<Language sx={{ fontSize: 18 }} />} label="Today's Visits" value={todayPv.toLocaleString()} accent={T.cyan} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <KpiCard icon={<Devices sx={{ fontSize: 18 }} />} label="Top Country" value={countries[0]?.key ?? '—'} accent={T.purple} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <KpiCard icon={<Language sx={{ fontSize: 18 }} />} label="Top Device" value={devices[0]?.key ?? '—'} accent={T.green} />
                 </Grid>
               </Grid>
-            )}
-          </Box>
-        </Card>
+
+              {/* Daily chart */}
+              <Card sx={{ mb: 2 }}>
+                <SectionHeader title="Daily Page Visits" sub="Page visits per day — last 30 days" />
+                <Box sx={{ px: { xs: 1, sm: 2 }, py: 2, height: 230 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={daily} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={T.grid} />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)}
+                        interval={Math.floor(daily.length / 6)} />
+                      <YAxis tick={{ fontSize: 10 }} allowDecimals={false} domain={[0, maxPv + 1]} />
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${T.border}` }}
+                        formatter={(v: any) => [Number(v).toLocaleString(), 'Page visits'] as any} />
+                      <Line type="monotone" dataKey="pageviews" stroke={T.blue} strokeWidth={2} dot={false} name="pageviews" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Card>
+
+              <Grid container spacing={2}>
+                {/* Countries */}
+                {countries.length > 0 && (
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Card sx={{ height: '100%' }}>
+                      <SectionHeader title="Countries" />
+                      <Box sx={{ p: 2 }}>
+                        {countries.slice(0, 8).map((r) => {
+                          const max = countries[0]?.count ?? 1;
+                          return (
+                            <Box key={r.key} sx={{ mb: 1.25 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
+                                <Typography variant="caption" fontWeight={500}>{r.key}</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>{r.count.toLocaleString()}</Typography>
+                              </Box>
+                              <LinearProgress variant="determinate" value={(r.count / max) * 100}
+                                sx={{ height: 5, borderRadius: 2, bgcolor: T.blueSoft, '& .MuiLinearProgress-bar': { bgcolor: T.blue } }} />
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Card>
+                  </Grid>
+                )}
+
+                {/* Devices */}
+                {devices.length > 0 && (
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Card sx={{ height: '100%' }}>
+                      <SectionHeader title="Devices" />
+                      <Box sx={{ px: 2, py: 1.5, height: 220 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            <Pie data={devices} dataKey="count" nameKey="key" cx="50%" cy="50%" outerRadius={75} innerRadius={40}
+                              label={(p: any) => `${p.key} ${((p.percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
+                              {devices.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                            </Pie>
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            <Tooltip formatter={(v: any) => [Number(v).toLocaleString(), 'visits'] as any} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </Box>
+                    </Card>
+                  </Grid>
+                )}
+
+                {/* Browsers */}
+                {browsers.length > 0 && (
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Card sx={{ height: '100%' }}>
+                      <SectionHeader title="Browsers" />
+                      <Box sx={{ p: 2 }}>
+                        {browsers.slice(0, 8).map((r) => {
+                          const max = browsers[0]?.count ?? 1;
+                          return (
+                            <Box key={r.key} sx={{ mb: 1.25 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
+                                <Typography variant="caption" fontWeight={500}>{r.key}</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>{r.count.toLocaleString()}</Typography>
+                              </Box>
+                              <LinearProgress variant="determinate" value={(r.count / max) * 100}
+                                sx={{ height: 5, borderRadius: 2, bgcolor: 'rgba(16,185,129,0.10)', '& .MuiLinearProgress-bar': { bgcolor: T.green } }} />
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Card>
+                  </Grid>
+                )}
+
+                {/* Top Pages */}
+                {pages.length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Card>
+                      <SectionHeader title="Top Pages" />
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', borderColor: T.border, py: 1 }}>Page</TableCell>
+                            <TableCell align="right" sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', borderColor: T.border, py: 1 }}>Visits</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {pages.map((r) => (
+                            <TableRow key={r.key} hover>
+                              <TableCell sx={{ fontSize: 12, borderColor: T.border, py: 0.75, fontFamily: 'monospace' }}>{r.key}</TableCell>
+                              <TableCell align="right" sx={{ fontSize: 12, borderColor: T.border, py: 0.75, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{r.count.toLocaleString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Card>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          );
+        })()}
       </Box>
 
     </Box>

@@ -218,13 +218,19 @@ export default function CategoriesPage() {
 
   const handleSaveOrder = async () => {
     setIsSavingOrder(true);
-    await fetch('/api/admin/categories/reorder', {
+    const res = await fetch('/api/admin/categories/reorder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: localCategories.map((c, i) => ({ id: c.id, sortOrder: i })) }),
     });
     setIsSavingOrder(false);
+    if (!res.ok) {
+      alert('Failed to save order. Make sure the sort_order column exists in your categories table.');
+      return;
+    }
     setReorderMode(false);
+    // Update local state immediately so the table reflects new order without a full reload
+    setCategories(localCategories.map((c, i) => ({ ...c, sort_order: i })));
     load();
   };
 

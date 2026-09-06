@@ -9,6 +9,7 @@ import FloatingWhatsApp from '@/components/store/FloatingWhatsApp';
 import BottomNav from '@/components/store/BottomNav';
 import CartToast from '@/components/store/CartToast';
 import { useCartStore } from '@/store/cartStore';
+import PageviewTracker from '@/components/store/PageviewTracker';
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   // Rehydrate cart from localStorage after mount (prevents SSR hydration mismatch)
@@ -33,6 +34,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         {/* Spacer so footer is not hidden behind the fixed BottomNav on mobile */}
         <div className="h-16 bg-brand-black lg:hidden" />
       </div>
+      <PageviewTracker />
       <CartDrawer />
       <FloatingWhatsApp />
       <BottomNav />

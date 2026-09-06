@@ -30,6 +30,7 @@ export async function GET() {
     error = r3.error;
   }
 
-  if (error) return NextResponse.json([], { status: 200 });
-  return NextResponse.json(data ?? []);
+  const headers = { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' };
+  if (error) return NextResponse.json([], { status: 200, headers });
+  return NextResponse.json(data ?? [], { headers });
 }

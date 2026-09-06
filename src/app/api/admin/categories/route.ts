@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 
 export async function GET() {
-  const { data, error } = await supabaseServer
+  let { data, error } = await supabaseServer
     .from('categories')
     .select('*')
     .order('sort_order', { ascending: true });
+
+  // Fallback if sort_order column doesn't exist yet
+  if (error) {
+    const r2 = await supabaseServer
+      .from('categories')
+      .select('*')
+      .order('created_at', { ascending: true });
+    data  = r2.data;
+    error = r2.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data ?? []);

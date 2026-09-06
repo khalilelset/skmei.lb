@@ -13,6 +13,8 @@ import Link from "next/link";
 import { ChevronRight, ArrowRight } from "lucide-react";
 import type { Sunglasses } from "@/types";
 
+export const revalidate = 60; // rebuild cached page every 60 seconds (ISR)
+
 const SITE_URL = "https://skmei.lb";
 
 export const metadata: Metadata = {

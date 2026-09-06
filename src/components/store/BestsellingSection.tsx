@@ -30,7 +30,7 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const { addItem } = useCartStore();
   const showToast = useToastStore((s) => s.show);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -82,6 +82,7 @@ function ProductCard({ product }: { product: Product }) {
           src={product.images[0]}
           alt={product.name}
           fill
+          priority={priority}
           className={`object-cover group-hover:scale-105 transition-all duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
           sizes="(max-width: 640px) 70vw, (max-width: 1024px) 33vw, 25vw"
           onLoad={() => setImgLoaded(true)}
@@ -193,7 +194,7 @@ export default function BestsellingSection({ products }: Props) {
               viewport={{ once: true, amount: 0.1 }}
               className="shrink-0 w-64 sm:w-auto sm:flex sm:flex-col"
             >
-              <ProductCard product={product} />
+              <ProductCard product={product} priority={i < 4} />
             </motion.div>
           ))}
         </div>
