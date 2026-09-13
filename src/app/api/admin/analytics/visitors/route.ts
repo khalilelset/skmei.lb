@@ -1,13 +1,70 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 
-export async function GET() {
-  const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+type Period = 'today' | 'this_week' | 'last_week' | 'this_month' | 'last_30_days';
+
+function getDateRange(period: Period): { from: Date; to: Date } {
+  const now = new Date();
+
+  switch (period) {
+    case 'today': {
+      const from = new Date(now);
+      from.setHours(0, 0, 0, 0);
+      return { from, to: now };
+    }
+    case 'this_week': {
+      const from = new Date(now);
+      const day = from.getDay();
+      from.setDate(from.getDate() - (day === 0 ? 6 : day - 1));
+      from.setHours(0, 0, 0, 0);
+      return { from, to: now };
+    }
+    case 'last_week': {
+      const from = new Date(now);
+      const day = from.getDay();
+      from.setDate(from.getDate() - (day === 0 ? 6 : day - 1) - 7);
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(from);
+      to.setDate(from.getDate() + 6);
+      to.setHours(23, 59, 59, 999);
+      return { from, to };
+    }
+    case 'this_month': {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from, to: now };
+    }
+    case 'last_30_days':
+    default: {
+      const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      return { from, to: now };
+    }
+  }
+}
+
+function fillDays(from: Date, to: Date, dailyMap: Record<string, number>): { date: string; pageviews: number }[] {
+  const days: { date: string; pageviews: number }[] = [];
+  const cur = new Date(from);
+  cur.setHours(0, 0, 0, 0);
+  const end = new Date(to);
+  end.setHours(23, 59, 59, 999);
+
+  while (cur <= end) {
+    const date = cur.toISOString().slice(0, 10);
+    days.push({ date, pageviews: dailyMap[date] ?? 0 });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return days;
+}
+
+export async function GET(req: NextRequest) {
+  const period = (req.nextUrl.searchParams.get('period') ?? 'last_30_days') as Period;
+  const { from, to } = getDateRange(period);
 
   const { data, error } = await supabaseServer
     .from('pageviews')
     .select('url, country, device, browser, created_at')
-    .gte('created_at', from)
+    .gte('created_at', from.toISOString())
+    .lte('created_at', to.toISOString())
     .order('created_at', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -32,23 +89,20 @@ export async function GET() {
     pageMap[page] = (pageMap[page] ?? 0) + 1;
   }
 
-  // Fill every day of the last 30 days (zeros for days with no data)
-  const daily: { date: string; pageviews: number }[] = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    const date = d.toISOString().slice(0, 10);
-    daily.push({ date, pageviews: dailyMap[date] ?? 0 });
-  }
+  const daily = fillDays(from, to, dailyMap);
 
   const rank = (map: Record<string, number>) =>
     Object.entries(map).sort((a, b) => b[1] - a[1]).map(([key, count]) => ({ key, count }));
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   return NextResponse.json({
-    total:     rows.length,
+    total:       rows.length,
+    todayVisits: dailyMap[todayStr] ?? 0,
     daily,
-    countries: rank(countryMap),
-    devices:   rank(deviceMap),
-    browsers:  rank(browserMap),
-    pages:     rank(pageMap).slice(0, 10),
+    countries:   rank(countryMap),
+    devices:     rank(deviceMap),
+    browsers:    rank(browserMap),
+    pages:       rank(pageMap).slice(0, 10),
   });
 }

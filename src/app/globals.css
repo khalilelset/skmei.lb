@@ -302,6 +302,15 @@ body {
   box-shadow: 0 0 8px var(--brand-red), 0 0 16px var(--brand-red-glow);
 }
 
+/* ── Category carousel slide-in ─────────────────────────────────────────── */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+.animate-slide-in {
+  animation: slide-in 0.28s ease-out both;
+}
+
 /* Animation for mobile performance */
 @media (prefers-reduced-motion: reduce) {
   *,

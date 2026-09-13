@@ -84,13 +84,24 @@ interface CustomRangeKpis {
   grossMargin: number; avgOrderValue: number; deliveryRate: number;
 }
 
+type VsPeriod = 'today' | 'this_week' | 'last_week' | 'this_month' | 'last_30_days';
+
+const VS_PERIODS: { value: VsPeriod; label: string }[] = [
+  { value: 'today',       label: 'Today'       },
+  { value: 'this_week',   label: 'This week'   },
+  { value: 'last_week',   label: 'Last week'   },
+  { value: 'this_month',  label: 'This month'  },
+  { value: 'last_30_days',label: 'Last 30 days'},
+];
+
 interface VisitorStats {
-  total:     number;
-  daily:     { date: string; pageviews: number }[];
-  countries: { key: string; count: number }[];
-  devices:   { key: string; count: number }[];
-  browsers:  { key: string; count: number }[];
-  pages:     { key: string; count: number }[];
+  total:       number;
+  todayVisits: number;
+  daily:       { date: string; pageviews: number }[];
+  countries:   { key: string; count: number }[];
+  devices:     { key: string; count: number }[];
+  browsers:    { key: string; count: number }[];
+  pages:       { key: string; count: number }[];
 }
 
 interface AnalyticsData {
@@ -297,13 +308,16 @@ export default function AnalyticsPage() {
   const [customLoading, setCustomLoading] = useState(false);
   const [vsData, setVsData] = useState<VisitorStats | null>(null);
   const [vsLoading, setVsLoading] = useState(true);
+  const [vsPeriod, setVsPeriod] = useState<VsPeriod>('last_30_days');
 
   useEffect(() => {
-    fetch('/api/admin/analytics/visitors')
+    setVsLoading(true);
+    setVsData(null);
+    fetch(`/api/admin/analytics/visitors?period=${vsPeriod}`)
       .then((r) => r.json())
       .then((d) => { setVsData(d); setVsLoading(false); })
       .catch(() => setVsLoading(false));
-  }, []);
+  }, [vsPeriod]);
 
   useEffect(() => {
     fetch('/api/admin/analytics')
@@ -986,11 +1000,29 @@ export default function AnalyticsPage() {
 
       {/* ── Visitor Analytics ───────────────────────────────────────────────── */}
       <Box sx={{ mt: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
           <Public sx={{ fontSize: 20, color: T.blue }} />
           <Typography fontWeight={700} fontSize={15}>Visitor Analytics</Typography>
-          <Chip label="Last 30 days" size="small"
-            sx={{ height: 18, fontSize: 10, bgcolor: T.blueSoft, color: T.blue, fontWeight: 600 }} />
+          <Box sx={{ flexGrow: 1 }} />
+          {/* Period selector */}
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+            {VS_PERIODS.map((p) => (
+              <Chip
+                key={p.value}
+                label={p.label}
+                size="small"
+                onClick={() => setVsPeriod(p.value)}
+                sx={{
+                  height: 24, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  bgcolor: vsPeriod === p.value ? T.blue : 'transparent',
+                  color: vsPeriod === p.value ? 'white' : 'text.secondary',
+                  border: `1px solid ${vsPeriod === p.value ? T.blue : T.border}`,
+                  '&:hover': { bgcolor: vsPeriod === p.value ? T.blue : T.blueSoft, color: vsPeriod === p.value ? 'white' : T.blue },
+                  transition: 'all 0.15s',
+                }}
+              />
+            ))}
+          </Box>
         </Box>
 
         {vsLoading && (
@@ -1001,36 +1033,35 @@ export default function AnalyticsPage() {
         )}
 
         {!vsLoading && vsData && (() => {
-          const { total, daily, countries, devices, browsers, pages } = vsData;
+          const { total, todayVisits, daily, countries, devices, browsers, pages } = vsData;
           const noData = total === 0;
+          const periodLabel = VS_PERIODS.find(p => p.value === vsPeriod)?.label ?? 'Last 30 days';
 
           if (noData) return (
             <Card>
               <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Language sx={{ color: 'text.disabled', fontSize: 28 }} />
                 <Box>
-                  <Typography fontWeight={600} fontSize={13}>No visits recorded yet</Typography>
+                  <Typography fontWeight={600} fontSize={13}>No visits for this period</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Visitors will appear here automatically as people browse your store. Make sure the site is deployed.
+                    No page views recorded for <strong>{periodLabel}</strong>. Try a wider period or check that the site is deployed.
                   </Typography>
                 </Box>
               </Box>
             </Card>
           );
 
-          const todayStr = new Date().toISOString().slice(0, 10);
-          const todayPv  = daily.find(d => d.date === todayStr)?.pageviews ?? 0;
-          const maxPv    = Math.max(...daily.map(d => d.pageviews), 1);
+          const maxPv = Math.max(...daily.map(d => d.pageviews), 1);
 
           return (
             <Box>
               {/* KPI row */}
               <Grid container spacing={1.5} sx={{ mb: 2 }}>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <KpiCard icon={<Public sx={{ fontSize: 18 }} />} label="Total Page Visits" value={total.toLocaleString()} accent={T.blue} />
+                  <KpiCard icon={<Public sx={{ fontSize: 18 }} />} label={`Page Visits · ${periodLabel}`} value={total.toLocaleString()} accent={T.blue} />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <KpiCard icon={<Language sx={{ fontSize: 18 }} />} label="Today's Visits" value={todayPv.toLocaleString()} accent={T.cyan} />
+                  <KpiCard icon={<Language sx={{ fontSize: 18 }} />} label="Today's Visits" value={todayVisits.toLocaleString()} accent={T.cyan} />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
                   <KpiCard icon={<Devices sx={{ fontSize: 18 }} />} label="Top Country" value={countries[0]?.key ?? '—'} accent={T.purple} />
@@ -1042,13 +1073,14 @@ export default function AnalyticsPage() {
 
               {/* Daily chart */}
               <Card sx={{ mb: 2 }}>
-                <SectionHeader title="Daily Page Visits" sub="Page visits per day — last 30 days" />
+                <SectionHeader title="Page Visits" sub={`Visits per day — ${periodLabel}`} />
                 <Box sx={{ px: { xs: 1, sm: 2 }, py: 2, height: 230 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={daily} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={T.grid} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)}
-                        interval={Math.floor(daily.length / 6)} />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }}
+                        tickFormatter={(v: string) => daily.length <= 7 ? v.slice(5) : v.slice(5)}
+                        interval={daily.length <= 7 ? 0 : Math.floor(daily.length / 6)} />
                       <YAxis tick={{ fontSize: 10 }} allowDecimals={false} domain={[0, maxPv + 1]} />
                       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${T.border}` }}

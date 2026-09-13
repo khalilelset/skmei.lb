@@ -4,13 +4,13 @@ import BrandStorySection from "@/components/store/BrandStorySection";
 import InstagramFeed from "@/components/store/InstagramFeed";
 import FeedbackSection from "@/components/store/FeedbackSection";
 import BestsellingSection from "@/components/store/BestsellingSection";
-import CategoryImage from "@/components/store/CategoryImage";
+import CategoryCarousel from "@/components/store/CategoryCarousel";
 import HomeProductGrid from "@/components/store/HomeProductGrid";
 import SectionHeader from "@/components/store/SectionHeader";
 import HomeSunglassesSection from "@/components/store/HomeSunglassesSection";
 import { supabaseServer } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ChevronRight, ArrowRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { Sunglasses } from "@/types";
 
 export const revalidate = 60; // rebuild cached page every 60 seconds (ISR)
@@ -248,54 +248,7 @@ export default async function HomePage() {
             />
           </div>
 
-          {/* Cards — horizontal scroll on mobile, 5-col grid on desktop */}
-          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {categories.map((category, idx) => (
-              <Link
-                key={category.id}
-                href={`/store/products?category=${category.slug}`}
-                className="group relative shrink-0 w-52 sm:w-auto overflow-hidden rounded-2xl"
-              >
-                {/* Portrait image */}
-                <div className="relative aspect-3/4 overflow-hidden bg-[#111]">
-                  {category.image && (
-                    <CategoryImage
-                      src={category.image}
-                      alt={category.name}
-                      sizes="(max-width: 640px) 208px, 20vw"
-                      priority={idx < 3}
-                    />
-                  )}
-
-                  {/* Base dark gradient — always visible */}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-black/10" />
-
-                  {/* Hover red tint at top */}
-                  <div className="absolute inset-0 bg-linear-to-b from-brand-red/0 to-brand-red/0 group-hover:from-brand-red/25 group-hover:to-transparent transition-all duration-500" />
-
-                  {/* Border glow on hover */}
-                  <div className="absolute inset-0 rounded-2xl border border-white/8 group-hover:border-brand-red/60 transition-colors duration-400" />
-
-                  {/* Content pinned to bottom */}
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className="text-white/40 text-[9px] font-bold uppercase tracking-[0.3em] mb-1.5">
-                      {category.name.toUpperCase()} COLLECTION
-                    </p>
-                    <h3 className="text-white font-bold text-base sm:text-lg leading-tight group-hover:text-brand-red transition-colors duration-300">
-                      {category.name}
-                    </h3>
-                    {category.productCount > 0 && (
-                      <p className="text-white/40 text-xs mt-1">{category.productCount} Products</p>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-white/0 group-hover:text-white translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      Explore
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <CategoryCarousel categories={categories} />
 
           {/* View All */}
           <div className="mt-10 flex justify-center">
