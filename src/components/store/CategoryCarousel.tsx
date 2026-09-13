@@ -9,7 +9,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
-  image: string;
+  image: string | null;
   productCount: number;
 }
 
