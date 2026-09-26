@@ -1,35 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
-import { Readable } from 'stream';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { supabaseServer } from '@/lib/supabase/server';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-const MAX_IMAGE_SIZE = 8 * 1024 * 1024;    // 8 MB
-const MAX_VIDEO_SIZE = 200 * 1024 * 1024;  // 200 MB
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024;   // 8 MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;  // 50 MB (Supabase free-tier limit)
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
-
-// Stream-based upload — avoids base64 size inflation and Cloudinary's data-URI limit
-function streamUpload(
-  buffer: Buffer,
-  options: Record<string, unknown>,
-): Promise<{ secure_url: string; public_id: string }> {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      options as unknown as Parameters<typeof cloudinary.uploader.upload_stream>[0],
-      (error, result) => {
-        if (error) return reject(new Error(error.message ?? JSON.stringify(error)));
-        if (!result) return reject(new Error('No result from Cloudinary'));
-        resolve({ secure_url: result.secure_url, public_id: result.public_id });
-      },
-    );
-    Readable.from(buffer).pipe(stream);
-  });
-}
+const BUCKET = 'images'; // must be a public bucket in your Supabase project
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('admin_auth')?.value;
@@ -47,7 +23,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Strip codec parameters (e.g. "video/webm;codecs=vp9,opus" → "video/webm")
     const baseType = file.type.split(';')[0].trim().toLowerCase();
     const isImage = ALLOWED_IMAGE_TYPES.includes(baseType);
     const isVideo = baseType.startsWith('video/') && baseType.length > 6;
@@ -62,28 +37,39 @@ export async function POST(req: NextRequest) {
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: `File too large. Maximum size is ${isVideo ? '200' : '8'} MB.` },
+        { error: `File too large. Maximum size is ${isVideo ? '50' : '8'} MB.` },
         { status: 400 },
       );
     }
 
     const slug = SLUG_PATTERN.test(rawSlug) ? rawSlug : 'temp';
+    // Derive a clean extension from MIME type
+    const extMap: Record<string, string> = {
+      'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+      'image/gif': 'gif', 'image/avif': 'avif',
+    };
+    const ext = extMap[baseType] ?? baseType.split('/')[1] ?? 'bin';
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const storagePath = isVideo
+      ? `products/${slug}/videos/${unique}.${ext}`
+      : `products/${slug}/${unique}.${ext}`;
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const result = await streamUpload(buffer, {
-      folder: isVideo ? `products/${slug}/videos` : `products/${slug}`,
-      resource_type: isVideo ? 'video' : 'image',
-      ...(isImage ? { allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'] } : {}),
-    });
+    const { error: uploadError } = await supabaseServer.storage
+      .from(BUCKET)
+      .upload(storagePath, buffer, { contentType: baseType, upsert: false });
 
-    return NextResponse.json({ url: result.secure_url, public_id: result.public_id });
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    }
+
+    const { data: urlData } = supabaseServer.storage.from(BUCKET).getPublicUrl(storagePath);
+
+    return NextResponse.json({ url: urlData.publicUrl });
   } catch (err) {
-    const message = err instanceof Error
-      ? err.message
-      : typeof err === 'object' && err !== null
-        ? JSON.stringify(err)
-        : String(err);
-    console.error('Cloudinary upload error:', message);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Upload error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
