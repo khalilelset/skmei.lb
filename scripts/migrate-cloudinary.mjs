@@ -2,12 +2,16 @@
  * Cloudinary → New Cloudinary Migration Script
  *
  * Uses plain fetch for Supabase (no SDK) — works in any Node.js 18+.
+ * Downloads assets via the Cloudinary Admin API (api.cloudinary.com), which
+ * uses authenticated signed requests and bypasses the CDN 401 that disabled
+ * accounts return on res.cloudinary.com.
  *
  * Run from project root:
  *   node scripts/migrate-cloudinary.mjs NEW_CLOUD=xxx NEW_KEY=xxx NEW_SECRET=xxx
  */
 
 import { readFileSync } from 'fs';
+import { createHash } from 'crypto';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
 
@@ -38,6 +42,9 @@ const args = Object.fromEntries(
 const SUPABASE_URL    = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
 const SUPABASE_KEY    = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const OLD_CLOUD_NAME  = process.env.CLOUDINARY_CLOUD_NAME ?? '';
+// Old account credentials — same keys currently in .env.local
+const OLD_API_KEY     = process.env.CLOUDINARY_API_KEY ?? '';
+const OLD_API_SECRET  = process.env.CLOUDINARY_API_SECRET ?? '';
 const NEW_CLOUD_NAME  = args.NEW_CLOUD  ?? '';
 const NEW_API_KEY     = args.NEW_KEY    ?? '';
 const NEW_API_SECRET  = args.NEW_SECRET ?? '';
@@ -46,11 +53,13 @@ console.log('\n── Config check ───────────────
 console.log('Supabase URL   :', SUPABASE_URL || '❌ MISSING');
 console.log('Supabase key   :', SUPABASE_KEY ? `✓ (${SUPABASE_KEY.slice(0,12)}...)` : '❌ MISSING');
 console.log('Old cloud name :', OLD_CLOUD_NAME || '❌ MISSING');
+console.log('Old API key    :', OLD_API_KEY ? `✓ (${OLD_API_KEY.slice(0,8)}...)` : '❌ MISSING (set CLOUDINARY_API_KEY in .env.local)');
 console.log('New cloud name :', NEW_CLOUD_NAME || '❌ MISSING');
 console.log('─────────────────────────────────────────────────────\n');
 
 if (!SUPABASE_URL || !SUPABASE_KEY)   { console.error('❌ Supabase credentials missing in .env.local'); process.exit(1); }
 if (!OLD_CLOUD_NAME)                  { console.error('❌ CLOUDINARY_CLOUD_NAME missing in .env.local'); process.exit(1); }
+if (!OLD_API_KEY || !OLD_API_SECRET)  { console.error('❌ CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET missing in .env.local'); process.exit(1); }
 if (!NEW_CLOUD_NAME || !NEW_API_KEY || !NEW_API_SECRET) {
   console.error('❌ Usage: node scripts/migrate-cloudinary.mjs NEW_CLOUD=xxx NEW_KEY=xxx NEW_SECRET=xxx');
   process.exit(1);
@@ -80,44 +89,120 @@ async function sbUpdate(table, idCol, idVal, patch) {
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
 }
 
-// ─── Test connection ──────────────────────────────────────────────────────────
+// ─── Test Supabase connection ─────────────────────────────────────────────────
 try {
   console.log('Testing Supabase connection...');
   await sbSelect('products', 'id');
   console.log('✓ Supabase connected\n');
 } catch (e) {
   console.error('❌ Supabase connection failed:', e.message);
-  console.error('   Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local');
   process.exit(1);
 }
 
-// ─── Cloudinary setup ─────────────────────────────────────────────────────────
+// ─── Test old Cloudinary Admin API access ────────────────────────────────────
+{
+  console.log('Testing old Cloudinary Admin API...');
+  const ts = Math.floor(Date.now() / 1000);
+  const toSign = `timestamp=${ts}${OLD_API_SECRET}`;
+  const sig = createHash('sha1').update(toSign).digest('hex');
+  const qs = new URLSearchParams({ timestamp: String(ts), api_key: OLD_API_KEY, signature: sig });
+  try {
+    const r = await fetch(
+      `https://api.cloudinary.com/v1_1/${OLD_CLOUD_NAME}/resources/image?max_results=1&${qs}`,
+      { signal: AbortSignal.timeout(15000) }
+    );
+    if (r.ok) {
+      console.log('✓ Old Cloudinary Admin API is reachable — signed downloads will work\n');
+    } else {
+      const body = await r.text().catch(() => '');
+      console.warn(`⚠  Old Cloudinary Admin API returned HTTP ${r.status}: ${body.slice(0, 200)}`);
+      console.warn('   Signed downloads may fail. The account might be fully locked.\n');
+    }
+  } catch (e) {
+    console.warn(`⚠  Could not reach old Cloudinary Admin API: ${e.message}\n`);
+  }
+}
+
+// ─── Cloudinary setup (new account for uploads) ───────────────────────────────
 cloudinary.config({ cloud_name: NEW_CLOUD_NAME, api_key: NEW_API_KEY, api_secret: NEW_API_SECRET });
 console.log(`📦 Migrating: "${OLD_CLOUD_NAME}"  →  "${NEW_CLOUD_NAME}"\n`);
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── URL helpers ─────────────────────────────────────────────────────────────
 function isOldCloudinary(url) {
   return typeof url === 'string' && url.includes(`res.cloudinary.com/${OLD_CLOUD_NAME}/`);
 }
 
-function parseFolder(url) {
-  // Extract folder path and whether it's a video
-  const m = url.match(/\/(image|video|raw)\/upload\/(?:[^/]+\/)*?(?:v\d+\/)?(.+)$/);
-  if (!m) return { folder: '', isVideo: false };
-  const fullPath = m[2]; // e.g. "products/sk-1654bk/abc.jpg"
-  const lastSlash = fullPath.lastIndexOf('/');
-  return {
-    folder: lastSlash > 0 ? fullPath.slice(0, lastSlash) : '',
-    isVideo: m[1] === 'video',
-  };
+/** Parse a Cloudinary delivery URL into its components */
+function parseCloudinaryUrl(url) {
+  // Strip query string, match resource type and full path after /upload/[vNNN/]
+  const m = url.split('?')[0].match(
+    /res\.cloudinary\.com\/[^/]+\/(image|video|raw)\/upload\/(?:v\d+\/)?(.+)$/
+  );
+  if (!m) return null;
+
+  const resourceType = m[1];          // 'image' | 'video' | 'raw'
+  const pathWithExt  = m[2];          // 'products/sk-1654bk/abc.jpg'
+  const lastDot      = pathWithExt.lastIndexOf('.');
+  const publicId     = lastDot > 0 ? pathWithExt.slice(0, lastDot) : pathWithExt;
+  const format       = lastDot > 0 ? pathWithExt.slice(lastDot + 1) : '';
+  const lastSlash    = pathWithExt.lastIndexOf('/');
+  const folder       = lastSlash > 0 ? pathWithExt.slice(0, lastSlash) : '';
+
+  return { resourceType, publicId, format, folder, isVideo: resourceType === 'video' };
 }
 
+/**
+ * Build a signed Cloudinary Admin API private_download URL.
+ * This goes through api.cloudinary.com (not res.cloudinary.com/CDN),
+ * so it still works when CDN delivery is blocked on a disabled account.
+ */
+function makePrivateDownloadUrl({ resourceType, publicId, format }) {
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  // Params to sign (alphabetical, without api_key / signature)
+  const sigObj = {
+    ...(format ? { format } : {}),
+    public_id: publicId,
+    timestamp: String(timestamp),
+    type: 'upload',
+  };
+
+  const sortedStr = Object.entries(sigObj)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&');
+
+  const signature = createHash('sha1')
+    .update(sortedStr + OLD_API_SECRET)
+    .digest('hex');
+
+  const qs = new URLSearchParams({ ...sigObj, api_key: OLD_API_KEY, signature });
+  return `https://api.cloudinary.com/v1_1/${OLD_CLOUD_NAME}/${resourceType}/private_download?${qs}`;
+}
+
+// ─── Download with fallback ───────────────────────────────────────────────────
 async function downloadBuffer(url) {
+  // 1. Try authenticated Admin API download (bypasses CDN 401 on disabled accounts)
+  const parsed = isOldCloudinary(url) ? parseCloudinaryUrl(url) : null;
+  if (parsed) {
+    const apiUrl = makePrivateDownloadUrl(parsed);
+    try {
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(60000) });
+      if (res.ok) return Buffer.from(await res.arrayBuffer());
+      const body = await res.text().catch(() => '');
+      console.log(`    ⚠ Admin API HTTP ${res.status}${body ? ': ' + body.slice(0, 120) : ''} — trying CDN`);
+    } catch (e) {
+      console.log(`    ⚠ Admin API error: ${e.message} — trying CDN`);
+    }
+  }
+
+  // 2. Fallback: direct CDN URL (works if account is merely rate-limited, not locked)
   const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error(`HTTP ${res.status} downloading ${url.slice(-60)}`);
   return Buffer.from(await res.arrayBuffer());
 }
 
+// ─── Upload to new Cloudinary ─────────────────────────────────────────────────
 function uploadToCloudinary(buffer, folder, isVideo) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -139,7 +224,11 @@ async function migrateUrl(oldUrl) {
     console.log(`    ⟳ cached → ${cache.get(oldUrl).slice(-55)}`);
     return cache.get(oldUrl);
   }
-  const { folder, isVideo } = parseFolder(oldUrl);
+
+  const parsed = parseCloudinaryUrl(oldUrl);
+  const folder  = parsed?.folder  ?? '';
+  const isVideo = parsed?.isVideo ?? false;
+
   console.log(`    ↓ ${oldUrl.slice(-65)}`);
   const buffer = await downloadBuffer(oldUrl);
   console.log(`    ↑ uploading to folder "${folder || '(root)'}"`);
@@ -225,6 +314,8 @@ for (const { table, idCol, stringCols, jsonArrayCols } of TABLES) {
 console.log(`\n${'─'.repeat(55)}`);
 console.log(`✅  Done — ${totalMigrated} rows updated, ${totalSkipped} skipped, ${totalErrors} errors`);
 if (totalMigrated > 0) {
-  console.log(`\nNext: update CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY,`);
-  console.log(`CLOUDINARY_API_SECRET in Vercel to the new account values, then redeploy.`);
+  console.log(`\nNext steps:`);
+  console.log(`  1. Update CLOUDINARY_CLOUD_NAME=${NEW_CLOUD_NAME} in Vercel`);
+  console.log(`  2. Update CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in Vercel`);
+  console.log(`  3. Redeploy on Vercel`);
 }
