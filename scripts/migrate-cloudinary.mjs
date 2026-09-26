@@ -1,79 +1,88 @@
 /**
  * Cloudinary → New Cloudinary Migration Script
  *
- * Reads every Cloudinary URL from Supabase, re-uploads to new account
- * keeping the same folder structure, then updates the URL in the DB.
+ * Reads all config from .env.local automatically.
+ * You only need to pass the NEW account's 3 credentials.
  *
- * Usage:
- *   node scripts/migrate-cloudinary.mjs
- *
- * Required env vars (copy your .env.local values or set them here):
- *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
- *   OLD_CLOUD_NAME        — your disabled account's cloud name
- *   NEW_CLOUDINARY_CLOUD_NAME
- *   NEW_CLOUDINARY_API_KEY
- *   NEW_CLOUDINARY_API_SECRET
+ * Usage (run from project root):
+ *   node scripts/migrate-cloudinary.mjs NEW_CLOUD=xxx NEW_KEY=xxx NEW_SECRET=xxx
  */
 
+import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
 
-// ─── Config ────────────────────────────────────────────────────────────────────
-// Fill these in or set them as env vars before running
-const SUPABASE_URL           = process.env.NEXT_PUBLIC_SUPABASE_URL     ?? '';
-const SUPABASE_SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY    ?? '';
-const OLD_CLOUD_NAME         = process.env.OLD_CLOUD_NAME               ?? '';  // e.g. "dxxxxx"
-const NEW_CLOUD_NAME         = process.env.NEW_CLOUDINARY_CLOUD_NAME    ?? '';
-const NEW_API_KEY            = process.env.NEW_CLOUDINARY_API_KEY       ?? '';
-const NEW_API_SECRET         = process.env.NEW_CLOUDINARY_API_SECRET    ?? '';
+// ─── Auto-load .env.local ──────────────────────────────────────────────────────
+try {
+  const lines = readFileSync('.env.local', 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+    if (key && !(key in process.env)) process.env[key] = val;
+  }
+  console.log('✓ Loaded .env.local');
+} catch {
+  console.warn('⚠  Could not read .env.local — using existing env vars');
+}
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !OLD_CLOUD_NAME || !NEW_CLOUD_NAME || !NEW_API_KEY || !NEW_API_SECRET) {
-  console.error('❌  Missing config — set all env vars before running.');
+// ─── Parse command-line args  (NEW_CLOUD=xxx NEW_KEY=xxx NEW_SECRET=xxx) ───────
+const args = Object.fromEntries(
+  process.argv.slice(2).map(a => a.split('=')).filter(p => p.length === 2).map(([k, v]) => [k.trim(), v.trim()])
+);
+
+const OLD_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME ?? '';
+const SUPABASE_URL   = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+const SUPABASE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+const NEW_CLOUD_NAME = args.NEW_CLOUD ?? '';
+const NEW_API_KEY    = args.NEW_KEY   ?? '';
+const NEW_API_SECRET = args.NEW_SECRET ?? '';
+
+if (!OLD_CLOUD_NAME) { console.error('❌  CLOUDINARY_CLOUD_NAME not found in .env.local'); process.exit(1); }
+if (!SUPABASE_URL)   { console.error('❌  NEXT_PUBLIC_SUPABASE_URL not found in .env.local'); process.exit(1); }
+if (!SUPABASE_KEY)   { console.error('❌  SUPABASE_SERVICE_ROLE_KEY not found in .env.local'); process.exit(1); }
+if (!NEW_CLOUD_NAME || !NEW_API_KEY || !NEW_API_SECRET) {
+  console.error('❌  Missing new Cloudinary credentials.\n\nUsage:\n  node scripts/migrate-cloudinary.mjs NEW_CLOUD=xxx NEW_KEY=xxx NEW_SECRET=xxx');
   process.exit(1);
 }
 
+console.log(`\n📦 Migrating from cloud "${OLD_CLOUD_NAME}"  →  "${NEW_CLOUD_NAME}"\n`);
+
 cloudinary.config({ cloud_name: NEW_CLOUD_NAME, api_key: NEW_API_KEY, api_secret: NEW_API_SECRET });
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Checks if URL belongs to the OLD Cloudinary account */
 function isOldCloudinary(url) {
   return typeof url === 'string' && url.includes(`res.cloudinary.com/${OLD_CLOUD_NAME}/`);
 }
 
-/**
- * Extracts the storage path from a Cloudinary URL.
- * e.g. ".../image/upload/v123/products/sk-1654bk/abc.jpg"  →  "products/sk-1654bk"  (folder)
- *                                                          and "abc"  (public_id stem)
- */
 function parseCloudinaryUrl(url) {
-  // Match: /image/upload/[optional transformations and version]/folder/.../filename.ext
-  const m = url.match(/\/(?:image|video|raw)\/upload\/(?:v\d+\/)?(.+)$/);
+  const m = url.match(/\/(image|video|raw)\/upload\/(?:[^/]+\/)*?(?:v\d+\/)?(.+)$/);
   if (!m) return null;
-  const fullPath = m[1]; // e.g. "products/sk-1654bk/abc.jpg"
+  const fullPath = m[2];
   const lastSlash = fullPath.lastIndexOf('/');
-  const folder = lastSlash > 0 ? fullPath.slice(0, lastSlash) : '';
-  const filename = lastSlash > 0 ? fullPath.slice(lastSlash + 1) : fullPath;
-  const isVideo = url.includes('/video/upload/');
-  return { folder, filename, fullPath, isVideo };
+  const folder    = lastSlash > 0 ? fullPath.slice(0, lastSlash) : '';
+  const isVideo   = m[1] === 'video';
+  return { folder, isVideo };
 }
 
-/** Downloads an image/video from a URL and returns a Buffer */
 async function download(url) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
 
-/** Uploads buffer to new Cloudinary account, returns new secure_url */
 function uploadToNew(buffer, folder, isVideo) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: isVideo ? 'video' : 'image', use_filename: true, unique_filename: true },
+      { folder: folder || undefined, resource_type: isVideo ? 'video' : 'image', unique_filename: true },
       (err, result) => {
-        if (err) return reject(new Error(err.message));
+        if (err)     return reject(new Error(err.message));
         if (!result) return reject(new Error('No result from Cloudinary'));
         resolve(result.secure_url);
       },
@@ -82,32 +91,26 @@ function uploadToNew(buffer, folder, isVideo) {
   });
 }
 
-/** Cache: old URL → new URL, so we don't re-upload the same file twice */
-const cache = new Map();
+const cache = new Map(); // old URL → new URL (avoid re-uploading same file)
 
 async function migrateUrl(oldUrl) {
-  if (!isOldCloudinary(oldUrl)) return oldUrl; // not an old Cloudinary URL — leave as-is
-  if (cache.has(oldUrl)) return cache.get(oldUrl);
+  if (!isOldCloudinary(oldUrl)) return oldUrl;
+  if (cache.has(oldUrl)) { console.log(`  ⟳ (cached) ${oldUrl.slice(-50)}`); return cache.get(oldUrl); }
 
   const parsed = parseCloudinaryUrl(oldUrl);
   if (!parsed) { console.warn(`  ⚠  Cannot parse: ${oldUrl}`); return oldUrl; }
 
-  console.log(`  ↓ Downloading ${oldUrl.slice(-60)}`);
+  console.log(`  ↓ ${oldUrl.slice(-55)}`);
   const buffer = await download(oldUrl);
 
-  console.log(`  ↑ Uploading to ${parsed.folder || '(root)'}`);
   const newUrl = await uploadToNew(buffer, parsed.folder, parsed.isVideo);
+  console.log(`  ✓ ${newUrl.slice(-55)}`);
 
   cache.set(oldUrl, newUrl);
-  console.log(`  ✓ ${newUrl.slice(-60)}`);
   return newUrl;
 }
 
-// ─── Table definitions ─────────────────────────────────────────────────────────
-// Each entry: { table, idCol, stringCols, jsonArrayCols }
-// stringCols    → columns that hold a single image URL string
-// jsonArrayCols → columns that hold a JSON array of URL strings
-
+// ─── Tables to scan ────────────────────────────────────────────────────────────
 const TABLES = [
   { table: 'products',        idCol: 'id', stringCols: [],        jsonArrayCols: ['images'] },
   { table: 'categories',      idCol: 'id', stringCols: ['image'], jsonArrayCols: [] },
@@ -125,32 +128,24 @@ for (const { table, idCol, stringCols, jsonArrayCols } of TABLES) {
   const cols = [idCol, ...stringCols, ...jsonArrayCols].join(', ');
   const { data: rows, error } = await supabase.from(table).select(cols);
 
-  if (error) {
-    console.warn(`⚠  Table "${table}" error: ${error.message} — skipping`);
-    continue;
-  }
+  if (error) { console.warn(`⚠  "${table}": ${error.message} — skipping`); continue; }
+  if (!rows?.length) { console.log(`— ${table}: empty or not found`); continue; }
 
-  if (!rows?.length) { console.log(`— ${table}: empty`); continue; }
-  console.log(`\n📂 ${table} (${rows.length} rows)`);
+  console.log(`\n📂  ${table}  (${rows.length} rows)`);
 
   for (const row of rows) {
-    const patch = {};
-    let changed = false;
+    const patch   = {};
+    let   changed = false;
 
-    // Single-URL string columns
     for (const col of stringCols) {
       const url = row[col];
       if (!isOldCloudinary(url)) continue;
       try {
         const newUrl = await migrateUrl(url);
         if (newUrl !== url) { patch[col] = newUrl; changed = true; }
-      } catch (e) {
-        console.error(`  ✗ ${col}: ${e.message}`);
-        totalErrors++;
-      }
+      } catch (e) { console.error(`  ✗ ${col}: ${e.message}`); totalErrors++; }
     }
 
-    // JSON array columns
     for (const col of jsonArrayCols) {
       const arr = row[col];
       if (!Array.isArray(arr)) continue;
@@ -162,24 +157,16 @@ for (const { table, idCol, stringCols, jsonArrayCols } of TABLES) {
           const newUrl = await migrateUrl(url);
           newArr.push(newUrl);
           if (newUrl !== url) arrChanged = true;
-        } catch (e) {
-          console.error(`  ✗ ${col}[]: ${e.message}`);
-          newArr.push(url); // keep original on error
-          totalErrors++;
-        }
+        } catch (e) { console.error(`  ✗ ${col}[]: ${e.message}`); newArr.push(url); totalErrors++; }
       }
       if (arrChanged) { patch[col] = newArr; changed = true; }
     }
 
     if (!changed) { totalSkipped++; continue; }
 
-    const { error: updateError } = await supabase
-      .from(table)
-      .update(patch)
-      .eq(idCol, row[idCol]);
-
+    const { error: updateError } = await supabase.from(table).update(patch).eq(idCol, row[idCol]);
     if (updateError) {
-      console.error(`  ✗ DB update failed for ${idCol}=${row[idCol]}: ${updateError.message}`);
+      console.error(`  ✗ DB update failed (${idCol}=${row[idCol]}): ${updateError.message}`);
       totalErrors++;
     } else {
       totalMigrated++;
@@ -187,4 +174,10 @@ for (const { table, idCol, stringCols, jsonArrayCols } of TABLES) {
   }
 }
 
-console.log(`\n✅  Done — ${totalMigrated} rows updated, ${totalSkipped} skipped (already on new account), ${totalErrors} errors`);
+console.log(`\n${'─'.repeat(55)}`);
+console.log(`✅  Migration complete`);
+console.log(`   ${totalMigrated} rows updated in Supabase`);
+console.log(`   ${totalSkipped}  rows skipped (no old Cloudinary URLs)`);
+if (totalErrors) console.log(`   ${totalErrors}  errors — check output above`);
+console.log(`\nNext step: update CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY,`);
+console.log(`CLOUDINARY_API_SECRET in Vercel to the NEW account values, then redeploy.`);
