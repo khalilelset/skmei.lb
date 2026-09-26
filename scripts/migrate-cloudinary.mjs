@@ -112,11 +112,16 @@ async function migrateUrl(oldUrl) {
 
 // ─── Tables to scan ────────────────────────────────────────────────────────────
 const TABLES = [
-  { table: 'products',        idCol: 'id', stringCols: [],        jsonArrayCols: ['images'] },
-  { table: 'categories',      idCol: 'id', stringCols: ['image'], jsonArrayCols: [] },
-  { table: 'feedback_images', idCol: 'id', stringCols: ['image'], jsonArrayCols: [] },
-  { table: 'instagram_items', idCol: 'id', stringCols: ['image'], jsonArrayCols: [] },
-  { table: 'boxes',           idCol: 'id', stringCols: ['image'], jsonArrayCols: [] },
+  // products: array of images + single video URL
+  { table: 'products',        idCol: 'id', stringCols: ['video_url'],           jsonArrayCols: ['images'] },
+  // categories: single cover image
+  { table: 'categories',      idCol: 'id', stringCols: ['image'],               jsonArrayCols: [] },
+  // feedback photos
+  { table: 'feedback_images', idCol: 'id', stringCols: ['image'],               jsonArrayCols: [] },
+  // instagram: array of images + video file + video poster thumbnail
+  { table: 'instagram_posts', idCol: 'id', stringCols: ['video_src', 'poster'], jsonArrayCols: ['images'] },
+  // gift boxes
+  { table: 'boxes',           idCol: 'id', stringCols: ['image'],               jsonArrayCols: [] },
 ];
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
