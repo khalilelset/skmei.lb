@@ -102,21 +102,19 @@ try {
 // ─── Test old Cloudinary Admin API access ────────────────────────────────────
 {
   console.log('Testing old Cloudinary Admin API...');
-  const ts = Math.floor(Date.now() / 1000);
-  const toSign = `timestamp=${ts}${OLD_API_SECRET}`;
-  const sig = createHash('sha1').update(toSign).digest('hex');
-  const qs = new URLSearchParams({ timestamp: String(ts), api_key: OLD_API_KEY, signature: sig });
+  // Admin API list endpoint uses HTTP Basic Auth (API_KEY:API_SECRET)
+  const basicAuth = Buffer.from(`${OLD_API_KEY}:${OLD_API_SECRET}`).toString('base64');
   try {
     const r = await fetch(
-      `https://api.cloudinary.com/v1_1/${OLD_CLOUD_NAME}/resources/image?max_results=1&${qs}`,
-      { signal: AbortSignal.timeout(15000) }
+      `https://api.cloudinary.com/v1_1/${OLD_CLOUD_NAME}/resources/image?max_results=1`,
+      { headers: { 'Authorization': `Basic ${basicAuth}` }, signal: AbortSignal.timeout(15000) }
     );
+    const body = await r.text().catch(() => '');
     if (r.ok) {
-      console.log('✓ Old Cloudinary Admin API is reachable — signed downloads will work\n');
+      console.log('✓ Old Cloudinary Admin API is reachable — signed downloads should work\n');
     } else {
-      const body = await r.text().catch(() => '');
       console.warn(`⚠  Old Cloudinary Admin API returned HTTP ${r.status}: ${body.slice(0, 200)}`);
-      console.warn('   Signed downloads may fail. The account might be fully locked.\n');
+      console.warn('   The account may be fully locked. Downloads will be attempted anyway.\n');
     }
   } catch (e) {
     console.warn(`⚠  Could not reach old Cloudinary Admin API: ${e.message}\n`);
@@ -177,7 +175,7 @@ function makePrivateDownloadUrl({ resourceType, publicId, format }) {
     .digest('hex');
 
   const qs = new URLSearchParams({ ...sigObj, api_key: OLD_API_KEY, signature });
-  return `https://api.cloudinary.com/v1_1/${OLD_CLOUD_NAME}/${resourceType}/private_download?${qs}`;
+  return `https://api.cloudinary.com/v1_1/${OLD_CLOUD_NAME}/${resourceType}/download?${qs}`;
 }
 
 // ─── Download with fallback ───────────────────────────────────────────────────
