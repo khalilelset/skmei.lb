@@ -178,6 +178,23 @@ function makePrivateDownloadUrl({ resourceType, publicId, format }) {
   return `https://api.cloudinary.com/v1_1/${OLD_CLOUD_NAME}/${resourceType}/download?${qs}`;
 }
 
+// ─── Wayback Machine lookup ───────────────────────────────────────────────────
+async function getWaybackUrl(originalUrl) {
+  try {
+    const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(originalUrl)}&output=json&limit=1&fl=timestamp&filter=statuscode:200`;
+    const res = await fetch(cdxUrl, { signal: AbortSignal.timeout(12000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // data[0] = header row, data[1] = first result
+    if (!Array.isArray(data) || data.length < 2) return null;
+    const timestamp = data[1][0];
+    // im_ flag returns the raw image/video without the Wayback toolbar wrapper
+    return `https://web.archive.org/web/${timestamp}im_/${originalUrl}`;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Download with fallback ───────────────────────────────────────────────────
 async function downloadBuffer(url) {
   // 1. Try authenticated Admin API download (bypasses CDN 401 on disabled accounts)
@@ -188,13 +205,31 @@ async function downloadBuffer(url) {
       const res = await fetch(apiUrl, { signal: AbortSignal.timeout(60000) });
       if (res.ok) return Buffer.from(await res.arrayBuffer());
       const body = await res.text().catch(() => '');
-      console.log(`    ⚠ Admin API HTTP ${res.status}${body ? ': ' + body.slice(0, 120) : ''} — trying CDN`);
+      console.log(`    ⚠ Admin API HTTP ${res.status}${body ? ': ' + body.slice(0, 80) : ''} — trying Wayback`);
     } catch (e) {
-      console.log(`    ⚠ Admin API error: ${e.message} — trying CDN`);
+      console.log(`    ⚠ Admin API error: ${e.message} — trying Wayback`);
     }
   }
 
-  // 2. Fallback: direct CDN URL (works if account is merely rate-limited, not locked)
+  // 2. Try Wayback Machine (archive.org) — free, may have cached CDN images
+  const waybackUrl = await getWaybackUrl(url);
+  if (waybackUrl) {
+    try {
+      console.log(`    🕐 Wayback: ${waybackUrl.slice(-70)}`);
+      const res = await fetch(waybackUrl, { signal: AbortSignal.timeout(60000) });
+      if (res.ok) {
+        console.log(`    ✓ Wayback hit!`);
+        return Buffer.from(await res.arrayBuffer());
+      }
+      console.log(`    ⚠ Wayback HTTP ${res.status} — trying CDN`);
+    } catch (e) {
+      console.log(`    ⚠ Wayback error: ${e.message} — trying CDN`);
+    }
+  } else {
+    console.log(`    ⚠ Not in Wayback — trying CDN`);
+  }
+
+  // 3. Fallback: direct CDN URL (works if account is merely rate-limited, not locked)
   const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error(`HTTP ${res.status} downloading ${url.slice(-60)}`);
   return Buffer.from(await res.arrayBuffer());
