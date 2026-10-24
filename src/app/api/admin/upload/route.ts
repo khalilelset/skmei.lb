@@ -1,35 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
-import { Readable } from 'stream';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { randomUUID } from 'crypto';
+import { r2, r2Bucket, r2PublicUrl } from '@/lib/r2';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;    // 8 MB
 const MAX_VIDEO_SIZE = 200 * 1024 * 1024;  // 200 MB
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
 
-// Stream-based upload — avoids base64 size inflation and Cloudinary's data-URI limit
-function streamUpload(
-  buffer: Buffer,
-  options: Record<string, unknown>,
-): Promise<{ secure_url: string; public_id: string }> {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      options as unknown as Parameters<typeof cloudinary.uploader.upload_stream>[0],
-      (error, result) => {
-        if (error) return reject(new Error(error.message ?? JSON.stringify(error)));
-        if (!result) return reject(new Error('No result from Cloudinary'));
-        resolve({ secure_url: result.secure_url, public_id: result.public_id });
-      },
-    );
-    Readable.from(buffer).pipe(stream);
-  });
-}
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png':  'png',
+  'image/webp': 'webp',
+  'image/gif':  'gif',
+  'image/avif': 'avif',
+  'video/mp4':       'mp4',
+  'video/webm':      'webm',
+  'video/quicktime': 'mov',
+  'video/x-msvideo': 'avi',
+};
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('admin_auth')?.value;
@@ -47,7 +36,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Strip codec parameters (e.g. "video/webm;codecs=vp9,opus" → "video/webm")
     const baseType = file.type.split(';')[0].trim().toLowerCase();
     const isImage = ALLOWED_IMAGE_TYPES.includes(baseType);
     const isVideo = baseType.startsWith('video/') && baseType.length > 6;
@@ -68,22 +56,29 @@ export async function POST(req: NextRequest) {
     }
 
     const slug = SLUG_PATTERN.test(rawSlug) ? rawSlug : 'temp';
+    const ext = MIME_TO_EXT[baseType] ?? (isVideo ? 'mp4' : 'jpg');
+    const key = isVideo
+      ? `products/${slug}/videos/${randomUUID()}.${ext}`
+      : `products/${slug}/${randomUUID()}.${ext}`;
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const result = await streamUpload(buffer, {
-      folder: isVideo ? `products/${slug}/videos` : `products/${slug}`,
-      resource_type: isVideo ? 'video' : 'image',
-      ...(isImage ? { allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'] } : {}),
-    });
+    await r2.send(new PutObjectCommand({
+      Bucket: r2Bucket(),
+      Key: key,
+      Body: buffer,
+      ContentType: baseType,
+      CacheControl: 'public, max-age=31536000, immutable',
+    }));
 
-    return NextResponse.json({ url: result.secure_url, public_id: result.public_id });
+    return NextResponse.json({ url: r2PublicUrl(key), public_id: key });
   } catch (err) {
     const message = err instanceof Error
       ? err.message
       : typeof err === 'object' && err !== null
         ? JSON.stringify(err)
         : String(err);
-    console.error('Cloudinary upload error:', message);
+    console.error('R2 upload error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

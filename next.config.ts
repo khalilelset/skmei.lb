@@ -20,6 +20,8 @@ const securityHeaders = [
   { key: "X-XSS-Protection", value: "1; mode=block" },
 ];
 
+const r2Host = process.env.R2_PUBLIC_URL ? new URL(process.env.R2_PUBLIC_URL).hostname : null;
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -33,6 +35,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "*.r2.dev" },
+      ...(r2Host ? [{ protocol: "https" as const, hostname: r2Host }] : []),
+      // Old rows still point here until re-uploaded; dev crashes on unlisted hosts.
       { protocol: "https", hostname: "res.cloudinary.com" },
       { protocol: "https", hostname: "*.supabase.co" },
       { protocol: "https", hostname: "*.supabase.in" },

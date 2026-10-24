@@ -107,7 +107,6 @@ export default function InstagramPage() {
     if (imgFileRef.current) imgFileRef.current.value = '';
   };
 
-  // Upload video directly to Cloudinary (bypasses server — no timeout)
   const handleVideoSelected = async (file: File) => {
     if (videoFileRef.current) videoFileRef.current.value = '';
     setIsUploadingVideo(true);
@@ -329,7 +328,7 @@ export default function InstagramPage() {
                     /* ── URL input ── */
                     <TextField
                       fullWidth size="small" label="Video URL"
-                      placeholder="https://res.cloudinary.com/... or any direct video URL"
+                      placeholder="https://... direct video URL"
                       value={form.videoSrc}
                       onChange={(e) => setForm(f => ({ ...f, videoSrc: e.target.value }))}
                       InputProps={{

@@ -238,9 +238,6 @@ export default function RootLayout({
         {/* Unsplash — hero + category images */}
         <link rel="preconnect" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
-        {/* Cloudinary — product images uploaded via admin */}
-        <link rel="preconnect" href="https://res.cloudinary.com" />
-        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         {/* Supabase storage — product images stored in Supabase */}
         <link rel="dns-prefetch" href="https://supabase.co" />
         {/* Google Fonts static assets */}

@@ -848,7 +848,7 @@ export default function ProductsPage() {
                 </label>
               </Box>
               {isUploading && (
-                <Typography variant="caption" color="text.secondary">Uploading to Cloudinary...</Typography>
+                <Typography variant="caption" color="text.secondary">Uploading...</Typography>
               )}
             </Grid>
 
@@ -874,7 +874,7 @@ export default function ProductsPage() {
               {/* URL mode */}
               {videoInputMode === 'url' && !form.videoUrl && (
                 <TextField
-                  fullWidth size="small" placeholder="https://res.cloudinary.com/..."
+                  fullWidth size="small" placeholder="https://... direct video URL"
                   label="Video URL"
                   onBlur={(e) => { const v = e.target.value.trim(); if (v) setForm(f => ({ ...f, videoUrl: v })); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) setForm(f => ({ ...f, videoUrl: v })); } }}

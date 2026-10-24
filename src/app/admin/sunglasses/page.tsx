@@ -505,7 +505,7 @@ export default function AdminSunglassesPage() {
               {form.videoInputMode === 'url' ? (
                 <TextField fullWidth size="small" label="Video URL" value={form.videoUrl}
                   onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))}
-                  placeholder="https://res.cloudinary.com/..." />
+                  placeholder="https://... direct video URL" />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Button
@@ -636,7 +636,7 @@ export default function AdminSunglassesPage() {
                     {variant.videoInputMode === 'url' ? (
                       <TextField fullWidth size="small" label="Video URL" value={variant.videoUrl}
                         onChange={e => updateVariant(idx, { videoUrl: e.target.value })}
-                        placeholder="https://res.cloudinary.com/..." />
+                        placeholder="https://... direct video URL" />
                     ) : (
                       <Button
                         component="label"

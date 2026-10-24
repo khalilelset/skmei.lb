@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { randomUUID } from 'crypto';
+import { r2, r2Bucket, r2PublicUrl } from '@/lib/r2';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const FOLDER_PATTERN = /^[a-z0-9-]+(\/[a-z0-9-]+){0,4}$/;
+
+const VIDEO_EXT: Record<string, string> = {
+  'video/mp4':       'mp4',
+  'video/webm':      'webm',
+  'video/quicktime': 'mov',
+  'video/x-msvideo': 'avi',
+  'video/x-matroska': 'mkv',
+};
 
 export async function POST(req: NextRequest) {
   const token    = req.cookies.get('admin_auth')?.value;
@@ -15,23 +22,31 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { folder } = await req.json() as { folder?: string };
-    const safeFolder = typeof folder === 'string' && folder ? folder : 'products/temp/videos';
-    const timestamp  = Math.round(Date.now() / 1000);
-    const signature  = cloudinary.utils.api_sign_request(
-      { timestamp, folder: safeFolder },
-      process.env.CLOUDINARY_API_SECRET!,
+    const { folder, contentType } = await req.json() as { folder?: string; contentType?: string };
+
+    const safeFolder = typeof folder === 'string' && FOLDER_PATTERN.test(folder)
+      ? folder
+      : 'products/temp/videos';
+
+    const type = typeof contentType === 'string'
+      ? contentType.split(';')[0].trim().toLowerCase()
+      : '';
+    if (!/^video\/[a-z0-9.+-]+$/.test(type)) {
+      return NextResponse.json({ error: 'Only video files can be uploaded here.' }, { status: 400 });
+    }
+
+    const key = `${safeFolder}/${randomUUID()}.${VIDEO_EXT[type] ?? 'mp4'}`;
+
+    // Content-Type is part of the signature, so the browser must send exactly this value.
+    const uploadUrl = await getSignedUrl(
+      r2,
+      new PutObjectCommand({ Bucket: r2Bucket(), Key: key, ContentType: type }),
+      { expiresIn: 600 },
     );
 
-    return NextResponse.json({
-      signature,
-      timestamp,
-      apiKey:     process.env.CLOUDINARY_API_KEY,
-      cloudName:  process.env.CLOUDINARY_CLOUD_NAME,
-      folder:     safeFolder,
-    });
+    return NextResponse.json({ uploadUrl, publicUrl: r2PublicUrl(key), contentType: type });
   } catch (err) {
     console.error('[upload/sign]', err);
-    return NextResponse.json({ error: 'Failed to sign upload' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to prepare upload' }, { status: 500 });
   }
 }

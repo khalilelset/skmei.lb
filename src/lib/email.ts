@@ -13,7 +13,7 @@ const FROM_EMAIL =
 const ADMIN_EMAIL = "skmei.lb@gmail.com";
 const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER ?? "96179170387";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://skmeilb.com";
-const BLACK_LOGO = `https://res.cloudinary.com/dsp2vhsfb/image/upload/v1773575439/black_qjfuft.png`;
+const BLACK_LOGO = `${SITE_URL}/images/logo/black.png`;
 
 
 interface OrderEmailData {
