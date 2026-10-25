@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Montserrat, Noto_Sans, Cinzel, Pacifico } from "next/font/google";
+import { Montserrat, Noto_Sans, Cinzel, Pacifico, Manrope } from "next/font/google";
 import "./globals.css";
 import StoreLayout from "@/components/StoreLayout";
 import { Analytics } from "@vercel/analytics/next";
@@ -30,6 +30,13 @@ const pacifico = Pacifico({
   display: "swap",
   weight: "400",
   variable: "--font-pacifico",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["600", "700"],
+  variable: "--font-manrope",
 });
 
 const SITE_URL = "https://skmei.lb";
@@ -232,7 +239,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-LB" className={`${montserrat.variable} ${notoSans.variable} ${cinzel.variable} ${pacifico.variable}`}>
+    <html lang="en-LB" className={`${montserrat.variable} ${notoSans.variable} ${cinzel.variable} ${pacifico.variable} ${manrope.variable}`}>
       <head>
         {/* ── Resource hints: tell browser to connect to CDNs before images are requested ── */}
         {/* Unsplash — hero + category images */}

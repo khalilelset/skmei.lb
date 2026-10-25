@@ -8,6 +8,8 @@ import LiveWatchFace from "./LiveWatchFace";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+const display = "var(--font-manrope), ui-sans-serif, system-ui, sans-serif";
+
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
@@ -36,14 +38,14 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   }, [inView, target]);
 
   return (
-    <span ref={ref} style={{ fontVariantNumeric: 'tabular-nums', display: 'inline-block', minWidth: '3ch' }}>
-      {count}{suffix}
+    <span ref={ref} style={{ fontVariantNumeric: 'tabular-nums lining-nums', display: 'inline-block', minWidth: '3ch' }}>
+      {count.toLocaleString('en-US')}{suffix}
     </span>
   );
 }
 
-const WORDS_LINE1 = ["Discover", "Your"];
-const WORDS_LINE2 = ["Perfect", "Timepiece"];
+const WORDS_LINE1 = ["Genuine", "SKMEI"];
+const WORDS_LINE2 = ["watches", "in", "Lebanon."];
 
 export default function HeroSection() {
   return (
@@ -79,7 +81,7 @@ export default function HeroSection() {
               className="inline-flex items-center gap-3 border-l-2 border-brand-red pl-3 mb-5"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse shrink-0" />
-              <span className="text-[10px] font-bold tracking-[0.3em] text-brand-red uppercase">Official Authorized Dealer · Lebanon</span>
+              <span className="text-[13px] sm:text-sm font-semibold text-brand-red" style={{ fontFamily: display }}>Official authorized SKMEI dealer in Lebanon</span>
             </motion.div>
 
             {/* Red rule */}
@@ -92,8 +94,11 @@ export default function HeroSection() {
             />
 
             {/* Headline — per-word clip reveal */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-none tracking-[-0.03em] mb-6">
-              <div className="overflow-hidden flex flex-wrap gap-x-3 mb-1">
+            <h1
+              className="text-4xl sm:text-5xl lg:text-[3.5rem] leading-[1.05] mb-6"
+              style={{ fontFamily: display, fontWeight: 700, letterSpacing: '-0.025em' }}
+            >
+              <div className="overflow-hidden flex flex-wrap gap-x-[0.25em] mb-1">
                 {WORDS_LINE1.map((word, i) => (
                   <motion.span
                     key={word}
@@ -106,7 +111,7 @@ export default function HeroSection() {
                   </motion.span>
                 ))}
               </div>
-              <div className="overflow-hidden flex flex-wrap gap-x-3">
+              <div className="overflow-hidden flex flex-wrap gap-x-[0.25em]">
                 {WORDS_LINE2.map((word, i) => (
                   <motion.span
                     key={word}
@@ -144,7 +149,7 @@ export default function HeroSection() {
                 className="group relative inline-flex items-center justify-center gap-2 overflow-hidden bg-brand-red text-white px-8 py-4 rounded-lg font-bold hover:bg-brand-red-dark transition-colors active:scale-95 shadow-lg shadow-brand-red/40"
               >
                 <span aria-hidden className="absolute inset-0 -translate-x-full -skew-x-12 bg-white/15 group-hover:animate-shimmer-sweep pointer-events-none" />
-                Shop Collection
+                Shop the collection
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </motion.div>
@@ -157,20 +162,18 @@ export default function HeroSection() {
               className="mt-10 grid grid-cols-3 gap-3 sm:gap-6 max-w-md"
             >
               {[
-                { target: 500, suffix: "+", label: "Happy\nCustomers" },
-                { target: 100, suffix: "%", label: "Authentic\nProducts" },
-                { target: 400, suffix: "+", label: "Orders\nDelivered" },
+                { target: 1275, suffix: "+", label: "Happy customers" },
+                { target: 100, suffix: "%", label: "Authentic" },
+                { target: 1450, suffix: "+", label: "Orders delivered" },
               ].map(({ target, suffix, label }) => (
                 <div key={label} className="relative flex flex-col items-center justify-center text-center p-3 sm:p-4 rounded-xl border border-white/8 bg-white/3 hover:bg-white/6 transition-colors duration-300 overflow-hidden group">
                   {/* Top red accent */}
                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-brand-red to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
-                  <p className="text-2xl sm:text-3xl font-semibold text-white mb-1">
+                  <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1" style={{ fontFamily: display }}>
                     <AnimatedCounter target={target} suffix={suffix} />
                   </p>
-                  <p className="text-[10px] sm:text-xs text-brand-red/80 font-semibold tracking-[0.15em] uppercase leading-tight">
-                    {label.split('\n').map((line, i) => (
-                      <span key={i}>{line}{i === 0 && <br className="sm:hidden" />}{i === 0 && <span className="hidden sm:inline"> </span>}</span>
-                    ))}
+                  <p className="text-xs sm:text-[13px] font-medium text-brand-red/85 leading-snug">
+                    {label}
                   </p>
                 </div>
               ))}
