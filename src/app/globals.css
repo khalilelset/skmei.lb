@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @keyframes cart-bump {
   0%   { transform: scale(1); }
@@ -71,6 +72,43 @@
   --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Admin panel tokens — prefixed so the storefront never picks them up */
+@theme {
+  --color-adm-canvas: #F7F4F2;
+  --color-adm-canvas-2: #F0EBE8;
+  --color-adm-surface: #FFFFFF;
+  --color-adm-surface-2: #FBF8F7;
+  --color-adm-ink: #1D1718;
+  --color-adm-ink-2: #3D3436;
+  --color-adm-muted: #6F6567;
+  --color-adm-faint: #A39698;
+  --color-adm-line: #EEE7E4;
+  --color-adm-line-2: #E2D9D6;
+  --color-adm-accent: #DC2626;
+  --color-adm-accent-hover: #B91C1C;
+  --color-adm-accent-soft: #FEF0EE;
+  --color-adm-side: #0E0E10;
+  --color-adm-side-2: #17171A;
+  --color-adm-side-line: #26262A;
+  --color-adm-side-text: #A8A29E;
+  --color-adm-side-dim: #75706B;
+
+  --shadow-adm-sm: 0 1px 2px rgba(60, 24, 26, .05), 0 1px 1px rgba(60, 24, 26, .03);
+  --shadow-adm-md: 0 0 0 1px rgba(70, 30, 32, .045), 0 1px 2px rgba(60, 24, 26, .04), 0 6px 16px -4px rgba(60, 24, 26, .07), 0 16px 36px -12px rgba(60, 24, 26, .08);
+  --shadow-adm-lg: 0 0 0 1px rgba(70, 30, 32, .05), 0 2px 4px rgba(60, 24, 26, .04), 0 14px 28px -8px rgba(60, 24, 26, .12), 0 36px 72px -20px rgba(60, 24, 26, .2);
+
+  --ease-adm-spring: cubic-bezier(.34, 1.4, .64, 1);
+  --ease-adm-out: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Inline so each utility reads the next/font variables on the element itself;
+   they only exist inside the admin, so resolving them at :root would leave them empty. */
+@theme inline {
+  --font-adm-display: var(--font-adm-bricolage), var(--font-adm-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-adm-body: var(--font-adm-figtree), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-adm-mono: var(--font-adm-jetbrains), ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -79,13 +117,14 @@ body {
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* Headings */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+/* Headings. The :not(:where(.adm-root *)) parts add no specificity; they only keep these
+   unlayered storefront rules from overriding the admin panel's Tailwind utilities. */
+h1:not(:where(.adm-root *)),
+h2:not(:where(.adm-root *)),
+h3:not(:where(.adm-root *)),
+h4:not(:where(.adm-root *)),
+h5:not(:where(.adm-root *)),
+h6:not(:where(.adm-root *)) {
   font-family: var(--font-noto-sans), ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -125,14 +164,20 @@ body {
   line-height: 1.6;
 }
 
+/* overflow-x: hidden on <body> makes it a scroll container, which stops position: sticky
+   from working. The admin panel needs its sticky top bar, so it opts out. */
+body.adm-root {
+  overflow-x: visible;
+}
+
 /* Selection color - Brand Red */
 ::selection {
   background-color: var(--brand-red);
   color: var(--brand-white);
 }
 
-/* Image optimization */
-img {
+/* Image optimization (admin images get the same defaults from Tailwind's preflight) */
+img:not(:where(.adm-root *)) {
   max-width: 100%;
   height: auto;
   /* Prevent layout shift */
@@ -140,8 +185,8 @@ img {
 }
 
 /* Focus styles - only for buttons and links, not inputs */
-button:focus-visible,
-a:focus-visible {
+button:focus-visible:not(:where(.adm-root *)),
+a:focus-visible:not(:where(.adm-root *)) {
   outline: 2px solid var(--brand-red);
   outline-offset: 2px;
 }
@@ -172,10 +217,10 @@ html {
   text-size-adjust: 100%;
 }
 
-/* Mobile-optimized inputs */
-input,
-textarea,
-select {
+/* Mobile-optimized inputs (the admin sets 16px on phones itself) */
+input:not(:where(.adm-root *)),
+textarea:not(:where(.adm-root *)),
+select:not(:where(.adm-root *)) {
   font-size: 16px; /* Prevent zoom on iOS */
   max-width: 100%;
 }

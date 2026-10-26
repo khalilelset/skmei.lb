@@ -1,284 +1,95 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Button, Paper, Chip } from '@mui/material';
-import {
-  AttachMoney as RevenueIcon,
-  ShoppingCart as OrdersIcon,
-  People as CustomersIcon,
-  Inventory as ProductsIcon,
-  TrendingUp,
-  ArrowForward,
-} from '@mui/icons-material';
-import Link from 'next/link';
-import StatsCard from '@/components/admin/StatsCard';
-import DataTable, { Column } from '@/components/admin/DataTable';
-import TableSkeleton, { StatsCardSkeleton } from '@/components/admin/TableSkeleton';
-import { formatPrice, formatDate } from '@/lib/utils';
+import { useCallback, useEffect, useState } from 'react';
+import { RotateCw } from 'lucide-react';
+import { PageHeader } from '@/components/admin/PageHeader';
+import { Button } from '@/components/admin/ui/button';
+import { Card } from '@/components/admin/ui/card';
+import { Skeleton } from '@/components/admin/ui/skeleton';
+import { StatCards, StatCardsSkeleton } from '@/components/admin/dashboard/StatCards';
+import { RevenueChart } from '@/components/admin/dashboard/RevenueChart';
+import { StatusCard } from '@/components/admin/dashboard/StatusCard';
+import { RecentOrders } from '@/components/admin/dashboard/RecentOrders';
+import { QuickActions } from '@/components/admin/dashboard/QuickActions';
+import type { DashboardStats } from '@/components/admin/dashboard/types';
 
-const statusColors: Record<string, { bg: string; text: string }> = {
-  pending:    { bg: 'rgba(234, 179, 8, 0.1)',   text: '#CA8A04' },
-  confirmed:  { bg: 'rgba(59, 130, 246, 0.1)',  text: '#3B82F6' },
-  processing: { bg: 'rgba(168, 85, 247, 0.1)',  text: '#A855F7' },
-  shipped:    { bg: 'rgba(99, 102, 241, 0.1)',  text: '#6366F1' },
-  delivered:  { bg: 'rgba(34, 197, 94, 0.1)',   text: '#22C55E' },
-  cancelled:  { bg: 'rgba(239, 68, 68, 0.1)',   text: '#EF4444' },
-};
-
-interface RecentOrder {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  total: number;
-  status: string;
-  createdAt: string;
-}
-
-interface StatsData {
-  totalRevenue: number;
-  totalGrossProfit: number;
-  totalOrders: number;
-  totalCustomers: number;
-  totalProducts: number;
-  recentOrders: RecentOrder[];
+function todayLabel() {
+  return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Beirut' });
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<StatsData | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
     fetch('/api/admin/stats')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
       .then(setStats)
-      .catch(console.error);
+      .catch(() => setFailed(true));
   }, []);
 
-  const recentOrdersColumns: Column[] = [
-    {
-      id: 'orderNumber',
-      label: 'Order #',
-      minWidth: 120,
-      format: (value) => (
-        <Typography sx={{ fontWeight: 600, color: '#DC2626' }}>{value}</Typography>
-      ),
-    },
-    {
-      id: 'customerName',
-      label: 'Customer',
-      minWidth: 160,
-    },
-    {
-      id: 'createdAt',
-      label: 'Date',
-      minWidth: 120,
-      format: (value) => formatDate(value),
-    },
-    {
-      id: 'total',
-      label: 'Total',
-      minWidth: 100,
-      align: 'right',
-      format: (value) => (
-        <Typography sx={{ fontWeight: 600 }}>{formatPrice(value)}</Typography>
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      minWidth: 120,
-      align: 'center',
-      sortable: false,
-      format: (value) => {
-        const sc = statusColors[value] ?? { bg: 'rgba(0,0,0,0.05)', text: '#6B7280' };
-        return (
-          <Chip
-            label={value.charAt(0).toUpperCase() + value.slice(1)}
-            size="small"
-            sx={{ bgcolor: sc.bg, color: sc.text, fontWeight: 600, textTransform: 'capitalize' }}
-          />
-        );
-      },
-    },
-  ];
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const load = () => {
+    setFailed(false);
+    fetchStats();
+  };
 
   return (
-    <Box>
-      {/* Page Header */}
-      <Box sx={{ mb: { xs: 3, sm: 4 } }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, fontSize: { xs: '1.3rem', sm: '2.125rem' } }}>
-          Dashboard Overview
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-          Welcome to your admin dashboard. Here&apos;s what&apos;s happening with your store.
-        </Typography>
-      </Box>
+    <>
+      <PageHeader title="Dashboard" description={`Welcome back. Here's what's happening with your store today, ${todayLabel()}.`} />
 
-      {/* Stats Cards */}
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
-        {stats ? (
-          <>
-            <Grid size={{ xs: 6, lg: 3 }}>
-              <StatsCard
-                title="Total Revenue"
-                value={formatPrice(stats.totalRevenue)}
-                icon={<RevenueIcon sx={{ fontSize: 28 }} />}
-                iconBgColor="rgba(34, 197, 94, 0.1)"
-                iconColor="#22C55E"
-              />
-            </Grid>
-            <Grid size={{ xs: 6, lg: 3 }}>
-              <StatsCard
-                title="Total Gross Profit"
-                value={formatPrice(stats.totalGrossProfit)}
-                icon={<TrendingUp sx={{ fontSize: 28 }} />}
-                iconBgColor="rgba(16, 185, 129, 0.1)"
-                iconColor="#10B981"
-              />
-            </Grid>
-            <Grid size={{ xs: 6, lg: 3 }}>
-              <StatsCard
-                title="Total Orders"
-                value={stats.totalOrders}
-                icon={<OrdersIcon sx={{ fontSize: 28 }} />}
-                iconBgColor="rgba(59, 130, 246, 0.1)"
-                iconColor="#3B82F6"
-              />
-            </Grid>
-            <Grid size={{ xs: 6, lg: 3 }}>
-              <StatsCard
-                title="Total Customers"
-                value={stats.totalCustomers}
-                icon={<CustomersIcon sx={{ fontSize: 28 }} />}
-                iconBgColor="rgba(168, 85, 247, 0.1)"
-                iconColor="#A855F7"
-              />
-            </Grid>
-            <Grid size={{ xs: 6, lg: 3 }}>
-              <StatsCard
-                title="Total Products"
-                value={stats.totalProducts}
-                icon={<ProductsIcon sx={{ fontSize: 28 }} />}
-                iconBgColor="rgba(220, 38, 38, 0.1)"
-                iconColor="#DC2626"
-              />
-            </Grid>
-          </>
-        ) : (
-          <>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Grid key={i} size={{ xs: 6, lg: 3 }}>
-                <StatsCardSkeleton />
-              </Grid>
-            ))}
-          </>
-        )}
-      </Grid>
-
-      {/* Recent Orders */}
-      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 3, sm: 4 } }}>
-        <Box sx={{ display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: { xs: 2, sm: 3 } }}>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Recent Orders
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Latest orders from your store
-            </Typography>
-          </Box>
-          <Button
-            component={Link}
-            href="/admin/orders"
-            variant="outlined"
-            endIcon={<ArrowForward />}
-            sx={{
-              borderColor: '#DC2626',
-              color: '#DC2626',
-              alignSelf: { xs: 'flex-start', sm: 'auto' },
-              '&:hover': { borderColor: '#B91C1C', bgcolor: 'rgba(220, 38, 38, 0.04)' },
-            }}
-          >
-            View All Orders
+      {failed && !stats && (
+        <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+          <div>
+            <b className="font-adm-display text-[15px]">Couldn&apos;t load the dashboard</b>
+            <p className="text-[13px] text-adm-muted">Check your connection, then try again.</p>
+          </div>
+          <Button variant="outline" onClick={load}>
+            <RotateCw />
+            Try again
           </Button>
-        </Box>
-        {stats ? (
-          <DataTable
-            columns={recentOrdersColumns}
-            data={stats.recentOrders}
-            emptyMessage="No orders yet."
-          />
-        ) : (
-          <TableSkeleton columns={5} rows={5} />
-        )}
-      </Paper>
+        </Card>
+      )}
 
-      {/* Quick Actions */}
-      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: { xs: 2, sm: 3 }, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-          Quick Actions
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 6, md: 3 }}>
-            <Button
-              component={Link}
-              href="/admin/orders"
-              variant="contained"
-              fullWidth
-              startIcon={<OrdersIcon />}
-              sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-            >
-              Orders
-            </Button>
-          </Grid>
-          <Grid size={{ xs: 6, md: 3 }}>
-            <Button
-              component={Link}
-              href="/admin/products"
-              variant="outlined"
-              fullWidth
-              startIcon={<ProductsIcon />}
-              sx={{
-                borderColor: '#DC2626', color: '#DC2626',
-                '&:hover': { borderColor: '#B91C1C', bgcolor: 'rgba(220, 38, 38, 0.04)' },
-                py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              }}
-            >
-              Products
-            </Button>
-          </Grid>
-          <Grid size={{ xs: 6, md: 3 }}>
-            <Button
-              component={Link}
-              href="/admin/customers"
-              variant="outlined"
-              fullWidth
-              startIcon={<CustomersIcon />}
-              sx={{
-                borderColor: '#DC2626', color: '#DC2626',
-                '&:hover': { borderColor: '#B91C1C', bgcolor: 'rgba(220, 38, 38, 0.04)' },
-                py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              }}
-            >
-              Customers
-            </Button>
-          </Grid>
-          <Grid size={{ xs: 6, md: 3 }}>
-            <Button
-              component={Link}
-              href="/admin/coupons"
-              variant="outlined"
-              fullWidth
-              startIcon={<TrendingUp />}
-              sx={{
-                borderColor: 'rgba(0,0,0,0.23)', color: 'text.primary',
-                '&:hover': { borderColor: 'rgba(0,0,0,0.4)', bgcolor: 'rgba(0,0,0,0.02)' },
-                py: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              }}
-            >
-              Coupons
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
-    </Box>
+      {stats ? <StatCards stats={stats} /> : !failed && <StatCardsSkeleton />}
+
+      <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+        {stats ? (
+          <>
+            <RevenueChart stats={stats} />
+            <StatusCard stats={stats} />
+          </>
+        ) : (
+          !failed && (
+            <>
+              <Skeleton className="h-[372px] rounded-[18px] bg-adm-surface" />
+              <Skeleton className="h-[372px] rounded-[18px] bg-adm-surface" />
+            </>
+          )
+        )}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+        {stats ? (
+          <>
+            <RecentOrders stats={stats} />
+            <QuickActions stats={stats} />
+          </>
+        ) : (
+          !failed && (
+            <>
+              <Skeleton className="h-[380px] rounded-[18px] bg-adm-surface" />
+              <Skeleton className="h-[380px] rounded-[18px] bg-adm-surface" />
+            </>
+          )
+        )}
+      </div>
+    </>
   );
 }
